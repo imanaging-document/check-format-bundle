@@ -1,7 +1,9 @@
 ImanagingCheckFormatBundle
 ============
 
-This bundle is a tool that allows you to check the file's format.
+This bundle is a tool that allows you to check arrays format.
+
+You have to provide a structure, which describe the format you want to check, and the datas you want to check. It can be simple array, or array of array.
 
 This bundle should be used inside an imanaging-document application.
 
@@ -19,6 +21,8 @@ You have to create a ```config/packages/imanaging_check_format.yaml``` file:
 imanaging_api_communication:
     bar: ~
 ```
+
+This configuration is optionnal.
 
 Usage
 ----------------------------------
