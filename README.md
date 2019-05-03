@@ -18,7 +18,7 @@ Configuration
 
 You have to create a ```config/packages/imanaging_check_format.yaml``` file:
 ```yaml
-imanaging_api_communication:
+imanaging_check_format:
     bar: ~
 ```
 
