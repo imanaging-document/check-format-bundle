@@ -1,5 +1,5 @@
 {
-    "name": "imanaging/check-format-bundle",
+    "name": "imanaging-document/check-format-bundle",
     "description": "This bundle allows you to check format",
     "type": "symfony-bundle",
     "license": "MIT",
