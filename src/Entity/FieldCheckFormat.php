@@ -16,6 +16,7 @@ class FieldCheckFormat
   private $nullable;
   private $longueur_min;
   private $longueur_max;
+  private $translations;
 
 
   public function __construct($type, $libelle, $nullable, $longueurMin = null, $longueurMax = null) {
@@ -24,6 +25,7 @@ class FieldCheckFormat
     $this->nullable = $nullable;
     $this->longueur_min = $longueurMin;
     $this->longueur_max = $longueurMax;
+    $this->translations = array();
   }
 
   /**
@@ -90,6 +92,22 @@ class FieldCheckFormat
     } else {
       return false;
     }
+  }
+
+  public function getTranslatedValue($value) {
+    $translatedValue = $value;
+    foreach ($this->translations as $translation) {
+      if ($translation instanceof FieldCheckFormatTranslation) {
+        if ($translation->getSearchValue() == $value) {
+          $translatedValue = $translation->getTranslation();
+        }
+      }
+    }
+    return $translatedValue;
+  }
+
+  public function addTranslation(FieldCheckFormatTranslation $translation) {
+    array_push($this->translations, $translation);
   }
 
 }

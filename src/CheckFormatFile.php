@@ -66,12 +66,16 @@ class CheckFormatFile
       for ($i = 0; $i < count($fields); $i++) {
          $fieldTemp = $fields[$i];
          if ($fieldTemp instanceof FieldCheckFormat) {
-           if (!$fieldTemp->validFormat($datas[$i])) {
-              array_push($errorsList, array('field' => $fieldTemp->getLibelle(), 'error_message' => 'la valeur "' . $datas[$i] . '" ne respecte pas le format "' . $fieldTemp->getType() . '"'));
+           $translatedValue = $fieldTemp->getTranslatedValue($datas[$i]);
+           if (!$fieldTemp->validFormat($translatedValue)) {
+
+             $libelleTranslatedValue = ($translatedValue !== $datas[$i]) ? ' ( Traduction : ' . $translatedValue . ' )' : "";
+
+              array_push($errorsList, array('field' => $fieldTemp->getLibelle(), 'error_message' => 'la valeur "' . $datas[$i]  . $libelleTranslatedValue  . '" ne respecte pas le format "' . $fieldTemp->getType() . '"'));
            } else {
              if ($returnDataObj) {
                $lib = str_replace(' ','_',$fieldTemp->getLibelle());
-               $objData->{$lib} = $datas[$i];
+               $objData->{$lib} = $fieldTemp->getTranslatedValue($datas[$i]);
              }
            }
          } else {
