@@ -68,14 +68,12 @@ class CheckFormatFile
          if ($fieldTemp instanceof FieldCheckFormat) {
            $translatedValue = $fieldTemp->getTranslatedValue($datas[$i]);
            if (!$fieldTemp->validFormat($translatedValue)) {
-
              $libelleTranslatedValue = ($translatedValue !== $datas[$i]) ? ' ( Traduction : ' . $translatedValue . ' )' : "";
-
               array_push($errorsList, array('field' => $fieldTemp->getLibelle(), 'error_message' => 'la valeur "' . $datas[$i]  . $libelleTranslatedValue  . '" ne respecte pas le format "' . $fieldTemp->getType() . '"'));
            } else {
              if ($returnDataObj) {
                $lib = str_replace(' ','_',$fieldTemp->getLibelle());
-               $objData->{$lib} = $fieldTemp->getTranslatedValue($datas[$i]);
+               $objData->{$lib} = $translatedValue;
              }
            }
          } else {
