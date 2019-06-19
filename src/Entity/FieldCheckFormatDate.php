@@ -15,9 +15,9 @@ class FieldCheckFormatDate extends FieldCheckFormat
 {
   private $format;
 
-  public function __construct($libelle, $nullable, $format = null)
+  public function __construct($code, $libelle, $nullable, $format = null)
   {
-    parent::__construct("datetime", $libelle, $nullable);
+    parent::__construct("datetime", $code, $libelle, $nullable);
     $this->format = $format;
   }
 
@@ -73,5 +73,18 @@ class FieldCheckFormatDate extends FieldCheckFormat
       'dmY',
       'd-m-Y'
     );
+  }
+
+  /**
+   * @param DateTime $value
+   * @return string
+   */
+  public function getValue($value) {
+    $dateTemp = DateTime::createFromFormat($this->format, $value);
+    if ($dateTemp instanceof DateTime) {
+      return $dateTemp->format('YmdHis');
+    } else {
+      return "";
+    }
   }
 }
