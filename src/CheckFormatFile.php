@@ -86,7 +86,7 @@ class CheckFormatFile
                 $libelleTranslatedValue = ($transformedValue !== $datas[$field->getIndexFichier()]) ? ' "( Traduction : "' . $libelleTranslated . '" )' : "";
                 array_push($errorsList['advanced'], array('field' => $fieldAdvanced->getLibelle() . " -> " . $field->getLibelle(), 'error_message' => 'la valeur "' . $datas[$field->getIndexFichier()] . '"' . $libelleTranslatedValue  . ' ne respecte pas le format "' . $field->getType() . '" (Nullable : ' . $libelleNullable . ') '));
               } else {
-                $fieldConcat .= $translatedValue;
+                $fieldConcat .= $field->getValue($translatedValue);
               }
             } else {
               return array(
