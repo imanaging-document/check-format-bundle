@@ -31,6 +31,10 @@ class FieldCheckFormatDate extends FieldCheckFormat
 
   public function validFormat($value) {
     if ($this->validNullable($value)) {
+      if ($this->isNull($value)){
+        return true;
+      }
+
       if (!is_null($this->format)) {
         return $this->isValidDate($value, $this->format);
       } else {

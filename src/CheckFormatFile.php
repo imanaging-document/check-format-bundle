@@ -70,7 +70,7 @@ class CheckFormatFile
         'classic' => array(),
         'advanced' => array()
       );
-//      // TODO Gestion fieldsAdvanced
+      // TODO Gestion fieldsAdvanced
       foreach ($fieldsAdvanced as $fieldAdvanced) {
         $fieldConcat = '';
         if ($fieldAdvanced instanceof FieldCheckFormatAdvanced) {
@@ -91,7 +91,7 @@ class CheckFormatFile
             } else {
               return array(
                 'error' => true,
-                'errors_list' => array(array('classic' => array(), 'advanced' => array('field' => null, 'error_message' => 'Ce format d\'objet n\'est pas géré.')))
+                'errors_list' => array('classic' => array(array(), 'advanced' => array('field' => null, 'error_message' => 'Ce format d\'objet n\'est pas géré.')), 'advanced' => [])
               );
             }
           }
@@ -104,27 +104,27 @@ class CheckFormatFile
 
 
       for ($i = 0; $i < count($fields); $i++) {
-         $fieldTemp = $fields[$i];
-         if ($fieldTemp instanceof FieldCheckFormat) {
-           $translatedValue = $fieldTemp->getTranslatedValue($datas[$i]);
-           $transformedValue = $fieldTemp->getTransformedValue($translatedValue);
-           if (!$fieldTemp->validFormat($transformedValue)) {
-             $libelleNullable = ($fieldTemp->isNullable()) ? "OUI" : "NON";
-             $libelleTranslated = (!is_null($transformedValue)) ? $transformedValue : "valeur NULL";
-             $libelleTranslatedValue = ($transformedValue !== $datas[$i]) ? ' "( Traduction : "' . $libelleTranslated . '" )' : "";
-              array_push($errorsList['classic'], array('field' => $fieldTemp->getLibelle(), 'error_message' => 'la valeur "' . $datas[$i] . '"' . $libelleTranslatedValue  . ' ne respecte pas le format "' . $fieldTemp->getType() . '" (Nullable : ' . $libelleNullable . ') '));
-           } else {
-             if ($returnDataObj) {
-               $lib = str_replace(' ','_',$fieldTemp->getCode());
-               $objData->{$lib} = $fieldTemp->getValue($transformedValue);
-             }
-           }
-         } else {
-           return array(
-             'error' => true,
-             'errors_list' => array(array('classic' => array('field' => null, 'error_message' => 'Une erreur est survenue, veuillez contacter un administrateur'), 'advanced' => ''))
-           );
-         }
+        $fieldTemp = $fields[$i];
+        if ($fieldTemp instanceof FieldCheckFormat) {
+          $translatedValue = $fieldTemp->getTranslatedValue($datas[$i]);
+          $transformedValue = $fieldTemp->getTransformedValue($translatedValue);
+          if (!$fieldTemp->validFormat($transformedValue)) {
+            $libelleNullable = ($fieldTemp->isNullable()) ? "OUI" : "NON";
+            $libelleTranslated = (!is_null($transformedValue)) ? $transformedValue : "valeur NULL";
+            $libelleTranslatedValue = ($transformedValue !== $datas[$i]) ? ' "( Traduction : "' . $libelleTranslated . '" )' : "";
+            array_push($errorsList['classic'], array('field' => $fieldTemp->getLibelle(), 'error_message' => 'la valeur "' . $datas[$i] . '"' . $libelleTranslatedValue  . ' ne respecte pas le format "' . $fieldTemp->getType() . '" (Nullable : ' . $libelleNullable . ') '));
+          } else {
+            if ($returnDataObj) {
+              $lib = str_replace(' ','_',$fieldTemp->getCode());
+              $objData->{$lib} = $fieldTemp->getValue($transformedValue);
+            }
+          }
+        } else {
+          return array(
+            'error' => true,
+            'errors_list' => array('classic' => array(array('field' => null, 'error_message' => 'Une erreur est survenue, veuillez contacter un administrateur')), 'advanced' => [])
+          );
+        }
       }
 
       if (count($errorsList['classic']) > 0 || count($errorsList['advanced']) > 0) {
@@ -134,13 +134,13 @@ class CheckFormatFile
         );
       }
       return array(
-       'error' => false,
-       'obj_data' => $objData
+        'error' => false,
+        'obj_data' => $objData
       );
     } else {
       return array(
         'error' => true,
-        'errors_list' => array(array('classic' => array('field' => null, 'error_message' => 'Le nombre de colonne est différent du nombre prévu (' . count($datas) . ' / ' . count($fields) . " attendus )"), 'advanced' => ''))
+        'errors_list' => array('classic' => array(array('field' => null, 'error_message' => 'Le nombre de colonne est différent du nombre prévu (' . count($datas) . ' / ' . count($fields) . " attendus )")), 'advanced' => [])
       );
     }
   }

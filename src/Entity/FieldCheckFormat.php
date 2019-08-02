@@ -64,12 +64,17 @@ class FieldCheckFormat
     return $this->nullable;
   }
 
+  public function isNull($value)
+  {
+    return (is_null($value) || $value == "" );
+  }
+
   /**
    * @param $value
    * @return bool
    */
   public function validNullable($value) {
-    if (!$this->nullable && (is_null($value) || $value == "" )) {
+    if (!$this->nullable && ($this->isNull($value) )) {
       return false;
     } else {
       return true;
