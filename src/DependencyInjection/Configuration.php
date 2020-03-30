@@ -15,7 +15,7 @@ class Configuration implements ConfigurationInterface
     $rootNode = $treeBuilder->root('imanaging_check_format');
     $rootNode
       ->children()
-        ->booleanNode('bar')->defaultTrue()->info('Test parameter')->end()
+        ->variableNode('bar')->defaultValue("")->info('Test')->end()
       ->end()
     ;
 

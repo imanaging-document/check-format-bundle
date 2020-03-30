@@ -1,0 +1,147 @@
+<div class="text-right">
+  <button id="btn-close-translations" class="btn btn-raised btn-danger"><i class="fa fa-times fa-fw"></i>Fermer la gestion des traductions</button>
+</div>
+
+<div class="card">
+  <h5 class="card-header text-info">Gestion des traductions pour le champ : {{ mapping_value.mappingCode }}</h5>
+  <div class="card-body">
+    <table class="table table-bordered table-striped text-center">
+      <thead>
+        <tr>
+          <th>Valeur fichier</th>
+          <th>Traduction</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-translations">
+      {% for translation in mapping_value.mappingConfigurationValueTranslations %}
+        <tr>
+          <td>{{ translation.value }}</td>
+          <td>
+            {% if translation.translation is null %}
+              <i class="fa fa-warning text-danger fa-fw"></i><span>NULL (en base de données)
+            {% else %}
+              {{ translation.translation }}
+            {% endif %}
+          </td>
+          <td>
+            <i class="fa fa-trash text-warning remove-translation pointer" data-translation-id="{{ translation.id }}"></i>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <!-- Button trigger modal -->
+    <div class="text-center mt-4">
+      <button type="button" class="btn btn-outline-primary" data-toggle="modal" data-target="#addTranslationModal">
+        Ajouter une traduction
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="addTranslationModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Ajouter une traduction</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="value_fichier">Valeur dans le fichier</label>
+          <input id="value_fichier" name="value_fichier" type="text" class="form-control">
+        </div>
+
+        <div class="pretty p-icon p-round">
+          <input type="radio" class="state_translate_mode" name="state_translate_mode" value="set_traduction"/>
+          <div class="state p-primary">
+            <i class="icon mdi mdi-check"></i>
+            <label>Avec traduction</label>
+          </div>
+        </div>
+
+        <div class="pretty p-icon p-round">
+          <input type="radio" class="state_translate_mode" name="state_translate_mode" value="set_nullable"/>
+          <div class="state p-success">
+            <i class="icon mdi mdi-check"></i>
+            <label>Rendre NULL en base de données</label>
+          </div>
+        </div>
+
+        <div id="divTranslateInput" class="form-group d-none">
+          <label for="translation">Traduction</label>
+          <input id="translation" name="translation" type="text"  class="form-control">
+        </div>
+
+        <button id="btn-add-translation" type="button" class="btn btn-outline-primary">Ajouter</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  $("#btn-close-translations").click(function(){
+    $("#translations-card").addClass('d-none');
+  });
+
+  $("#btn-add-translation").click(function(){
+    let valueFichier = $("#value_fichier").val();
+    let translateMode = $(".state_translate_mode:checked").val();
+    let translation = $("#translation").val();
+    let data = {value_fichier: valueFichier, translate_mode: translateMode, translation: translation};
+    $.ajax({
+      url: "{{ path('check_format_mapping_add_translations', {'idValue': mapping_value.id}) }}",
+      type: 'POST',
+      data: data,
+      success: function(data){
+        if (translateMode === 'set_nullable'){
+          translation = '<i class="fa fa-warning text-danger fa-fw"></i><span>NULL (en base de données)';
+        }
+        let newTr = '<tr>' +
+            '<td>'+valueFichier+'</td>' +
+            '<td>'+translation+'</td>' +
+            '<td>' +
+            '<i class="fa fa-trash text-warning remove-translation pointer" data-translation-id="'+data.id+'"></i>' +
+            '</td>' +
+            '</tr>';
+        $("#tbody-translations").append(newTr);
+        $("#addTranslationModal").modal('hide');
+      },
+      error: function(){
+        alert("Une erreur est survenue lors de la suppression");
+      }
+    });
+  });
+
+  $('.state_translate_mode').change(function() {
+    var radioValue = $(".state_translate_mode:checked").val();
+    if (radioValue === "set_nullable") {
+      // on masque le champs
+      $('#divTranslateInput').addClass("d-none");
+      $('#translation').val("");
+    } else {
+      $('#divTranslateInput').removeClass("d-none");
+    }
+  });
+
+  $(document).on('click', '.remove-translation', function(){
+    let thisElement = $(this);
+    let translationId = $(this).data('translation-id');
+    let data = {translation_id : translationId};
+    $.ajax({
+      url: "{{ path('check_format_mapping_remove_translations') }}",
+      type: 'POST',
+      data: data,
+      success: function(){
+        thisElement.closest('tr').remove();
+      },
+      error: function(){
+        alert("Une erreur est survenue lors de la suppression");
+      }
+    });
+  });
+</script>

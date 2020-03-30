@@ -1,0 +1,146 @@
+<style>
+#champsPossiblesTables > tbody > tr:hover{
+  background-color: aquamarine;
+}
+
+.noselect {
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Old versions of Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Opera and Firefox */
+}
+</style>
+
+<div class="text-right">
+  <button id="btn-close-champs-possibles" class="btn btn-raised btn-danger"><i class="fa fa-times fa-fw"></i>Fermer la gestion des champs possibles</button>
+</div>
+
+<div class="card">
+  <h5 class="card-header text-info">{{ mapping_configuration_type.libelle }} - Gestion des champs possibles</h5>
+
+  <div class="card-body">
+    <p><i class="fa fa-info-circle fa-fw"></i>Double-cliquez dans une cellule de type "Oui / Non" pour en inverser la valeur.</p>
+
+    <table id="champsPossiblesTables" class="table table-bordered table-striped text-center">
+      <thead>
+        <tr>
+          <th>Libellé</th>
+          <th>Table</th>
+          <th>Data</th>
+          <th>Type</th>
+          <th>Obligatoire</th>
+          <th>Nullable</th>
+          <th>Intégration local</th>
+          <th>Editer</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-translations">
+      {% for champ in champsPossibles %}
+        <tr class="champ-row" data-champ-id="{{ champ.id }}">
+          <td class="champ-libelle">{{ champ.libelle }}</td>
+          <td class="champ-table">{{ champ.table }}</td>
+          <td>{{ champ.data }}</td>
+          <td class="champ-type">{{ champ.type }}</td>
+          <td class="noselect champ-obligatoire">
+            {% if champ.obligatoire %}
+              <span class="text-success">
+                <i class="fa fa-check-circle fa-fw"></i> Oui
+              </span>
+            {% else %}
+              <span class="text-danger">
+                <i class="fa fa-times-circle fa-fw"></i> Non
+              </span>
+            {% endif %}
+          </td>
+          <td class="noselect champ-nullable">
+            {% if champ.nullable %}
+              <span class="text-success">
+                <i class="fa fa-check-circle fa-fw"></i> Oui
+              </span>
+            {% else %}
+              <span class="text-danger">
+                <i class="fa fa-times-circle fa-fw"></i> Non
+              </span>
+            {% endif %}
+          </td>
+          <td class="noselect champ-integration-local">
+            {% if champ.integrationLocal %}
+              <span class="text-success">
+                <i class="fa fa-check-circle fa-fw"></i> Oui
+              </span>
+            {% else %}
+              <span class="text-danger">
+                <i class="fa fa-times-circle fa-fw"></i> Non
+              </span>
+            {% endif %}
+          </td>
+          <td class="pointer edit-champ-possible text-primary" data-champ-id="{{ champ.id }}">
+            <i class="fa fa-pencil fa-fw"></i>Editer
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div id="divModalEditChampPossible">
+</div>
+
+<script>
+  $("#btn-close-champs-possibles").click(function(){
+    $("#gerer-champs-possibles-card").addClass('d-none');
+  });
+
+  $(".edit-champ-possible").click(function(){
+    let champId = $(this).data('champ-id');
+    let data = {champ_id: champId};
+    $.ajax({
+      url: "{{ path('check_format_mapping_champs_possibles_modal_edition') }}",
+      type: 'POST',
+      data: data,
+      success: function(data){
+        $("#divModalEditChampPossible").html(data);
+        $("#modalEditChampPossible").modal();
+      },
+      error: function(){
+        alert("Une erreur est survenue :(");
+      }
+    });
+  });
+
+  $(".champ-obligatoire").dblclick(function(){
+    toggleBooleanValue($(this), 'obligatoire');
+  });
+
+  $(".champ-nullable").dblclick(function(){
+    toggleBooleanValue($(this), 'nullable');
+  });
+
+  $(".champ-integration-local").dblclick(function(){
+    toggleBooleanValue($(this), 'integration-local');
+  });
+
+  function toggleBooleanValue(element, type){
+    let champId = element.closest('tr').data('champ-id');
+    let data = {champ_id: champId, type: type};
+    $.ajax({
+      url: "{{ path('check_format_mapping_champs_possibles_toggle_boolean_value') }}",
+      type: 'POST',
+      data: data,
+      success: function(data){
+        if (data.res){
+          element.html('<span class="text-success"><i class="fa fa-check-circle fa-fw"></i> Oui</span>');
+        } else {
+          element.html('<span class="text-danger"><i class="fa fa-times-circle fa-fw"></i> Non</span>');
+        }
+      },
+      error: function(){
+        alert("Une erreur est survenue :(");
+      }
+    });
+  }
+</script>

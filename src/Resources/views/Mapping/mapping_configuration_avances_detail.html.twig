@@ -1,0 +1,141 @@
+<h5>Détail de la valeur <b>{{ value.mappingCode }}</b>:</h5>
+
+{% if values_avances|length > 0 %}
+<table class="table table-bordered table-striped text-center">
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th>Valeur</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for valeur_avance in values_avances %}
+    <tr>
+      <td>{{ valeur_avance.mappingConfigurationValueAvanceType.libelle }}</td>
+      <td>{{ valeur_avance.value }}</td>
+      <td>
+        <i class="fa fa-times text-danger pointer delete-valeur-avancee-detail"
+           data-toggle="tooltip" data-placement="top" title="Supprimer la valeur" data-valeur-avancee-id="{{ valeur_avance.id }}"></i>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+{% else %}
+  <span class="text-warning">Aucune valeur de paramètrée pour le moment.</span>
+{% endif %}
+<div class="row">
+  <div class="col-sm-6 offset-3">
+    <button id="btnAddValeur" class="btn btn-outline-info" data-toggle="modal" data-target="#addValeurAvanceDetailModal">Ajouter une valeur</button>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="addValeurAvanceDetailModal" tabindex="-1" role="dialog" aria-labelledby="addValeurAvanceDetailModal" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Ajouter une valeur avancée</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="type-valeur-avancee">Type de données</label>
+          <select class="form-control" id="type-valeur-avancee">
+            {% for type in types_values %}
+              <option value="{{ type.code }}">{{ type.libelle }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group" id="modalValueText">
+          <label for="value-valeur-avancee">Valeur</label>
+          <input type="text" class="form-control" id="value-valeur-avancee" placeholder="Entrez la valeur souhaitée">
+        </div>
+
+        <div class="form-group d-none" id="modalSelectEnteteFile" >
+          <label for="select_entete">Valeur - entête fichier</label>
+          <select class="form-control" id="select_entete" name="select_entete">
+            {% for indexFile, entete in ligne_entete %}
+              <option value="{{ indexFile }}">{{ entete }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="text-center">
+          <button id="btnValidAjoutValueAvance" class="btn btn-primary">Ajouter</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  $(function () {
+    $('[data-toggle="tooltip"]').tooltip()
+  });
+
+  $('#type-valeur-avancee').change(function() {
+    if ($(this).val() === "value_file") {
+      $('#modalValueText').addClass('d-none');
+      $('#modalSelectEnteteFile').removeClass('d-none');
+    } else {
+      $('#modalValueText').removeClass('d-none');
+      $('#modalSelectEnteteFile').addClass('d-none');
+    }
+  });
+
+  $('#btnValidAjoutValueAvance').click(function(){
+    let type = $('#type-valeur-avancee').val();
+    if (type !== undefined){
+      let value = $('#value-valeur-avancee').val();
+      let file_index = $('#select_entete').val();
+      let file_entete = $('#select_entete option:selected').text();
+      let data = {'value': value, 'type': type, 'file_index': file_index, 'file_entete': file_entete, files_directory: filesDirectory};
+
+      $('#divConfigurationAvances').html('<i class="fa fa-spin fa-spinner fa-2x fa-fw"></i><span>Enregistrement en cours ...</span>');
+      $.ajax({
+        url: "{{ path('check_format_mapping_configuration_values_avances_detail_add', {'id': value.id}) }}",
+        type: 'POST',
+        data: data,
+        success: function (data){
+          $('.modal-backdrop').remove();
+          $('#divConfigurationAvances').html(data);
+        },
+        error: function (data){
+          $('.modal-backdrop').remove();
+          if (data.responseJSON !== undefined){
+            $('#divConfigurationAvances').html('<i class="fa fa-warning fa-2x text-danger fa-fw"></i>'+data.responseJSON.error_message);
+          } else {
+            $('#divConfigurationAvances').html('<i class="fa fa-warning fa-2x text-danger fa-fw"></i>Une erreur inconnue est survenue.');
+
+          }
+        }
+      });
+    } else {
+      $('.modal-backdrop').remove();
+      alert('Veuillez sélectionner un type.');
+    }
+  });
+
+  $(".delete-valeur-avancee-detail").click(function(){
+    let valeurAvanceeId = $(this).data('valeur-avancee-id');
+    let data = {valeur_avancee_id: valeurAvanceeId, files_directory: filesDirectory};
+    $('#divConfigurationAvances').html('<i class="fa fa-spin fa-spinner fa-2x"></i><span> Enregistrement en cours ...</span>');
+    $.ajax({
+      url: "{{ path('check_format_mapping_configuration_values_avances_detail_remove') }}",
+      type: 'POST',
+      data: data,
+      success: function (data) {
+        $('#divConfigurationAvances').html(data);
+      },
+      error: function () {
+        $('#divConfigurationAvances').html('<i class="fa fa-warning fa-2x text-danger"></i><span> Le chargement du détail a échoué.</span>');
+      }
+    });
+  });
+</script>

@@ -1,0 +1,113 @@
+<div class="text-right">
+  <button id="btn-close-transformations" class="btn btn-raised btn-danger"><i class="fa fa-times fa-fw"></i>Fermer la gestion des transformations</button>
+</div>
+
+<div class="card">
+  <h5 class="card-header text-info">Gestion des transformations pour le champ : {{ mapping_value.mappingCode }}</h5>
+  <div class="card-body">
+    <table class="table table-bordered table-striped text-center">
+      <thead>
+      <tr>
+        <th>Transformation</th>
+        <th>Nb caractères</th>
+        <th>Action</th>
+      </tr>
+      </thead>
+      <tbody id="tbody-transformations">
+      {% for transformation in mapping_value.mappingConfigurationValueTransformations %}
+        <tr>
+          <td>{{ transformation.transformation }}</td>
+          <td>{{ transformation.nbCaract }}</td>
+          <td>
+            <i class="fa fa-trash text-warning remove-transformation pointer" data-transformation-id="{{ transformation.id }}"></i>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <hr>
+    <!-- Button trigger modal -->
+    <div class="text-center">
+      <button type="button" class="btn btn-outline-primary" data-toggle="modal" data-target="#addTransformationModal">
+        Ajouter une transformation
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="addTransformationModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Ajouter une transformation</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="transformation">Type de transformation</label>
+          <select class="form-control" name="transformation" id="transformation">
+            {% for transformation_key, transformation_libelle in transformations %}
+              <option value="{{ transformation_key }}">{{ transformation_libelle }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="nb_caract">Nb caractères</label>
+          <input type="number" class="form-control" name="nb_caract" id="nb_caract" />
+        </div>
+        <button type="button" id="btn-add-transformation" class="btn btn-outline-primary">Ajouter</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  $("#btn-close-transformations").click(function(){
+    $("#transformations-card").addClass('d-none');
+  });
+
+  $("#btn-add-transformation").click(function(){
+    let transformation = $("#transformation").val();
+    let nbCaractere = $("#nb_caract").val();
+    let data = {transformation: transformation, nb_caractere: nbCaractere};
+    $.ajax({
+      url: "{{ path('check_format_mapping_add_transformations', {'idValue': mapping_value.id}) }}",
+      type: 'POST',
+      data: data,
+      success: function(data){
+        let newTr = '<tr>' +
+            '<td>'+transformation+'</td>' +
+            '<td>'+nbCaractere+'</td>' +
+            '<td>' +
+            '<i class="fa fa-trash text-warning remove-transformation pointer" data-transformation-id="'+data.id+'"></i>' +
+            '</td>' +
+            '</tr>';
+        $("#tbody-transformations").append(newTr);
+        $("#addTransformationModal").modal('hide');
+      },
+      error: function(){
+        alert("Une erreur est survenue lors de la suppression");
+      }
+    });
+  });
+
+  $(document).on('click', '.remove-transformation', function(){
+    let thisElement = $(this);
+    let transformationId = $(this).data('transformation-id');
+    let data = {transformation_id: transformationId};
+    $.ajax({
+      url: "{{ path('check_format_mapping_remove_transformations') }}",
+      type: 'POST',
+      data: data,
+      success: function(){
+        thisElement.closest('tr').remove();
+      },
+      error: function(){
+        alert("Une erreur est survenue lors de la suppression");
+      }
+    });
+  });
+</script>

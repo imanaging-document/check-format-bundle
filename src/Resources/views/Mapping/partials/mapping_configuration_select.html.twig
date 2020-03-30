@@ -1,0 +1,87 @@
+<div class="form-group">
+  <label for="mapping">Selection du mapping</label>
+  <select name="mapping" id="mapping" class="form-control">
+    {% for mapping_configuration in mapping_configurations %}
+      <option value="{{ mapping_configuration.id }}" {% if mapping_configuration.active %}selected{% endif %}>{{ mapping_configuration.libelle }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+<div class="btn-group text-center w-100">
+  <button id="btn_add_mapping_configuration" class="btn btn-info btn-raised" data-toggle="modal" data-target="#addConfigurationModal">
+    <i class="fa fa-plus-circle fa-fw"></i>Ajouter une nouvelle configuration
+  </button>
+  <button id="btn_remove_mapping_configuration" class="btn btn-danger btn-raised">
+    <i class="fa fa-trash-o fa-fw"></i>Supprimer la configuration actuelle
+  </button>
+</div>
+
+<div class="modal fade" id="addConfigurationModal" tabindex="-1" role="dialog" aria-labelledby="addConfigurationModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">Ajouter une configuration</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="mapping_configuration_libelle">Libellé</label>
+          <input name="mapping_configuration_libelle" id="mapping_configuration_libelle" type="text" class="form-control">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn_add_configuration" type="button" class="btn btn-primary btn-raised">Ajouter</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+  $('#mapping').change(function() {
+    loadConfiguration();
+  });
+
+
+  $('#btn_add_configuration').click(function() {
+    let libelle = $('#mapping_configuration_libelle').val();
+    if (libelle !== "") {
+      let data = {libelle: libelle, mapping_configuration_type: mappingConfigurationType};
+      $.ajax({
+        url: "{{ path('check_format_mapping_add_configuration') }}",
+        type: 'POST',
+        data: data,
+        success: function (data) {
+          $('#addConfigurationModal').modal('hide');
+          loadMappingConfigurations();
+        },
+        error: function () {
+          showSweetAlert('top-end', 'error', 'Une erreur est survenue lors de la sélection du champs. Veuillez réessayer plus tard.', true, 3000);
+        }
+      });
+    } else {
+      showSweetAlert('top-end', 'error',"Il faut saisir un libellé pour la configuration");
+    }
+  });
+
+  $('#btn_remove_mapping_configuration').click(function() {
+    var mappingConfiguration = $('#mapping').val();
+    if (mappingConfiguration !== null ) {
+      $.ajax({
+        url: "{{ path('check_format_mapping_remove_configuration') }}",
+        type: 'POST',
+        data: {mapping_id: mappingConfiguration},
+        success: function () {
+          loadMappingConfigurations();
+        },
+        error: function () {
+          toastr.error('Une erreur est survenue lors de la suppression de la configuration. Veuillez réessayer plus tard.');
+        }
+      });
+    } else {
+      toastr.error('Veuillez sélectionner un mapping avant de tenter de le supprimer.');
+    }
+  });
+</script>

@@ -1,0 +1,47 @@
+<div class="container">
+  <div class="card">
+    <div class="card-header bg-primary text-white">
+      <h4>Soumettre un nouveau fichier</h4>
+    </div>
+    <div class="card-body">
+      <h5>Aucun fichier à mapper n'a été trouvé dans le dossier prévu à cet effet.</h5>
+      <p>Veuillez télécharger un fichier avant d'effectuer un mapping.</p>
+
+      <hr>
+
+      <div class="form-group">
+        <label for="fichier">Sélectionnez le fichier à mapper</label>
+        <input type="file" class="form-control-file" id="fichier" accept="text/csv">
+      </div>
+
+      <div class="text-center">
+        <button id="btn-upload-file" class="btn btn-primary btn-raised">Envoyer le fichier</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let filesDirectory = null;
+  $(document).ready(function(){
+    filesDirectory = "{{ files_directory }}";
+  });
+
+  $('#btn-upload-file').on('click', function() {
+    let fileData = $('#fichier').prop('files')[0];
+    let data = new FormData();
+    data.append('file', fileData);
+    data.append('files_directory', filesDirectory);
+    $.ajax({
+      url: "{{ path('check_format_mapping_files_upload') }}",
+      cache: false,
+      contentType: false,
+      processData: false,
+      data: data,
+      type: 'POST',
+      success: function(){
+        location.reload();
+      }
+    });
+  });
+</script>

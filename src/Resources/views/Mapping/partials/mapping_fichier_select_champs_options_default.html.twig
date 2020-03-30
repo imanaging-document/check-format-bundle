@@ -1,0 +1,17 @@
+<div class="text-center">
+  <button id="btn-valid-champ" class="btn btn-primary btn-raised"><i class="fa fa-save fa-fw"></i>Enregistrer</button>
+</div>
+
+<script>
+  $('#btn-valid-champ').click(function() {
+    var th = $('.mapping_data_value[data-lib-colonne="{{ lib_colonne }}"]');
+    var selectChamps = $('#champs');
+    th.data('code-mapping', selectChamps.val());
+    th.html(selectChamps.val());
+
+    th.addClass('mapping_data_value_ok');
+    $('#modalSelectChamps').modal('hide');
+
+    saveMapping();
+  });
+</script>

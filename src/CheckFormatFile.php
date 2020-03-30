@@ -48,7 +48,6 @@ class CheckFormatFile
       $result['error'] = true;
       $result['errors_list'] = $errorsList;
     }
-
     return $result;
   }
 

@@ -23,9 +23,6 @@ class ImanagingCheckFormatExtension extends Extension
 
     $configuration = $this->getConfiguration($configs, $container);
     $config = $this->processConfiguration($configuration, $configs);
-
-    $definition = $container->getDefinition('imanaging_check_format.check_format_file');
-    $definition->setArgument(0, $config['bar']);
   }
 
   public function getAlias()

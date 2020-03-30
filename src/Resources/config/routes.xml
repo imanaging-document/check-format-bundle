@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<routes xmlns="http://symfony.com/schema/routing"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://symfony.com/schema/routing
+        https://symfony.com/schema/routing/routing-1.0.xsd">
+
+    <route id="check_format_mapping_page" path="/mapping-page" controller="imanaging_check_format.mapping_controller:mappingPageAction">
+    </route>
+
+    <route id="check_format_mapping_files_upload" path="/mapping/files/upload" controller="imanaging_check_format.mapping_controller:uploadFileAction">
+    </route>
+
+    <route id="check_format_mapping_files_delete" path="/mapping/files/delete" controller="imanaging_check_format.mapping_controller:deleteFileAction">
+    </route>
+
+    <route id="check_format_mapping_champs_possibles_gerer" path="/mapping/champs-possibles/gerer" controller="imanaging_check_format.mapping_controller:gererChampsPossiblesAction">
+    </route>
+
+    <route id="check_format_mapping_champs_possibles_modal_edition" path="/mapping/champs-possibles/modal-edition" controller="imanaging_check_format.mapping_controller:modelEditChampPossibleAction">
+    </route>
+
+    <route id="check_format_mapping_champs_possibles_save" path="/mapping/champs-possibles/save" controller="imanaging_check_format.mapping_controller:saveChampPossibleAction">
+    </route>
+
+    <route id="check_format_mapping_champs_possibles_toggle_boolean_value" path="/mapping/champs-possibles/toggle-boolean-value" controller="imanaging_check_format.mapping_controller:toggleBooleanValueChampPossibleAction">
+    </route>
+
+    <route id="check_format_mapping_select_configurations" path="/mapping/select-configurations" controller="imanaging_check_format.mapping_controller:getMappingConfigurationSelectAction">
+    </route>
+
+    <route id="check_format_mapping_add_configuration" path="/mapping/add-configuration" controller="imanaging_check_format.mapping_controller:addMappingConfigurationAction">
+    </route>
+
+    <route id="check_format_mapping_remove_configuration" path="/mapping/remove-configuration" controller="imanaging_check_format.mapping_controller:removeMappingConfigurationValuesAction">
+    </route>
+
+    <route id="check_format_mapping_select_champs" path="/mapping/select-champs" controller="imanaging_check_format.mapping_controller:mappingFichierClientSelectChampsAction">
+    </route>
+
+    <route id="check_format_mapping_select_champs_options" path="/mapping/select-champs-options" controller="imanaging_check_format.mapping_controller:mappingFichierClientSelectChampsOptionsAction">
+    </route>
+
+    <route id="check_format_mapping_save_configuration" path="/mapping/save-configuration" controller="imanaging_check_format.mapping_controller:saveMappingConfigurationAction">
+    </route>
+
+    <route id="check_format_mapping_get_configuration_values" path="/mapping/get-configuration-values" controller="imanaging_check_format.mapping_controller:getMappingConfigurationValuesAction">
+    </route>
+
+    <route id="check_format_mapping_get_configuration_values_avances" path="/mapping/get-configuration-value-avancees" controller="imanaging_check_format.mapping_controller:getMappingConfigurationValuesAvancesAction">
+    </route>
+
+    <route id="check_format_mapping_add_translations" path="/mapping/translations/{idValue}/add" controller="imanaging_check_format.mapping_controller:addTranslationAction">
+    </route>
+
+    <route id="check_format_mapping_remove_translations" path="/mapping/translations/remove" controller="imanaging_check_format.mapping_controller:removeTranslationAction">
+    </route>
+
+    <route id="check_format_mapping_update_translations" path="/mapping/translations/update" controller="imanaging_check_format.mapping_controller:updateTranslationsAction">
+    </route>
+
+    <route id="check_format_mapping_add_transformations" path="/mapping/transformations/{idValue}/add" controller="imanaging_check_format.mapping_controller:addTransformationAction">
+    </route>
+
+    <route id="check_format_mapping_remove_transformations" path="/mapping/transformations/remove" controller="imanaging_check_format.mapping_controller:removeTransformationAction">
+    </route>
+
+    <route id="check_format_mapping_update_transformations" path="/mapping/transformations/update" controller="imanaging_check_format.mapping_controller:updateTransformationsAction">
+    </route>
+
+    <route id="check_format_mapping_get_champs_obligatoires_a_mapper" path="/mapping/get-champs-obligatoires-a-mapper" controller="imanaging_check_format.mapping_controller:getChampsObligatoiresAMapperAction">
+    </route>
+
+    <route id="check_format_mapping_remove_configuration_values_avances" path="/mapping/configuration-values-avances/remove" controller="imanaging_check_format.mapping_controller:removeConfigurationValuesAvancesAction">
+    </route>
+
+    <route id="check_format_mapping_add_configuration_values_avances" path="/mapping/{id}/configuration-values-avances/add" controller="imanaging_check_format.mapping_controller:addConfigurationValuesAvancesAction">
+    </route>
+
+    <route id="check_format_mapping_configuration_values_avances_detail" path="/mapping/configuration-values-avances/detail" controller="imanaging_check_format.mapping_controller:getMappingConfigurationValuesAvancesDetailAction">
+    </route>
+
+    <route id="check_format_mapping_configuration_values_avances_detail_remove" path="/mapping/configuration-values-avances/detail/remove" controller="imanaging_check_format.mapping_controller:removeConfigurationValuesAvancesDetailAction">
+    </route>
+
+    <route id="check_format_mapping_configuration_values_avances_detail_add" path="/mapping/configuration-values-avances/detail/{id}/add" controller="imanaging_check_format.mapping_controller:addConfigurationValueAvanceDetailAction">
+    </route>
+</routes>

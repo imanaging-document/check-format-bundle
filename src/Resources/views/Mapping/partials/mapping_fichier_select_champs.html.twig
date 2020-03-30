@@ -1,0 +1,45 @@
+<div class="modal fade" id="modalSelectChamps" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header modal-header-primary">
+        <h5 class="modal-title" id="exampleModalLabel">Mise à jour de la correspondance</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-title" id="exampleModalLabel">Sélectionner le champ correspondant à la colonne : <b class="text-primary">{{ lib_colonne }}</b></p>
+
+        <div class="form-group">
+          <label for="champs">Champ</label>
+          <select name="champs" id="champs" class="form-control">
+            <option value=""></option>
+            {% for champ in champs %}
+              <option value="{{ champ.data }}" data-type="{{ champ.type }}">{{ champ.libelle }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div id="options-div">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  $('#champs').change(function() {
+    var data = {lib_colonne: "{{ lib_colonne }}", champ: $(this).val(), mapping_configuration_type: mappingConfigurationType};
+    $.ajax({
+      url: "{{ path('check_format_mapping_select_champs_options') }}",
+      type: 'POST',
+      data: data,
+      success: function (data) {
+        $('#options-div').html(data);
+        $('#btn-add-anomalie').prop('disabled', false);
+      },
+      error: function () {
+        showSweetAlert('top-end', 'error', 'Une erreur est survenue lors de la sélection du champs. Veuillez réessayer plus tard.', true, 3000);
+      }
+    });
+  });
+</script>
