@@ -218,6 +218,36 @@ class Mapping
   }
 
   /**
+   * @param $filesDirectory
+   * @param $withEntete
+   * @param $codeMappingType
+   * @return array
+   */
+  public function controlerFichiers($filesDirectory, $withEntete, $codeMappingType){
+    $result = [
+      'nb_lignes' => 0,
+      'error' => false,
+      'error_list' => []
+    ];
+    // On parcourt les fichiers un à un
+    foreach (glob($this->projectDir.$filesDirectory) as $fichier){
+      // On parse le fichier CSV
+      $lignes = $this->converter->convert($fichier, ';');
+      if ($withEntete){
+        unset($lignes[0]);
+      }
+      $fields = $this->getFieldsConfigurationMappingImport($codeMappingType);
+      if ($fields) {
+        $result = CheckFormatFile::checkFormatFile($fields['classic'], $fields['advanced'], $lignes);
+      } else {
+        $result['error'] = true;
+        $result['error_message'] = 'Une erreur est survenue lors de la récupération des champs de mapping';
+      }
+    }
+    return $result;
+  }
+
+  /**
    * @param $codeMappingType
    * @return array|bool
    */
