@@ -4,7 +4,9 @@
 namespace Imanaging\CheckFormatBundle;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedDateCustom;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationTypeInterface;
+use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceDateCustomInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceTypeInterface;
 use Symfony\Component\Templating\EngineInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -333,6 +335,13 @@ class Mapping
                   //                    $fieldtemp->addTranslation(new FieldCheckFormatTranslation($translation->getValue(), $translation->getTranslation()));
                   //                  }
                   //                }
+                  $fieldAdvancedTemp->addField($fieldtemp);
+                } elseif ($avance instanceof MappingConfigurationValueAvanceDateCustomInterface) {
+                  $fieldtemp = new FieldCheckFormatAdvancedDateCustom(
+                    '',
+                    'Date custom',
+                    $avance->getFormat(), $avance->getModifier()
+                  );
                   $fieldAdvancedTemp->addField($fieldtemp);
                 }
               }

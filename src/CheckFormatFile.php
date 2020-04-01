@@ -8,9 +8,11 @@
 
 namespace Imanaging\CheckFormatBundle;
 
+use DateTime;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormat;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvanced;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedConst;
+use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedDateCustom;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedString;
 use stdClass;
 
@@ -57,6 +59,7 @@ class CheckFormatFile
    * @param array $datas
    * @param bool $returnDataObj
    * @return array
+   * @throws \Exception
    */
   public static function checkFormatLine(Array $fields, Array $fieldsAdvanced ,Array $datas, $returnDataObj = false){
     if ($returnDataObj) {
@@ -76,13 +79,16 @@ class CheckFormatFile
           foreach ($fieldAdvanced->getFields() as $field) {
             if ($field instanceof FieldCheckFormatAdvancedConst) {
               $fieldConcat .= $field->getConst();
-            } elseif ($field instanceof FieldCheckFormatAdvancedString) {
+            } elseif ($field instanceof FieldCheckFormatAdvancedDateCustom) {
+              $date = new DateTime($field->getModifier());
+              $fieldConcat .= $date->format($field->getFormat());
+            }elseif ($field instanceof FieldCheckFormatAdvancedString) {
               $translatedValue = $field->getTranslatedValue($datas[$field->getIndexFichier()]);
               $transformedValue = $field->getTransformedValue($translatedValue);
               if (!$field->validFormat($transformedValue)) {
                 $libelleNullable = ($field->isNullable()) ? "OUI" : "NON";
                 $libelleTranslated = (!is_null($transformedValue)) ? $transformedValue : "valeur NULL";
-                $libelleTranslatedValue = ($transformedValue !== $datas[$field->getIndexFichier()]) ? ' "( Traduction : "' . $libelleTranslated . '" )' : "";
+                $libelleTranslatedValue = ($transformedValue !== $datas[$field->getIndexFichier()]) ? (' "( Traduction : "' . $libelleTranslated . '" )') : "";
                 array_push($errorsList['advanced'], array('field' => $fieldAdvanced->getLibelle() . " -> " . $field->getLibelle(), 'error_message' => 'la valeur "' . $datas[$field->getIndexFichier()] . '"' . $libelleTranslatedValue  . ' ne respecte pas le format "' . $field->getType() . '" (Nullable : ' . $libelleNullable . ') '));
               } else {
                 $fieldConcat .= $field->getValue($translatedValue);
@@ -90,7 +96,7 @@ class CheckFormatFile
             } else {
               return array(
                 'error' => true,
-                'errors_list' => array('classic' => array(array(), 'advanced' => array('field' => null, 'error_message' => 'Ce format d\'objet n\'est pas géré.')), 'advanced' => [])
+                'errors_list' => array('classic' => array(array()), 'advanced' => array('field' => null, 'error_message' => 'Ce format d\'objet n\'est pas géré.'))
               );
             }
           }
