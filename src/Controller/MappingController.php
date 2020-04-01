@@ -9,6 +9,7 @@ use Imanaging\CheckFormatBundle\Enum\TransformationEnum;
 use Imanaging\CheckFormatBundle\Interfaces\MappingChampPossibleInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationTypeInterface;
+use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceDateCustomInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceFileInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceTextInterface;
@@ -304,6 +305,7 @@ class MappingController extends AbstractController
     if ($configurationValue instanceof MappingConfigurationValueInterface){
       $type = $this->em->getRepository(MappingConfigurationValueAvanceTypeInterface::class)->findOneBy(['code' => $params['type']]);
       if ($type instanceof MappingConfigurationValueAvanceTypeInterface){
+
         // on ajoute la value avancée
         if ($type->getCode() == 'value_file') {
           $className = $this->em->getRepository(MappingConfigurationValueAvanceFileInterface::class)->getClassName();
@@ -311,6 +313,13 @@ class MappingController extends AbstractController
           if ($value instanceof MappingConfigurationValueAvanceFileInterface){
             $value->setFichierEntete($params['file_entete']);
             $value->setFichierIndex($params['file_index']);
+          }
+        } elseif ($type->getCode() == 'date_custom') {
+          $className = $this->em->getRepository(MappingConfigurationValueAvanceDateCustomInterface::class)->getClassName();
+          $value = new $className();
+          if ($value instanceof MappingConfigurationValueAvanceDateCustomInterface){
+            $value->setFormat($params['date_custom_format']);
+            $value->setModifier($params['date_custom_modify']);
           }
         } else {
           if (isset($params['value'])){
@@ -435,6 +444,18 @@ class MappingController extends AbstractController
       return new JsonResponse(['error' => true, 'error_message' => 'Une erreur est survenue lors de l\'enregistrement de la configuration (ID non trouvé)'], 500);
     }
     return new JsonResponse(['error' => true, 'error_message' => 'Une erreur est survenue lors de l\'enregistrement de la configuration (paramètre manquant)'], 500);
+  }
+
+  public function showRecapMappingConfigurationAction(Request $request) {
+    $params = $request->request->all();
+    if (isset($params['mapping_id'])) {
+      $configuration = $this->em->getRepository(MappingConfigurationInterface::class)->find($params['mapping_id']);
+      if ($configuration instanceof MappingConfigurationInterface) {
+        return $this->render('@ImanagingCheckFormat/Mapping/mapping_configuration_recapitulatif.html.twig', [
+          'config' => $configuration
+        ]);
+      }
+    }
   }
 
   public function getMappingConfigurationValuesAction(Request $request)

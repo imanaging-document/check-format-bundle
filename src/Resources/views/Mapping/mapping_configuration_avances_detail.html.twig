@@ -66,6 +66,18 @@
           </select>
         </div>
 
+        <div id="modalCustomDate" class="d-none">
+          <div class="form-group">
+            <label for="date_custom_format">Format de la date (utilisation des <a href="https://www.php.net/manual/fr/datetime.format.php">format date time PHP</a>)</label>
+            <input type="text" id="date_custom_format" name="date_custom_format" class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label for="date_custom_modify">Modification de la date (utilisation du <a href="https://www.php.net/manual/fr/datetime.modify.php">modify date time php</a>)</label>
+            <input type="text" id="date_custom_modify" name="date_custom_modify" class="form-control">
+          </div>
+        </div>
+
         <div class="text-center">
           <button id="btnValidAjoutValueAvance" class="btn btn-primary">Ajouter</button>
         </div>
@@ -80,12 +92,19 @@
   });
 
   $('#type-valeur-avancee').change(function() {
-    if ($(this).val() === "value_file") {
+    let value = $(this).val();
+    if (value === "value_file") {
       $('#modalValueText').addClass('d-none');
       $('#modalSelectEnteteFile').removeClass('d-none');
+      $('#modalCustomDate').addClass('d-none');
+    } else if (value === "date_custom") {
+      $('#modalValueText').addClass('d-none');
+      $('#modalSelectEnteteFile').addClass('d-none');
+      $('#modalCustomDate').removeClass('d-none');
     } else {
       $('#modalValueText').removeClass('d-none');
       $('#modalSelectEnteteFile').addClass('d-none');
+      $('#modalCustomDate').addClass('d-none');
     }
   });
 
@@ -95,7 +114,10 @@
       let value = $('#value-valeur-avancee').val();
       let file_index = $('#select_entete').val();
       let file_entete = $('#select_entete option:selected').text();
-      let data = {'value': value, 'type': type, 'file_index': file_index, 'file_entete': file_entete, files_directory: filesDirectory};
+      let date_custom_format = $('#date_custom_format').val();
+      let date_custom_modify = $('#date_custom_modify').val();
+      let data = {'value': value, 'type': type, 'file_index': file_index, 'file_entete': file_entete,
+        'date_custom_format' : date_custom_format, 'date_custom_modify' : date_custom_modify, files_directory: filesDirectory};
 
       $('#divConfigurationAvances').html('<i class="fa fa-spin fa-spinner fa-2x fa-fw"></i><span>Enregistrement en cours ...</span>');
       $.ajax({

@@ -43,6 +43,9 @@
     <route id="check_format_mapping_save_configuration" path="/mapping/save-configuration" controller="imanaging_check_format.mapping_controller:saveMappingConfigurationAction">
     </route>
 
+    <route id="check_format_mapping_show_recap_configuration" path="/mapping/show-recap" controller="imanaging_check_format.mapping_controller:showRecapMappingConfigurationAction">
+    </route>
+
     <route id="check_format_mapping_get_configuration_values" path="/mapping/get-configuration-values" controller="imanaging_check_format.mapping_controller:getMappingConfigurationValuesAction">
     </route>
 

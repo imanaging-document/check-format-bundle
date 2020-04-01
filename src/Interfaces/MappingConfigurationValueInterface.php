@@ -53,4 +53,8 @@ interface MappingConfigurationValueInterface
   public function getMappingConfigurationValueAvances();
 
   public function setMappingConfigurationValueAvances($mappingConfigurationValueAvances);
+
+  public function __toString() : string;
+
+  public function getTypeMapping() : string;
 }

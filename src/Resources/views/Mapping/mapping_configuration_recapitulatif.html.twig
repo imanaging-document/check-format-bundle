@@ -1,0 +1,19 @@
+{% for value in config.getMappingConfigurationValues %}
+  <tr>
+    <td>{{ value.getTypeMapping }}</td>
+    <td>{{ value }}</td>
+    <td>{{ value.mappingCode }}</td>
+    {% if value.mappingCode is not null %}
+      <td><button class='btn btn-raised btn-primary btn-sm btn-edit-translations' data-mapping-id='{{value.id}}'><small>{{ value.getMappingConfigurationValueTranslations|length }} traductions</small></button></td>
+    {% else %}
+      <td class="text-danger">Mapping en attente</td>
+    {% endif %}
+    {% if value.mappingCode is not null %}
+      <td><button class='btn btn-raised btn-primary btn-sm btn-edit-transformations' data-mapping-id='{{value.id}}'><small>{{ value.getMappingConfigurationValueTransformations|length }} transformations</small></button></td>
+    {% else %}
+      <td class="text-danger">Mapping en attente</td>
+    {% endif %}
+  </tr>
+{% endfor %}
+
+

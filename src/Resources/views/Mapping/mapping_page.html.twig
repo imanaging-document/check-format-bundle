@@ -78,15 +78,15 @@
           <table class="table table-bordered table-striped text-center">
             <thead>
             <tr>
-              <th>Champs fichier</th>
-              <th>En tête attendu</th>
+              <th>Type</th>
+              <th>Valeur</th>
               <th>Code mapping</th>
-              <th>Option mapping</th>
               <th>Traductions</th>
               <th>Transformations</th>
             </tr>
             </thead>
             <tbody id="tableRecapitulatif">
+              <tr><th colspan="5">Chargement en cours ...</th></tr>
             </tbody>
           </table>
         </div>
@@ -355,6 +355,7 @@
   }
 
   function updateRecapitulatif() {
+    $('#tableRecapitulatif').html('<tr><th colspan="5">Chargement en cours ...</th></tr>');
     var htmlRecapitulatif = "";
     $('#tr_mapping th').each(function() {
       if (!! $(this).data('lib-colonne')) {
@@ -414,7 +415,20 @@
       htmlRecapitulatif += "</tr>";
     });
 
-    $('#tableRecapitulatif').html(htmlRecapitulatif);
+    var mappingConfiguration = $('#mapping').val();
+    var data = {mapping_id: mappingConfiguration};
+    $.ajax({
+      url: "{{ path('check_format_mapping_show_recap_configuration') }}",
+      type: 'POST',
+      data: data,
+      success: function (data) {
+        $('#tableRecapitulatif').html(data);
+      },
+      error: function () {
+        showSweetAlert('top-end', 'error', 'Une erreur est survenue lors de la sélection du champs. Veuillez réessayer plus tard.', true, 3000);
+      }
+    });
+    // $('#tableRecapitulatif').html(htmlRecapitulatif);
     updateObligatoiresAMapper();
   }
 
