@@ -183,11 +183,16 @@ class MappingController extends AbstractController
     }
   }
 
-  public function getMappingConfigurationSelectAction(){
-    $mappingConfigurations = $this->em->getRepository(MappingConfigurationInterface::class)->findAll();
-    return $this->render('@ImanagingCheckFormat/Mapping/partials/mapping_configuration_select.html.twig', [
-      'mapping_configurations' => $mappingConfigurations
-    ]);
+  public function getMappingConfigurationSelectAction($codeMappingConfiguration){
+    $mappingTypeConfiguration = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $codeMappingConfiguration]);
+    if ($mappingTypeConfiguration instanceof MappingConfigurationTypeInterface){
+      $mappingConfigurations = $this->em->getRepository(MappingConfigurationInterface::class)->findBy(['type' => $mappingTypeConfiguration]);
+      return $this->render('@ImanagingCheckFormat/Mapping/partials/mapping_configuration_select.html.twig', [
+        'mapping_configurations' => $mappingConfigurations
+      ]);
+    } else {
+      return new JsonResponse([], 500);
+    }
   }
 
   public function addMappingConfigurationAction(Request $request){

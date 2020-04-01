@@ -279,7 +279,7 @@
       loader.removeClass('d-none');
     }
     $.ajax({
-      url: "{{ path('check_format_mapping_select_configurations') }}",
+      url: "{{ path('check_format_mapping_select_configurations', {codeMappingConfiguration: mapping_configuration_type}) }}",
       type: 'GET',
       success: function(data){
         loader.addClass('d-none');

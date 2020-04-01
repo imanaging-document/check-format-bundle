@@ -25,7 +25,7 @@
     <route id="check_format_mapping_champs_possibles_toggle_boolean_value" path="/mapping/champs-possibles/toggle-boolean-value" controller="imanaging_check_format.mapping_controller:toggleBooleanValueChampPossibleAction">
     </route>
 
-    <route id="check_format_mapping_select_configurations" path="/mapping/select-configurations" controller="imanaging_check_format.mapping_controller:getMappingConfigurationSelectAction">
+    <route id="check_format_mapping_select_configurations" path="/mapping/select-configurations/{codeMappingConfiguration}" controller="imanaging_check_format.mapping_controller:getMappingConfigurationSelectAction">
     </route>
 
     <route id="check_format_mapping_add_configuration" path="/mapping/add-configuration" controller="imanaging_check_format.mapping_controller:addMappingConfigurationAction">
