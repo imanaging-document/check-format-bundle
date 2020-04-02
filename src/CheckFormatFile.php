@@ -9,6 +9,7 @@
 namespace Imanaging\CheckFormatBundle;
 
 use DateTime;
+use Exception;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormat;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvanced;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedConst;
@@ -59,7 +60,7 @@ class CheckFormatFile
    * @param array $datas
    * @param bool $returnDataObj
    * @return array
-   * @throws \Exception
+   * @throws Exception
    */
   public static function checkFormatLine(Array $fields, Array $fieldsAdvanced ,Array $datas, $returnDataObj = false){
     if ($returnDataObj) {
@@ -81,7 +82,10 @@ class CheckFormatFile
               $fieldConcat .= $field->getConst();
             } elseif ($field instanceof FieldCheckFormatAdvancedDateCustom) {
               $date = new DateTime($field->getModifier());
-              $fieldConcat .= $date->format($field->getFormat());
+              $dateFormatted = $date->format($field->getFormat());
+              $translatedValue = $fieldAdvanced->getTranslatedValue($dateFormatted);
+              $transformedValue = $fieldAdvanced->getTransformedValue($translatedValue);
+              $fieldConcat .= $transformedValue;
             }elseif ($field instanceof FieldCheckFormatAdvancedString) {
               $translatedValue = $field->getTranslatedValue($datas[$field->getIndexFichier()]);
               $transformedValue = $field->getTransformedValue($translatedValue);
@@ -155,6 +159,7 @@ class CheckFormatFile
    * @param array $fieldsAdvanced
    * @param array $datas
    * @return mixed|null
+   * @throws Exception
    */
   public static function getObjByLine(Array $fields, Array $fieldsAdvanced, Array $datas){
     $res = self::checkFormatLine($fields, $fieldsAdvanced, $datas, true);

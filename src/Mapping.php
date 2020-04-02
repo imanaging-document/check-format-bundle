@@ -375,6 +375,27 @@ class Mapping
                   $fieldAdvancedTemp->addField($fieldtemp);
                 }
               }
+
+              foreach ($value->getMappingConfigurationValueTranslations() as $translation) {
+                if ($translation instanceof MappingConfigurationValueTranslationInterface) {
+                  $fieldAdvancedTemp->addTranslation(
+                    new FieldCheckFormatTranslation(
+                      $translation->getValue(),
+                      $translation->getTranslation()
+                    )
+                  );
+                }
+              }
+              foreach ($value->getMappingConfigurationValueTransformations() as $transformation) {
+                if ($transformation instanceof MappingConfigurationValueTransformationInterface) {
+                  $fieldAdvancedTemp->addTransformation(
+                    new FieldCheckFormatTransformation(
+                      $transformation->getTransformation(),
+                      $transformation->getNbCaract()
+                    )
+                  );
+                }
+              }
               array_push($fields['advanced'], $fieldAdvancedTemp);
             }
           }

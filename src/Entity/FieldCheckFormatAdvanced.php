@@ -9,55 +9,20 @@
 namespace Imanaging\CheckFormatBundle\Entity;
 
 
-class FieldCheckFormatAdvanced
+class FieldCheckFormatAdvanced extends BaseFieldCheckFormat
 {
-  private $code;
-  private $libelle;
   private $regex;
   private $fields;
 
   public function __construct($code, $libelle, $regex = null)
   {
-    $this->code = $code;
-    $this->libelle = $libelle;
+    parent::__construct($code, $libelle);
     $this->regex = $regex;
     $this->fields = array();
   }
 
   public function addField(FieldCheckFormat $fieldCheckFormat) {
     array_push($this->fields, $fieldCheckFormat);
-  }
-
-  /**
-   * @return mixed
-   */
-  public function getCode()
-  {
-    return $this->code;
-  }
-
-  /**
-   * @param mixed $code
-   */
-  public function setCode($code): void
-  {
-    $this->code = $code;
-  }
-
-  /**
-   * @return mixed
-   */
-  public function getLibelle()
-  {
-    return $this->libelle;
-  }
-
-  /**
-   * @param mixed $libelle
-   */
-  public function setLibelle($libelle): void
-  {
-    $this->libelle = $libelle;
   }
 
   /**
@@ -91,8 +56,4 @@ class FieldCheckFormatAdvanced
   {
     $this->fields = $fields;
   }
-
-
-
-
 }
