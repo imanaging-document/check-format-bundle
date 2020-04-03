@@ -77,7 +77,7 @@ class MappingController extends AbstractController
     $params = $request->request->all();
     $dir = $this->projectDir.dirname($params['files_directory']);
     if (!is_dir($dir)){
-      mkdir($dir, true);
+      mkdir($dir, 0775, true);
     }
 
     $files = $request->files->all();
