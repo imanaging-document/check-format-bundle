@@ -242,7 +242,7 @@
 
   function saveMapping() {
     var mappingConfiguration = $('#mapping').val();
-    if (mappingConfiguration !== null) {
+    if (mappingConfiguration !== null && mappingConfiguration !== undefined) {
       var dataMapping = [];
       $('#tr_mapping th').each(function() {
         var thTemp = $(this);
@@ -327,6 +327,7 @@
             }
           });
           updateRecapitulatif();
+          saveMapping();
         },
         error: function () {
           showSweetAlert('top-end', 'error', 'Une erreur est survenue lors de la récupération de la configuration. Veuillez réessayer plus tard.', true, 3000);
