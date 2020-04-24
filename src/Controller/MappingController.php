@@ -423,7 +423,7 @@ class MappingController extends AbstractController
             $className = $this->em->getRepository(MappingConfigurationValueInterface::class)->getClassName();
             $valueTemp = new $className();
             if ($valueTemp instanceof MappingConfigurationValueInterface){
-              if (isset($mapping['mapping_code'])) {
+              if (isset($mapping['mapping_code']) && $mapping['mapping_code'] != '') {
                 $mapping_code = $mapping['mapping_code'];
               } else {
                 $mapping_code = null;

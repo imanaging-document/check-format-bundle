@@ -8,6 +8,13 @@
         </button>
       </div>
       <div class="modal-body">
+        <div>
+          <button id="btn-remove-correspondance" class="btn btn-danger w-100">Supprimer la correspondance actuelle</button>
+          <small><i class="fa fa-info-circle fa-fw"></i>En cliquant ci-dessus, vous supprimez le mapping enregistré pour ce champ.</small>
+        </div>
+
+        <hr>
+
         <p class="modal-title" id="exampleModalLabel">Sélectionner le champ correspondant à la colonne : <b class="text-primary">{{ lib_colonne }}</b></p>
 
         <div class="form-group">
@@ -41,5 +48,14 @@
         showSweetAlert('top-end', 'error', 'Une erreur est survenue lors de la sélection du champs. Veuillez réessayer plus tard.', true, 3000);
       }
     });
+  });
+
+  $("#btn-remove-correspondance").click(function(){
+    let th = $('.mapping_data_value[data-lib-colonne="{{ lib_colonne }}"]');
+    th.data('code-mapping', '');
+    th.html('');
+    th.removeClass('mapping_data_value_ok');
+    $('#modalSelectChamps').modal('hide');
+    saveMapping();
   });
 </script>
