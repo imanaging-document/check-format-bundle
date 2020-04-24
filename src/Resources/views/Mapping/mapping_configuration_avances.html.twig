@@ -13,7 +13,7 @@
       {% for mapping_value in values_avances %}
         <tr class="ligne-mapping">
           <td>{{ mapping_value.mappingCode }}</td>
-          <td>{{ mapping_value.mappingConfigurationValueAvances|length }}</td>
+          <td class="nb-valeur-avancee" data-id="{{ mapping_value.id }}">{{ mapping_value.mappingConfigurationValueAvances|length }}</td>
           <td>
             <i data-id="{{ mapping_value.id }}" class="fa fa-search lookingForDetail"></i> /
             <i class="fa fa-times text-danger pointer delete-value-avancee"
@@ -74,6 +74,7 @@
         $('#divModeAvance').html(data);
         $('#addValeurAvanceModal').modal('hide');
         $('.modal-backdrop').hide();
+
       },
       error: function(){
         alert('Une erreur est survenue lors de l\'ajout.')

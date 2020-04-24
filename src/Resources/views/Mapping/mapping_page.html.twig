@@ -12,6 +12,11 @@
   .mapping_data_value:hover {
     background-color: blue;
   }
+
+  /* PREVENT BOOTSTRAP SCROLLBAR REMOVING */
+  .modal-open {
+    overflow: scroll;
+  }
 </style>
 
 <div class="container container-full-width">
@@ -43,7 +48,7 @@
     </div>
   </div>
 
-  <div class="card mt-4">
+  <div class="card mt-4 mb-5">
     <h5 class="card-header">
       Configuration
     </h5>
