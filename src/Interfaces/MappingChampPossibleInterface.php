@@ -26,6 +26,10 @@ interface MappingChampPossibleInterface
 
   public function setLibelle(string $libelle);
 
+  public function getDescription(): string;
+
+  public function setDescription(string $libelle);
+
   public function getType(): string;
 
   public function setType(string $type);

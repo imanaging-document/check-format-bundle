@@ -28,6 +28,7 @@
       <thead>
         <tr>
           <th>Libellé</th>
+          <th>Description</th>
           <th>Table</th>
           <th>Data</th>
           <th>Type</th>
@@ -41,6 +42,7 @@
       {% for champ in champsPossibles %}
         <tr class="champ-row" data-champ-id="{{ champ.id }}">
           <td class="champ-libelle">{{ champ.libelle }}</td>
+          <td class="champ-description">{{ champ.description }}</td>
           <td class="champ-table">{{ champ.table }}</td>
           <td>{{ champ.data }}</td>
           <td class="champ-type">{{ champ.type }}</td>
