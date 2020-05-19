@@ -85,7 +85,7 @@ class MappingController extends AbstractController
     if ($fichier instanceof UploadedFile){
       try {
         $now = new DateTime();
-        $newFileName = 'fichier_client_'.$now->format('YmdHis').'.'.$fichier->guessExtension();
+        $newFileName = 'fichier_client_'.$now->format('YmdHis').'.'.$fichier->getClientOriginalExtension();
         $fichier->move($dir, $newFileName);
         return new JsonResponse();
       } catch (Exception $e){
