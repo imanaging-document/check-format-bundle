@@ -2,8 +2,8 @@
 {% if resultat.error_message is defined and resultat.error_message != '' %}
   <p class="text-danger"><b><i class="fa fa-exclamation-triangle fa-fw"></i>{{ resultat.error_message }}</b></p>
 {% endif %}
-<p>Nombre de ligne dans le fichier : {{ resultat.nb_lignes }}</p>
-{% if errors_list is defined %}
+<p>Nombre de ligne dans le fichier : {{ resultat.nb_lines }}</p>
+{% if resultat.errors_list is defined %}
   <ul>
     {% for error_line in resultat.errors_list %}
       <li>Ligne {{ error_line.ligne }} : </li>
