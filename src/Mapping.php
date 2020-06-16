@@ -225,7 +225,7 @@ class Mapping
    */
   public function controlerFichiers($filesDirectory, $withEntete, $codeMappingType){
     $result = [
-      'nb_lignes' => 0,
+      'nb_lines' => 0,
       'error' => false,
       'error_list' => []
     ];
