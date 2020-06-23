@@ -22,7 +22,7 @@ interface MappingConfigurationValueTranslationInterface
 
   public function setTranslation($translation);
 
-  public function getMappingConfigurationValue();
+  public function getMappingConfigurationValue() : MappingConfigurationValueInterface;
 
   public function setMappingConfigurationValue($mappingConfigurationValue);
 }

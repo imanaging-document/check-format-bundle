@@ -1,10 +1,12 @@
 <?php
 
-
 namespace Imanaging\CheckFormatBundle;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedDateCustom;
+use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatBoolean;
+use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatFloat;
+use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatInteger;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationTypeInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceDateCustomInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceTypeInterface;
@@ -267,66 +269,52 @@ class Mapping
               if (!is_null($value->getMappingCode())) {
                 $champ = $this->searchChampInPossible($value->getMappingCode());
                 if (!is_null($champ)) {
+                  $code = $champ['data'];
+                  $libelle = $champ['libelle'] .' (' . $value->getFichierEntete() . ' )';
+                  $nullable = $champ['nullable'];
                   switch ($champ['type']) {
                     case 'string':
-                      // Champs string
-                      $fieldtemp = new FieldCheckFormat('string', $champ['data'], $champ['libelle'] .
-                        ' (' . $value->getFichierEntete() . ' )', $champ['nullable']);
-                      foreach ($value->getMappingConfigurationValueTranslations() as $translation) {
-                        if ($translation instanceof MappingConfigurationValueTranslationInterface) {
-                          $fieldtemp->addTranslation(
-                            new FieldCheckFormatTranslation(
-                              $translation->getValue(),
-                              $translation->getTranslation()
-                            )
-                          );
-                        }
-                      }
-                      foreach ($value->getMappingConfigurationValueTransformations() as $transformation) {
-                        if ($transformation instanceof MappingConfigurationValueTransformationInterface) {
-                          $fieldtemp->addTransformation(
-                            new FieldCheckFormatTransformation(
-                              $transformation->getTransformation(),
-                              $transformation->getNbCaract()
-                            )
-                          );
-                        }
-                      }
-                      array_push($fields['classic'], $fieldtemp);
+                      $fieldtemp = new FieldCheckFormat('string', $code, $libelle, $nullable);
                       break;
                     case 'date':
-                      // Champs date
                       $fieldtemp = new FieldCheckFormatDate(
-                        $champ['data'],
-                        $champ['libelle'] . ' (' . $value->getFichierEntete() . ' )',
-                        $champ['nullable'],
+                        $code, $libelle, $nullable,
                         $value->getMappingType()
                       );
-                      foreach ($value->getMappingConfigurationValueTranslations() as $translation) {
-                        if ($translation instanceof MappingConfigurationValueTranslationInterface) {
-                          $fieldtemp->addTranslation(
-                            new FieldCheckFormatTranslation(
-                              $translation->getValue(),
-                              $translation->getTranslation()
-                            )
-                          );
-                        }
-                      }
-                      foreach ($value->getMappingConfigurationValueTransformations() as $transformation) {
-                        if ($transformation instanceof MappingConfigurationValueTransformationInterface) {
-                          $fieldtemp->addTransformation(
-                            new FieldCheckFormatTransformation(
-                              $transformation->getTransformation(),
-                              $transformation->getNbCaract()
-                            )
-                          );
-                        }
-                      }
-                      array_push($fields['classic'], $fieldtemp);
+                      break;
+                    case 'boolean':
+                      $fieldtemp = new FieldCheckFormatBoolean($code, $libelle, $nullable);
+                      break;
+                    case 'integer':
+                      $fieldtemp = new FieldCheckFormatInteger($code, $libelle, $nullable);
+                      break;
+                    case 'float':
+                      $fieldtemp = new FieldCheckFormatFloat($code, $libelle, $nullable);
                       break;
                     default:
                       return false;
                   }
+                  foreach ($value->getMappingConfigurationValueTranslations() as $translation) {
+                    if ($translation instanceof MappingConfigurationValueTranslationInterface) {
+                      $fieldtemp->addTranslation(
+                        new FieldCheckFormatTranslation(
+                          $translation->getValue(),
+                          $translation->getTranslation()
+                        )
+                      );
+                    }
+                  }
+                  foreach ($value->getMappingConfigurationValueTransformations() as $transformation) {
+                    if ($transformation instanceof MappingConfigurationValueTransformationInterface) {
+                      $fieldtemp->addTransformation(
+                        new FieldCheckFormatTransformation(
+                          $transformation->getTransformation(),
+                          $transformation->getNbCaract()
+                        )
+                      );
+                    }
+                  }
+                  array_push($fields['classic'], $fieldtemp);
                 } else {
                   return false;
                 }
@@ -360,11 +348,6 @@ class Mapping
                     $avance->getFichierIndex(),
                     $champ['nullable']
                   );
-                  //                foreach ($value->getMappingConfigurationValueTranslations() as $translation) {
-                  //                  if ($translation instanceof MappingConfigurationValueTranslationInterface) {
-                  //                    $fieldtemp->addTranslation(new FieldCheckFormatTranslation($translation->getValue(), $translation->getTranslation()));
-                  //                  }
-                  //                }
                   $fieldAdvancedTemp->addField($fieldtemp);
                 } elseif ($avance instanceof MappingConfigurationValueAvanceDateCustomInterface) {
                   $fieldtemp = new FieldCheckFormatAdvancedDateCustom(

@@ -400,6 +400,7 @@ class MappingController extends AbstractController
 
   public function saveMappingConfigurationAction(Request $request)
   {
+    $translationsArr = [];
     $params = $request->request->all();
     if (isset($params['mapping_id']) && isset($params['mapping'])) {
       $configuration = $this->em->getRepository(MappingConfigurationInterface::class)->find($params['mapping_id']);
@@ -411,7 +412,15 @@ class MappingController extends AbstractController
           foreach ($values as $value) {
             if ($value instanceof MappingConfigurationValueInterface) {
               foreach ($value->getMappingConfigurationValueTranslations() as $translation) {
-                $this->em->remove($translation);
+                if ($translation instanceof MappingConfigurationValueTranslationInterface) {
+                  $translationsArr[] = [
+                    'index_fichier' => $translation->getMappingConfigurationValue()->getFichierIndex(),
+                    'mapping_code' => $translation->getMappingConfigurationValue()->getMappingCode(),
+                    'value' => $translation->getValue(),
+                    'translation' => $translation->getTranslation(),
+                  ];
+                  $this->em->remove($translation);
+                }
               }
             }
             $this->em->remove($value);
@@ -439,6 +448,20 @@ class MappingController extends AbstractController
               $valueTemp->setMappingType($mapping_type);
               $valueTemp->setMappingConfiguration($configuration);
               $this->em->persist($valueTemp);
+
+              // on cherche si une translation correspond pour la remettre
+              foreach ($translationsArr as $translation) {
+                if ($translation['index_fichier'] == $mapping['index'] && $translation['mapping_code'] == $mapping_code) {
+                  $classTranslationName = $this->em->getRepository(MappingConfigurationValueTranslationInterface::class)->getClassName();
+                  $translationValue = new $classTranslationName();
+                  if ($translationValue instanceof MappingConfigurationValueTranslationInterface){
+                    $translationValue->setMappingConfigurationValue($valueTemp);
+                    $translationValue->setTranslation($translation['translation']);
+                    $translationValue->setValue($translation['value']);
+                    $this->em->persist($translationValue);
+                  }
+                }
+              }
             }
           }
           $this->em->flush();
