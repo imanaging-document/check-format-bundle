@@ -17,13 +17,15 @@ class BaseFieldCheckFormat
   protected $libelle;
   protected $translations;
   protected $transformations;
+  protected $valuesPossibles;
 
 
-  public function __construct($code, $libelle) {
+  public function __construct($code, $libelle, $valuesPossibles) {
     $this->code = $code;
     $this->libelle = $libelle;
     $this->translations = array();
     $this->transformations = array();
+    $this->valuesPossibles = $valuesPossibles;
   }
 
   /**
@@ -112,6 +114,30 @@ class BaseFieldCheckFormat
    */
   public function getValue($value) {
     return $this->encodeToUtf8($value);
+  }
+
+  /**
+   * @param $value
+   * @return bool
+   */
+  public function validValuesPossibles($value) {
+    if (count($this->valuesPossibles) > 0) {
+      return in_array($value, $this->valuesPossibles);
+    } else {
+      return true;
+    }
+  }
+
+  public function getValeursPossiblesString() {
+    $str = "";
+    foreach ($this->valuesPossibles as $valeurPossible) {
+      if ($str == "") {
+        $str .= '"' . $valeurPossible .'"';
+      } else {
+        $str .= ', "' . $valeurPossible .'"';
+      }
+    }
+    return $str;
   }
 
   /**

@@ -12,8 +12,8 @@ namespace Imanaging\CheckFormatBundle\Entity;
 class FieldCheckFormatBoolean extends FieldCheckFormat
 {
 
-  public function __construct($code, $libelle, $nullable) {
-    parent::__construct('boolean', $code, $libelle, $nullable);
+  public function __construct($code, $libelle, $nullable, $valeursPossibles) {
+    parent::__construct('boolean', $code, $libelle, $nullable, $valeursPossibles);
   }
 
   /**

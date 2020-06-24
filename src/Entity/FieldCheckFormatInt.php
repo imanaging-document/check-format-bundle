@@ -10,9 +10,9 @@ namespace Imanaging\CheckFormatBundle\Entity;
 
 class FieldCheckFormatInt extends FieldCheckFormat
 {
-  public function __construct($libelle, $nullable)
+  public function __construct($libelle, $nullable, $valeursPossibles)
   {
-    parent::__construct("integer", $libelle, $nullable);
+    parent::__construct("integer", $libelle, $nullable, $valeursPossibles);
   }
 
   public function validFormat($value) {

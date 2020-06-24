@@ -20,8 +20,8 @@ class FieldCheckFormat extends BaseFieldCheckFormat
   private $longueur_max;
 
 
-  public function __construct($type, $code, $libelle, $nullable, $longueurMin = null, $longueurMax = null) {
-    parent::__construct($code, $libelle);
+  public function __construct($type, $code, $libelle, $nullable, $valeursPossibles, $longueurMin = null, $longueurMax = null) {
+    parent::__construct($code, $libelle, $valeursPossibles);
     $this->type= $type;
     $this->nullable = $nullable;
     $this->longueur_min = $longueurMin;

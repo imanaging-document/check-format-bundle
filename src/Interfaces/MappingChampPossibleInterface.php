@@ -50,6 +50,10 @@ interface MappingChampPossibleInterface
 
   public function setIntegrationLocal(bool $integrationLocal);
 
+  public function getValeursPossibles(): array;
+
+  public function setValeursPossibles(array $valeursPossibles);
+
   public function getMappingConfigurationType(): MappingConfigurationTypeInterface;
 
   public function setMappingConfigurationType(MappingConfigurationTypeInterface $mappingConfigurationType);

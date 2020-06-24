@@ -140,6 +140,7 @@ class Mapping
           $formattedChamp['obligatoire'] = $champ->isObligatoire();
           $formattedChamp['nullable'] = $champ->isNullable();
           $formattedChamp['integration_local'] = $champ->isIntegrationLocal();
+          $formattedChamp['valeurs_possibles'] = $champ->getValeursPossibles();
           $formatted[] = $formattedChamp;
         }
       }
@@ -272,24 +273,25 @@ class Mapping
                   $code = $champ['data'];
                   $libelle = $champ['libelle'] .' (' . $value->getFichierEntete() . ' )';
                   $nullable = $champ['nullable'];
+                  $valeursPossibles = $champ['valeurs_possibles'];
                   switch ($champ['type']) {
                     case 'string':
-                      $fieldtemp = new FieldCheckFormat('string', $code, $libelle, $nullable);
+                      $fieldtemp = new FieldCheckFormat('string', $code, $libelle, $nullable, $valeursPossibles);
                       break;
                     case 'date':
                       $fieldtemp = new FieldCheckFormatDate(
-                        $code, $libelle, $nullable,
+                        $code, $libelle, $nullable, $valeursPossibles,
                         $value->getMappingType()
                       );
                       break;
                     case 'boolean':
-                      $fieldtemp = new FieldCheckFormatBoolean($code, $libelle, $nullable);
+                      $fieldtemp = new FieldCheckFormatBoolean($code, $libelle, $nullable, $valeursPossibles);
                       break;
                     case 'integer':
-                      $fieldtemp = new FieldCheckFormatInteger($code, $libelle, $nullable);
+                      $fieldtemp = new FieldCheckFormatInteger($code, $libelle, $nullable, $valeursPossibles);
                       break;
                     case 'float':
-                      $fieldtemp = new FieldCheckFormatFloat($code, $libelle, $nullable);
+                      $fieldtemp = new FieldCheckFormatFloat($code, $libelle, $nullable, $valeursPossibles);
                       break;
                     default:
                       return false;
@@ -320,17 +322,19 @@ class Mapping
                 }
               } else {
                 // Champs non intégré
-                $fieldtemp = new FieldCheckFormat('string', 'non_integre', $value->getFichierEntete(), true);
+                $fieldtemp = new FieldCheckFormat('string', 'non_integre', $value->getFichierEntete(), true, []);
                 array_push($fields['classic'], $fieldtemp);
               }
             } else {
               $champ = $this->searchChampInPossible($value->getMappingCode());
               if (!is_null($champ)) {
-                $libelle = $champ['libelle'];
+                $libelle = $champ['libelle'];$champ = $this->searchChampInPossible($value->getMappingCode());
+                $valeursPossibles = $champ['valeurs_possibles'];
               } else {
                 $libelle = $value->getMappingCode();
+                $valeursPossibles = [];
               }
-              $fieldAdvancedTemp = new FieldCheckFormatAdvanced($value->getMappingCode(), $libelle);
+              $fieldAdvancedTemp = new FieldCheckFormatAdvanced($value->getMappingCode(), $libelle, $valeursPossibles);
 
               foreach ($value->getMappingConfigurationValueAvances() as $avance) {
                 if ($avance instanceof MappingConfigurationValueAvanceTextInterface) {

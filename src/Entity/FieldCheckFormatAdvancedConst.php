@@ -16,7 +16,7 @@ class FieldCheckFormatAdvancedConst extends FieldCheckFormat
 
   public function __construct($code, $libelle, $const)
   {
-    parent::__construct("const", $code, $libelle, false);
+    parent::__construct("const", $code, $libelle, false, []);
     $this->const = $const;
   }
 

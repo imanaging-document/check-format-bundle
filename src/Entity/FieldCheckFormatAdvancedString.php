@@ -15,7 +15,7 @@ class FieldCheckFormatAdvancedString extends FieldCheckFormat
 
   public function __construct($code, $libelle, $indexFichier, $nullable)
   {
-    parent::__construct("string", $code, $libelle, $nullable);
+    parent::__construct("string", $code, $libelle, $nullable, []);
     $this->indexFichier= $indexFichier;
   }
 

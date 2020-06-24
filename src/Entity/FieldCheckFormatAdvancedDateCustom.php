@@ -17,7 +17,7 @@ class FieldCheckFormatAdvancedDateCustom extends FieldCheckFormat
 
   public function __construct($code, $libelle, $format, $modifier)
   {
-    parent::__construct("date_custom", $code, $libelle, false);
+    parent::__construct("date_custom", $code, $libelle, false, []);
     $this->format = $format;
     $this->modifier = $modifier;
   }

@@ -15,9 +15,9 @@ class FieldCheckFormatDate extends FieldCheckFormat
 {
   private $format;
 
-  public function __construct($code, $libelle, $nullable, $format = null)
+  public function __construct($code, $libelle, $nullable, $valeursPossibles, $format = null)
   {
-    parent::__construct("datetime", $code, $libelle, $nullable);
+    parent::__construct("datetime", $code, $libelle, $nullable, $valeursPossibles);
     $this->format = $format;
   }
 

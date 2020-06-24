@@ -11,6 +11,9 @@
         {% for error_detail in error_line.errors_list.classic %}
           <li>{% if error_detail.field is not null %}{{ error_detail.field }} : {% endif %}{{ error_detail.error_message }}</li>
         {% endfor %}
+        {% for error_detail in error_line.errors_list.advanced %}
+          <li>{% if error_detail.field is not null %}{{ error_detail.field }} : {% endif %}{{ error_detail.error_message }}</li>
+        {% endfor %}
       </ul>
     {% endfor %}
   </ul>

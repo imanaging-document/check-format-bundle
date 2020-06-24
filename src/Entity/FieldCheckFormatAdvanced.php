@@ -14,9 +14,9 @@ class FieldCheckFormatAdvanced extends BaseFieldCheckFormat
   private $regex;
   private $fields;
 
-  public function __construct($code, $libelle, $regex = null)
+  public function __construct($code, $libelle, $valuesPossibles, $regex = null)
   {
-    parent::__construct($code, $libelle);
+    parent::__construct($code, $libelle, $valuesPossibles);
     $this->regex = $regex;
     $this->fields = array();
   }

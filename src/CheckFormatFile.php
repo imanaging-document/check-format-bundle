@@ -89,13 +89,18 @@ class CheckFormatFile
             }elseif ($field instanceof FieldCheckFormatAdvancedString) {
               $translatedValue = $field->getTranslatedValue($datas[$field->getIndexFichier()]);
               $transformedValue = $field->getTransformedValue($translatedValue);
+              $libelleNullable = ($field->isNullable()) ? "OUI" : "NON";
+              $libelleTranslated = (!is_null($transformedValue)) ? $transformedValue : "valeur NULL";
+              $libelleTranslatedValue = ($transformedValue !== $datas[$field->getIndexFichier()]) ? (' "( Traduction : "' . $libelleTranslated . '" )') : "";
               if (!$field->validFormat($transformedValue)) {
-                $libelleNullable = ($field->isNullable()) ? "OUI" : "NON";
-                $libelleTranslated = (!is_null($transformedValue)) ? $transformedValue : "valeur NULL";
-                $libelleTranslatedValue = ($transformedValue !== $datas[$field->getIndexFichier()]) ? (' "( Traduction : "' . $libelleTranslated . '" )') : "";
                 array_push($errorsList['advanced'], array('field' => $fieldAdvanced->getLibelle() . " -> " . $field->getLibelle(), 'error_message' => 'la valeur "' . $datas[$field->getIndexFichier()] . '"' . $libelleTranslatedValue  . ' ne respecte pas le format "' . $field->getType() . '" (Nullable : ' . $libelleNullable . ') '));
               } else {
-                $fieldConcat .= $field->getValue($translatedValue);
+                // on vérifie les valeurs possibles
+                if (!$field->validValuesPossibles($transformedValue)) {
+                  array_push($errorsList['advanced'], array('field' => $fieldAdvanced->getLibelle() . " -> " . $field->getLibelle(), 'error_message' => 'la valeur "' . $datas[$field->getIndexFichier()] . '"' . $libelleTranslatedValue  . ' ne respecte pas la liste des valeurs possibles (' . $field->getValeursPossiblesString() . ').'));
+                } else {
+                  $fieldConcat .= $field->getValue($translatedValue);
+                }
               }
             } else {
               return array(
@@ -104,9 +109,14 @@ class CheckFormatFile
               );
             }
           }
-          if ($returnDataObj) {
-            $lib = str_replace(' ', '_', $fieldAdvanced->getCode());
-            $objData->{$lib} = $fieldConcat;
+
+          if (!$fieldAdvanced->validValuesPossibles($fieldConcat)) {
+            array_push($errorsList['advanced'], array('field' => $fieldAdvanced->getLibelle(), 'error_message' => 'la valeur "' . $fieldConcat  . '" ne respecte pas la liste des valeurs possibles (' . $fieldAdvanced->getValeursPossiblesString() . ').'));
+          } else {
+            if ($returnDataObj) {
+              $lib = str_replace(' ', '_', $fieldAdvanced->getCode());
+              $objData->{$lib} = $fieldConcat;
+            }
           }
         }
       }
@@ -117,15 +127,20 @@ class CheckFormatFile
         if ($fieldTemp instanceof FieldCheckFormat) {
           $translatedValue = $fieldTemp->getTranslatedValue($datas[$i]);
           $transformedValue = $fieldTemp->getTransformedValue($translatedValue);
+          $libelleNullable = ($fieldTemp->isNullable()) ? "OUI" : "NON";
+          $libelleTranslated = (!is_null($transformedValue)) ? $transformedValue : "valeur NULL";
+          $libelleTranslatedValue = ($transformedValue !== $datas[$i]) ? ' "( Traduction : "' . $libelleTranslated . '" )' : "";
           if (!$fieldTemp->validFormat($transformedValue)) {
-            $libelleNullable = ($fieldTemp->isNullable()) ? "OUI" : "NON";
-            $libelleTranslated = (!is_null($transformedValue)) ? $transformedValue : "valeur NULL";
-            $libelleTranslatedValue = ($transformedValue !== $datas[$i]) ? ' "( Traduction : "' . $libelleTranslated . '" )' : "";
             array_push($errorsList['classic'], array('field' => $fieldTemp->getLibelle(), 'error_message' => 'la valeur "' . $datas[$i] . '"' . $libelleTranslatedValue  . ' ne respecte pas le format "' . $fieldTemp->getType() . '" (Nullable : ' . $libelleNullable . ') '));
           } else {
-            if ($returnDataObj) {
-              $lib = str_replace(' ','_',$fieldTemp->getCode());
-              $objData->{$lib} = $fieldTemp->getValue($transformedValue);
+            // on vérifie les valeurs possibles
+            if (!$fieldTemp->validValuesPossibles($translatedValue)) {
+              array_push($errorsList['classic'], array('field' => $fieldTemp->getLibelle(), 'error_message' => 'la valeur "' . $datas[$i] . '"' . $libelleTranslatedValue  . ' ne respecte pas la liste des valeurs possibles ('.$fieldTemp->getValeursPossiblesString().').'));
+            } else {
+              if ($returnDataObj) {
+                $lib = str_replace(' ','_',$fieldTemp->getCode());
+                $objData->{$lib} = $fieldTemp->getValue($transformedValue);
+              }
             }
           }
         } else {
