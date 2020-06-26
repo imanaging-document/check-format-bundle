@@ -21,4 +21,12 @@ interface MappingConfigurationTypeInterface
   public function getCode(): string;
 
   public function setCode(string $code);
+
+  public function getFilesDirectory(): string;
+
+  public function setFilesDirectory(string $code);
+
+  public function getRouteIntegrationFichier(): string;
+
+  public function setRouteIntegrationFichier(string $code);
 }

@@ -12,7 +12,7 @@ class FieldCheckFormatFloat extends FieldCheckFormat
 {
 
   public function __construct($code, $libelle, $nullable, $valeursPossibles) {
-    parent::__construct('boolean', $code, $libelle, $nullable, $valeursPossibles);
+    parent::__construct('float', $code, $libelle, $nullable, $valeursPossibles);
   }
 
   /**

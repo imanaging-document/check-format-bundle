@@ -12,7 +12,7 @@ class FieldCheckFormatInteger extends FieldCheckFormat
 {
 
   public function __construct($code, $libelle, $nullable, $valeursPossibles) {
-    parent::__construct('boolean', $code, $libelle, $nullable, $valeursPossibles);
+    parent::__construct('integer', $code, $libelle, $nullable, $valeursPossibles);
   }
 
   /**
