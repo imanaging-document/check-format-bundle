@@ -35,9 +35,9 @@
 
 <script>
   $('#champs').change(function() {
-    var data = {lib_colonne: "{{ lib_colonne }}", champ: $(this).val(), mapping_configuration_type: mappingConfigurationType};
+    var data = {lib_colonne: "{{ lib_colonne }}", champ: $(this).val()};
     $.ajax({
-      url: "{{ path('check_format_mapping_select_champs_options') }}",
+      url: "{{ path('check_format_mapping_select_champs_options', {code: mapping_configuration_type.code}) }}",
       type: 'POST',
       data: data,
       success: function (data) {
@@ -45,7 +45,7 @@
         $('#btn-add-anomalie').prop('disabled', false);
       },
       error: function () {
-        showSweetAlert('top-end', 'error', 'Une erreur est survenue lors de la sélection du champs. Veuillez réessayer plus tard.', true, 3000);
+        alert('Une erreur est survenue lors de la sélection du champs. Veuillez réessayer plus tard.');
       }
     });
   });

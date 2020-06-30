@@ -2,6 +2,7 @@
 
 namespace Imanaging\CheckFormatBundle;
 
+use App\Entity\MappingConfigurationType;
 use Doctrine\ORM\EntityManagerInterface;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedDateCustom;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatBoolean;
@@ -67,6 +68,7 @@ class Mapping
           return new JsonResponse($res, 500);
         }
         return new Response($this->templating->render('@ImanagingCheckFormat/Mapping/mapping_configuration_avances.html.twig', [
+          'mapping_configuration_type' => $configuration->getType(),
           'values_avances' => $values,
           'champs_possibles' => $res['champs_a_mapper'],
           'value' => $configuration
@@ -81,13 +83,12 @@ class Mapping
 
   /**
    * @param MappingConfigurationValueInterface $configurationValue
-   * @param $filesDirectory
    * @return Response
    */
-  public function showMappingConfigurationValuesAvancesDetail(MappingConfigurationValueInterface $configurationValue, $filesDirectory){
+  public function showMappingConfigurationValuesAvancesDetail(MappingConfigurationValueInterface $configurationValue){
     $ligneEntete = [];
-    $attestationsDir = $this->projectDir.$filesDirectory;
-    $fichiersClient = glob($attestationsDir);
+    $directory = $this->projectDir.$configurationValue->getMappingConfiguration()->getType()->getFilesDirectory() . $configurationValue->getMappingConfiguration()->getType()->getFilename() . '*';
+    $fichiersClient = glob($directory);
     if (count($fichiersClient) == 1) {
       $data = $this->getFirstLinesFromFile($fichiersClient[0], 1);
       $ligneEntete = $data['entete'];
@@ -221,25 +222,25 @@ class Mapping
   }
 
   /**
-   * @param $filesDirectory
+   * @param MappingConfigurationTypeInterface $mappingConfigurationType
    * @param $withEntete
-   * @param $codeMappingType
    * @return array
    */
-  public function controlerFichiers($filesDirectory, $withEntete, $codeMappingType){
+  public function controlerFichiers(MappingConfigurationTypeInterface $mappingConfigurationType, $withEntete){
     $result = [
       'nb_lines' => 0,
       'error' => false,
       'error_list' => []
     ];
     // On parcourt les fichiers un à un
+    $filesDirectory = $mappingConfigurationType->getFilesDirectory() . $mappingConfigurationType->getFilename() . '*';
     foreach (glob($this->projectDir.$filesDirectory) as $fichier){
       // On parse le fichier CSV
       $lignes = $this->converter->convert($fichier, ';');
       if ($withEntete){
         unset($lignes[0]);
       }
-      $fields = $this->getFieldsConfigurationMappingImport($codeMappingType);
+      $fields = $this->getFieldsConfigurationMappingImport($mappingConfigurationType->getCode());
       if ($fields) {
         $result = CheckFormatFile::checkFormatFile($fields['classic'], $fields['advanced'], $lignes);
       } else {

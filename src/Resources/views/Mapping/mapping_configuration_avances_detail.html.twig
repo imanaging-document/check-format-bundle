@@ -117,7 +117,7 @@
       let date_custom_format = $('#date_custom_format').val();
       let date_custom_modify = $('#date_custom_modify').val();
       let data = {'value': value, 'type': type, 'file_index': file_index, 'file_entete': file_entete,
-        'date_custom_format' : date_custom_format, 'date_custom_modify' : date_custom_modify, files_directory: filesDirectory};
+        'date_custom_format' : date_custom_format, 'date_custom_modify' : date_custom_modify};
 
       $('#divConfigurationAvances').html('<i class="fa fa-spin fa-spinner fa-2x fa-fw"></i><span>Enregistrement en cours ...</span>');
       $.ajax({
@@ -149,7 +149,7 @@
 
   $(".delete-valeur-avancee-detail").click(function(){
     let valeurAvanceeId = $(this).data('valeur-avancee-id');
-    let data = {valeur_avancee_id: valeurAvanceeId, files_directory: filesDirectory};
+    let data = {valeur_avancee_id: valeurAvanceeId};
     $('#divConfigurationAvances').html('<i class="fa fa-spin fa-spinner fa-2x"></i><span> Enregistrement en cours ...</span>');
     $.ajax({
       url: "{{ path('check_format_mapping_configuration_values_avances_detail_remove') }}",

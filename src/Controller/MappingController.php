@@ -43,68 +43,104 @@ class MappingController extends AbstractController
     $this->projectDir = $projectDir;
   }
 
-  public function mappingPageAction(Request $request){
+  public function indexAction(Request $request)
+  {
     $params = $request->request->all();
-    $filesDir = $params['files_directory'];
-    $attestationsDir = $this->projectDir . $filesDir;
-    $fichiersClient = glob($attestationsDir);
-    if (count($fichiersClient) == 1) {
-      if (isset($params['mapping_configuration_type'])){
+    $mappingsConfigurationsTypes = [];
+    foreach ($params as $param => $value){
+      if ($param == $value){
+        $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $value]);
+        if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
+          $mappingsConfigurationsTypes[] = $mappingConfigurationType;
+        }
+      }
+    }
+    if (count($mappingsConfigurationsTypes) == 1){
+      return $this->redirectToRoute('check_format_mapping_page', ['code' => $mappingsConfigurationsTypes[0]->getCode()]);
+    }
+
+    return $this->render("@ImanagingCheckFormat/Mapping/index.html.twig", [
+      'mappings_configurations_types' => $mappingsConfigurationsTypes,
+      'basePath' => $params['basePath']
+    ]);
+  }
+
+  public function mappingPageAction($code)
+  {
+    $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
+    if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
+      $directory = $this->projectDir . $mappingConfigurationType->getFilesDirectory() . $mappingConfigurationType->getFilename() . '*';
+      $fichiersClient = glob($directory);
+      if (count($fichiersClient) == 1) {
         $data = $this->mapping->getFirstLinesFromFile($fichiersClient[0], 10);
         $ligneEntete = $data['entete'];
         $lignes = $data['first_lines'];
 
         return $this->render("@ImanagingCheckFormat/Mapping/mapping_page.html.twig", [
-          'champs' => $this->mapping->getChampsPossiblesAIntegrer($params['mapping_configuration_type']),
+          'basePath' => 'base.html.twig',
+          'champs' => $this->mapping->getChampsPossiblesAIntegrer($code),
           'ligne_entete' => $ligneEntete,
           'lignes' => $lignes,
           'fichiers_en_attente' => $fichiersClient,
-          'mapping_configuration_type' => $params['mapping_configuration_type'],
-          'files_directory' => $params['files_directory'],
-          'next_step_route' => $params['next_step_route'],
+          'mapping_configuration_type' => $mappingConfigurationType
         ]);
       } else {
-        return new JsonResponse([], 500);
+        return $this->render("@ImanagingCheckFormat/Mapping/no_fichier_to_map.html.twig", [
+          'basePath' => 'base.html.twig',
+          'mapping_configuration_type' => $mappingConfigurationType
+        ]);
       }
     } else {
-      return $this->render("@ImanagingCheckFormat/Mapping/no_fichier_to_map.html.twig", [
-        'files_directory' => $params['files_directory'],
+      return $this->render("@ImanagingCheckFormat/Mapping/mapping_configuration_type_not_found.html.twig", [
+        'code' => $code,
+        'basePath' => 'base.html.twig',
       ]);
     }
   }
 
-  public function uploadFileAction(Request $request){
-    $params = $request->request->all();
-    $dir = $this->projectDir.dirname($params['files_directory']);
-    if (!is_dir($dir)){
-      mkdir($dir, 0775, true);
-    }
+  public function uploadFileAction($code, Request $request)
+  {
+    $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
+    if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
+      $dir = $this->projectDir.$mappingConfigurationType->getFilesDirectory();
+      if (!is_dir($dir)){
+        mkdir($dir, 0775, true);
+      }
 
-    $files = $request->files->all();
-    $fichier = $files['file'];
-    if ($fichier instanceof UploadedFile){
-      try {
-        $now = new DateTime();
-        $newFileName = 'fichier_client_'.$now->format('YmdHis').'.'.$fichier->getClientOriginalExtension();
-        $fichier->move($dir, $newFileName);
-        return new JsonResponse();
-      } catch (Exception $e){
-        return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :("], 500);
+      $files = $request->files->all();
+      $fichier = $files['file'];
+      if ($fichier instanceof UploadedFile){
+        try {
+          $now = new DateTime();
+          $newFileName = $mappingConfigurationType->getFilename().'_'.$now->format('YmdHis').'.'.$fichier->getClientOriginalExtension();
+          $fichier->move($dir, $newFileName);
+          return new JsonResponse();
+        } catch (Exception $e){
+          return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :("], 500);
+        }
+      } else {
+        return new JsonResponse(["error_message" => "Veuillez soumettre un fichier valide."], 500);
       }
     } else {
-      return new JsonResponse(["error_message" => "Veuillez soumettre un fichier valide."], 500);
+      return $this->redirectToRoute('check_format_mapping_page', ['code' => $code]);
     }
   }
 
-  public function deleteFileAction(Request $request){
-    $params = $request->request->all();
-    $dir = $this->projectDir.dirname($params['files_directory']);
-    if (is_dir($dir)){
-      if (file_exists($dir.'/'.$params['filename'])){
-        try{
-          unlink($dir.'/'.$params['filename']);
-          return new JsonResponse();
-        } catch (Exception $e){
+  public function deleteFileAction($code, Request $request)
+  {
+    $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
+    if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
+      $params = $request->request->all();
+      $dir = $this->projectDir.$mappingConfigurationType->getFilesDirectory();
+      if (is_dir($dir)){
+        if (file_exists($dir.'/'.$params['filename'])){
+          try{
+            unlink($dir.'/'.$params['filename']);
+            return new JsonResponse();
+          } catch (Exception $e){
+            return new JsonResponse([], 500);
+          }
+        } else {
           return new JsonResponse([], 500);
         }
       } else {
@@ -115,9 +151,51 @@ class MappingController extends AbstractController
     }
   }
 
-  public function gererChampsPossiblesAction(Request $request){
-    $params = $request->request->all();
-    $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $params['mapping_configuration_type']]);
+  public function controlePageAction($code)
+  {
+    $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
+    if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
+      $fichiersClients = array();
+      foreach (glob($this->projectDir . $mappingConfigurationType->getFilesDirectory() . $mappingConfigurationType->getFilename() . '*') as $path) {
+        $fichiersClients[] = basename($path);
+      }
+      return $this->render("@ImanagingCheckFormat/Mapping/controle.html.twig", [
+        'mapping_configuration_type' => $mappingConfigurationType,
+        'basePath' => 'base.html.twig',
+        "fichiers_clients" => $fichiersClients
+      ]);
+    } else {
+      return $this->render("@ImanagingCheckFormat/Mapping/mapping_configuration_type_not_found.html.twig", [
+        'code' => $code,
+        'basePath' => 'base.html.twig',
+      ]);
+    }
+  }
+
+  public function controlerFichierAction($code)
+  {
+    $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
+    if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
+      $result = $this->mapping->controlerFichiers($mappingConfigurationType, true);
+      if ($result['error']) {
+        return $this->render('@ImanagingCheckFormat/Mapping/controle/controle_ko.html.twig', [
+          'mapping_configuration_type' => $mappingConfigurationType,
+          'resultat' => $result
+        ]);
+      } else {
+        return $this->render('@ImanagingCheckFormat/Mapping/controle/controle_ok.html.twig', [
+          'mapping_configuration_type' => $mappingConfigurationType,
+          'resultat' => $result
+        ]);
+      }
+    } else {
+      return new JsonResponse([], 500);
+    }
+  }
+
+  public function gererChampsPossiblesAction($code)
+  {
+    $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
     if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
       $champsPossibles = $this->em->getRepository(MappingChampPossibleInterface::class)->findBy(['mappingConfigurationType' => $mappingConfigurationType, 'visible' => true]);
       return $this->render("@ImanagingCheckFormat/Mapping/gerer_champs_possibles.html.twig", [
@@ -129,7 +207,8 @@ class MappingController extends AbstractController
     }
   }
 
-  public function modelEditChampPossibleAction(Request $request){
+  public function modelEditChampPossibleAction(Request $request)
+  {
     $params = $request->request->all();
     $champPossible = $this->em->getRepository(MappingChampPossibleInterface::class)->find($params['champ_id']);
     if ($champPossible instanceof MappingChampPossibleInterface){
@@ -141,7 +220,8 @@ class MappingController extends AbstractController
     }
   }
 
-  public function saveChampPossibleAction(Request $request){
+  public function saveChampPossibleAction(Request $request)
+  {
     $params = $request->request->all();
     $champPossible = $this->em->getRepository(MappingChampPossibleInterface::class)->find($params['champ_id']);
     if ($champPossible instanceof MappingChampPossibleInterface){
@@ -159,7 +239,8 @@ class MappingController extends AbstractController
     }
   }
 
-  public function toggleBooleanValueChampPossibleAction(Request $request){
+  public function toggleBooleanValueChampPossibleAction(Request $request)
+  {
     $params = $request->request->all();
     $champPossible = $this->em->getRepository(MappingChampPossibleInterface::class)->find($params['champ_id']);
     if ($champPossible instanceof MappingChampPossibleInterface){
@@ -183,24 +264,27 @@ class MappingController extends AbstractController
     }
   }
 
-  public function getMappingConfigurationSelectAction($codeMappingConfiguration){
+  public function getMappingConfigurationSelectAction($codeMappingConfiguration)
+  {
     $mappingTypeConfiguration = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $codeMappingConfiguration]);
     if ($mappingTypeConfiguration instanceof MappingConfigurationTypeInterface){
       $mappingConfigurations = $this->em->getRepository(MappingConfigurationInterface::class)->findBy(['type' => $mappingTypeConfiguration]);
       return $this->render('@ImanagingCheckFormat/Mapping/partials/mapping_configuration_select.html.twig', [
-        'mapping_configurations' => $mappingConfigurations
+        'mapping_configuration_type' => $mappingTypeConfiguration,
+        'mapping_configurations' => $mappingConfigurations,
       ]);
     } else {
       return new JsonResponse([], 500);
     }
   }
 
-  public function addMappingConfigurationAction(Request $request){
+  public function addMappingConfigurationAction($code, Request $request)
+  {
     $params = $request->request->all();
     $em = $this->getDoctrine()->getManager();
     if (isset($params['libelle'])) {
       $libelle = $params['libelle'];
-      $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $params['mapping_configuration_type']]);
+      $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
       if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
         $className = $this->em->getRepository(MappingConfigurationInterface::class)->getClassName();
         $configuration = new $className();
@@ -276,7 +360,7 @@ class MappingController extends AbstractController
     if (isset($params['configuration_avance_id'])) {
       $configurationValue = $this->em->getRepository(MappingConfigurationValueInterface::class)->find($params['configuration_avance_id']);
       if ($configurationValue instanceof MappingConfigurationValueInterface){
-        return $this->mapping->showMappingConfigurationValuesAvancesDetail($configurationValue, $params['files_directory']);
+        return $this->mapping->showMappingConfigurationValuesAvancesDetail($configurationValue);
       }
       return new JsonResponse(['error' => true, 'error_message' => 'Une erreur est survenue lors de la récupération de la configuration (ID non trouvé)'], 500);
     }
@@ -342,7 +426,7 @@ class MappingController extends AbstractController
         $this->em->persist($value);
         $this->em->flush();
 
-        return $this->mapping->showMappingConfigurationValuesAvancesDetail($configurationValue, $params['files_directory']);
+        return $this->mapping->showMappingConfigurationValuesAvancesDetail($configurationValue);
       } else {
         return new JsonResponse(['error_message' => 'Une erreur est survenue. (2)'], 500);
       }
@@ -360,7 +444,7 @@ class MappingController extends AbstractController
         $configurationValue = $valueAvance->getMappingConfigurationValue();
         $this->em->remove($valueAvance);
         $this->em->flush();
-        return $this->mapping->showMappingConfigurationValuesAvancesDetail($configurationValue, $params['files_directory']);
+        return $this->mapping->showMappingConfigurationValuesAvancesDetail($configurationValue);
       } catch (Exception $e) {
         return new JsonResponse(['error_message' => 'Une erreur est survenue'], 500);
       }
@@ -369,22 +453,28 @@ class MappingController extends AbstractController
     }
   }
 
-  public function mappingFichierClientSelectChampsAction(Request $request)
+  public function mappingFichierClientSelectChampsAction($code, Request $request)
   {
-    $params = $request->request->all();
-    return $this->render(
-      '@ImanagingCheckFormat/Mapping/partials/mapping_fichier_select_champs.html.twig',
-      [
-        'champs' => $this->mapping->getChampsPossiblesAIntegrer($params['mapping_configuration_type']),
-        'lib_colonne' => $params['lib_colonne']
-      ]
-    );
+    $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
+    if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
+      $params = $request->request->all();
+      return $this->render(
+        '@ImanagingCheckFormat/Mapping/partials/mapping_fichier_select_champs.html.twig',
+        [
+          'mapping_configuration_type' => $mappingConfigurationType,
+          'champs' => $this->mapping->getChampsPossiblesAIntegrer($mappingConfigurationType->getCode()),
+          'lib_colonne' => $params['lib_colonne']
+        ]
+      );
+    } else {
+      return new JsonResponse(['error_message' => 'Une erreur est survenue'], 500);
+    }
   }
 
-  public function mappingFichierClientSelectChampsOptionsAction(Request $request)
+  public function mappingFichierClientSelectChampsOptionsAction($code, Request $request)
   {
     $params = $request->request->all();
-    $champSelect = $this->mapping->getChampPossibleByCode($params['champ'], $params['mapping_configuration_type']);
+    $champSelect = $this->mapping->getChampPossibleByCode($params['champ'], $code);
     if (!is_null($champSelect)) {
       switch ($champSelect['type']) {
         case 'date':

@@ -4,16 +4,25 @@
         xsi:schemaLocation="http://symfony.com/schema/routing
         https://symfony.com/schema/routing/routing-1.0.xsd">
 
-    <route id="check_format_mapping_page" path="/mapping-page" controller="imanaging_check_format.mapping_controller:mappingPageAction">
+    <route id="check_format_mapping" path="/mapping" controller="imanaging_check_format.mapping_controller:indexAction">
     </route>
 
-    <route id="check_format_mapping_files_upload" path="/mapping/files/upload" controller="imanaging_check_format.mapping_controller:uploadFileAction">
+    <route id="check_format_mapping_page" path="/mapping-page/{code}" controller="imanaging_check_format.mapping_controller:mappingPageAction">
     </route>
 
-    <route id="check_format_mapping_files_delete" path="/mapping/files/delete" controller="imanaging_check_format.mapping_controller:deleteFileAction">
+    <route id="check_format_mapping_controle_page" path="/mapping/{code}/controle" controller="imanaging_check_format.mapping_controller:controlePageAction">
     </route>
 
-    <route id="check_format_mapping_champs_possibles_gerer" path="/mapping/champs-possibles/gerer" controller="imanaging_check_format.mapping_controller:gererChampsPossiblesAction">
+    <route id="check_format_mapping_controler_fichier" path="/mapping/{code}/controler-fichier" controller="imanaging_check_format.mapping_controller:controlerFichierAction">
+    </route>
+
+    <route id="check_format_mapping_files_upload" path="/mapping/{code}/files/upload" controller="imanaging_check_format.mapping_controller:uploadFileAction">
+    </route>
+
+    <route id="check_format_mapping_files_delete" path="/mapping/{code}/files/delete" controller="imanaging_check_format.mapping_controller:deleteFileAction">
+    </route>
+
+    <route id="check_format_mapping_champs_possibles_gerer" path="/mapping/{code}/champs-possibles/gerer" controller="imanaging_check_format.mapping_controller:gererChampsPossiblesAction">
     </route>
 
     <route id="check_format_mapping_champs_possibles_modal_edition" path="/mapping/champs-possibles/modal-edition" controller="imanaging_check_format.mapping_controller:modelEditChampPossibleAction">
@@ -28,16 +37,16 @@
     <route id="check_format_mapping_select_configurations" path="/mapping/select-configurations/{codeMappingConfiguration}" controller="imanaging_check_format.mapping_controller:getMappingConfigurationSelectAction">
     </route>
 
-    <route id="check_format_mapping_add_configuration" path="/mapping/add-configuration" controller="imanaging_check_format.mapping_controller:addMappingConfigurationAction">
+    <route id="check_format_mapping_add_configuration" path="/mapping/{code}/add-configuration" controller="imanaging_check_format.mapping_controller:addMappingConfigurationAction">
     </route>
 
     <route id="check_format_mapping_remove_configuration" path="/mapping/remove-configuration" controller="imanaging_check_format.mapping_controller:removeMappingConfigurationValuesAction">
     </route>
 
-    <route id="check_format_mapping_select_champs" path="/mapping/select-champs" controller="imanaging_check_format.mapping_controller:mappingFichierClientSelectChampsAction">
+    <route id="check_format_mapping_select_champs" path="/mapping/{code}/select-champs" controller="imanaging_check_format.mapping_controller:mappingFichierClientSelectChampsAction">
     </route>
 
-    <route id="check_format_mapping_select_champs_options" path="/mapping/select-champs-options" controller="imanaging_check_format.mapping_controller:mappingFichierClientSelectChampsOptionsAction">
+    <route id="check_format_mapping_select_champs_options" path="/mapping/{code}/select-champs-options" controller="imanaging_check_format.mapping_controller:mappingFichierClientSelectChampsOptionsAction">
     </route>
 
     <route id="check_format_mapping_save_configuration" path="/mapping/save-configuration" controller="imanaging_check_format.mapping_controller:saveMappingConfigurationAction">

@@ -1,0 +1,36 @@
+{% extends basePath %}
+
+{% block body %}
+  <div class="container">
+    <h2 class="display-4 text-center">Mapping - Séléction du type de configuration</h2>
+
+    <div class="card">
+      <div class="card-body">
+        <h3>Liste des imports possibles</h3>
+        <p><i class="fa fa-info-circle fa-fw"></i>Veuillez sélectionner parmis la liste ci-dessous le type de mapping que vous souhaitez effectuer.</p>
+        <table class="table table-bordered">
+          <thead>
+            <tr>
+              <th>Type de configuration</th>
+              <th>Description</th>
+              <th>Nombre de configuration</th>
+              <th>Accéder</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for type in mappings_configurations_types %}
+            <tr>
+              <td>{{ type.libelle }}</td>
+              <td>{{ type.description }}</td>
+              <td>{{ type.mappingConfigurations|length }}</td>
+              <td>
+                <a href="{{ path('check_format_mapping_page', {code: type.code}) }}" class="btn btn-primary">Accéder au mapping</a>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endblock %}

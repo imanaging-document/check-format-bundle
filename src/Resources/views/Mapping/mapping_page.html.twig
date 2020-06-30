@@ -1,4 +1,16 @@
+{% extends basePath %}
+
+{% block body %}
 <style>
+  .delete-file{
+    cursor: pointer;
+    color: #007bff;
+  }
+
+  .delete-file:hover{
+    color: #0f74a8;
+  }
+
   .mapping_data_value {
     cursor: pointer;
     background-color: darkorange;
@@ -20,6 +32,7 @@
 </style>
 
 <div class="container container-full-width">
+  <h4 class="text-center display-4">{{ mapping_configuration_type.libelle }} - Mapping</h4>
   <h2 class="text-center text-info">Page de gestion des configurations de mapping</h2>
   <div class="card">
     <h5 class="card-header">
@@ -29,7 +42,7 @@
       <h5>Nombre de fichiers : {{ fichiers_en_attente|length }}</h5>
       <ul>
         {% for fichier in fichiers_en_attente %}
-          <li>{{ basename(fichier) }} (<span class="text-primary pointer delete-file" data-file-basename="{{ basename(fichier) }}">supprimer ce fichier</span>)</li>
+          <li>{{ basename(fichier) }} (<span class="delete-file" data-file-basename="{{ basename(fichier) }}">supprimer ce fichier</span>)</li>
         {% endfor %}
       </ul>
     </div>
@@ -131,7 +144,8 @@
 
         <hr>
         <div class="text-center">
-          <a id="btnValidMappingAndRunIntegration" href="{{ next_step_route }}" class="btn btn-success btn-raised disabled">
+          <a id="btnValidMappingAndRunIntegration" href="{{ path('check_format_mapping_controle_page', {code: mapping_configuration_type.code}) }}"
+             class="btn btn-success btn-raised disabled">
             Valider la configuration
           </a>
         </div>
@@ -161,19 +175,15 @@
 </div>
 
 <script>
-  let mappingConfigurationType = '';
-  let filesDirectory = '';
   $( document ).ready( function () {
     loadMappingConfigurations();
-    mappingConfigurationType = "{{ mapping_configuration_type }}";
-    filesDirectory = "{{ files_directory }}";
   });
 
   $(".delete-file").click(function(){
     let filename = $(this).data('file-basename');
-    let data = {filename: filename, files_directory: filesDirectory};
+    let data = {filename: filename};
     $.ajax({
-      url: "{{ path('check_format_mapping_files_delete') }}",
+      url: "{{ path('check_format_mapping_files_delete', {code: mapping_configuration_type.code}) }}",
       type: 'POST',
       data: data,
       success: function(){
@@ -186,11 +196,9 @@
   });
 
   $("#btnGererChampsPossibles").click(function(){
-    let data = {mapping_configuration_type: mappingConfigurationType};
     $.ajax({
-      url: "{{ path('check_format_mapping_champs_possibles_gerer') }}",
-      type: 'POST',
-      data: data,
+      url: "{{ path('check_format_mapping_champs_possibles_gerer', {code: mapping_configuration_type.code}) }}",
+      type: 'GET',
       success: function(data){
         $("#gerer-champs-possibles-card").html(data).removeClass('d-none');
         document.getElementById('gerer-champs-possibles-card').scrollIntoView();
@@ -230,9 +238,9 @@
 
   var mappingId = "";
   $('.mapping_data_value').click(function() {
-    let data = {lib_colonne: $(this).data('lib-colonne'), 'mapping_configuration_type': mappingConfigurationType};
+    let data = {lib_colonne: $(this).data('lib-colonne')};
     $.ajax({
-      url: "{{ path('check_format_mapping_select_champs') }}",
+      url: "{{ path('check_format_mapping_select_champs', {code: mapping_configuration_type.code}) }}",
       type: 'POST',
       data: data,
       success: function (data) {
@@ -284,7 +292,7 @@
       loader.removeClass('d-none');
     }
     $.ajax({
-      url: "{{ path('check_format_mapping_select_configurations', {codeMappingConfiguration: mapping_configuration_type}) }}",
+      url: "{{ path('check_format_mapping_select_configurations', {codeMappingConfiguration: mapping_configuration_type.code}) }}",
       type: 'GET',
       success: function(data){
         loader.addClass('d-none');
@@ -526,3 +534,4 @@
     }
   }
 </script>
+{% endblock %}

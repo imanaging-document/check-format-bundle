@@ -8,6 +8,8 @@
 
 namespace Imanaging\CheckFormatBundle\Interfaces;
 
+use App\Entity\MappingConfiguration;
+
 interface MappingConfigurationValueInterface
 {
   public function __construct();

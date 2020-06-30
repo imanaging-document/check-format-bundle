@@ -106,9 +106,9 @@
     $('#divConfigurationAvances').html('<i class="fa fa-spin fa-spinner fa-2x fa-fw"></i><span>Chargement en cours ...</span>');
 
     let id = $(this).data('id');
-    let data = {configuration_avance_id: id, files_directory: filesDirectory};
+    let data = {configuration_avance_id: id};
     $.ajax({
-      url: "{{ path('check_format_mapping_configuration_values_avances_detail') }}",
+      url: "{{ path('check_format_mapping_configuration_values_avances_detail', {code: mapping_configuration_type.code}) }}",
       type: 'POST',
       data: data,
       success: function(data){

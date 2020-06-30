@@ -1,0 +1,62 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+  <div class="container">
+  <h4 class="text-center display-4">{{ mapping_configuration_type.libelle }} - Mapping</h4>
+
+  <h2 class="text-center text-info">Page de contrôle du fichier</h2>
+
+  <a href="{{ path('check_format_mapping_page', {code: mapping_configuration_type.code}) }}" class="btn btn-primary mb-2">Revenir au mapping</a>
+  <div class="card">
+    <h3 class="card-header">Contrôle du fichier</h3>
+    <div class="card-body">
+      {% if fichiers_clients|length > 0 %}
+        Fichier(s) en attente d'intégration :
+        <ul>
+          {% for fichier in fichiers_clients %}
+            <li>{{ fichier }}</li>
+          {% endfor %}
+        </ul>
+        <div id="spinner_integration" class="d-none">
+          <i class="fa fa-lg fa-spinner fa-spin"></i> <i>Contrôle en cours</i>
+        </div>
+        <div id="div_controle">
+          <p>Procédez au contrôle du fichier :</p>
+          <div class="btn-group">
+            <button id="btn_controle_fichier" class="btn btn-dark">
+              Contrôlez le fichier <i class="fa fa-check text-success"></i>
+            </button>
+          </div>
+        </div>
+
+        <hr>
+        <div id="div_resultat_import">
+        </div>
+      {% else %}
+        <p><i class="fa fa-info-circle fa-fw"></i>Aucun fichier n'est en attente d'intégration. Veuillez retourner à l'étape de mapping pour soumettre un nouveau fichier.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    $('#btn_controle_fichier').click(function() {
+      var div_controle = $('#div_controle');
+      div_controle.addClass('d-none');
+      var spinner = $('#spinner_integration');
+      spinner.removeClass('d-none');
+      var div_resultat = $('#div_resultat_import');
+      $.ajax({
+        url: "{{ path('check_format_mapping_controler_fichier', {code: mapping_configuration_type.code}) }}",
+        type: 'POST',
+        success: function(data){
+          div_resultat.html(data);
+          spinner.addClass('d-none');
+        },
+        error: function(){
+          spinner.addClass('d-none');
+          showSweetAlert('top-end', 'error', "Une erreur est survenue lors du contrôle du fichier. Veuillez réessayer plus tard.", true, 3000);
+        }
+      });
+    });
+  </script>
+{% endblock %}

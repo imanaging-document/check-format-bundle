@@ -1,8 +1,16 @@
-<h4 class="mb-4">Votre fichier comporte au moins une erreur :</h4>
+<h4 class="mb-4 text-danger"><i class="fa fa-exclamation-triangle fa-fw"></i>Le contrôle de votre fichier a révélé moins une erreur</h4>
 {% if resultat.error_message is defined and resultat.error_message != '' %}
   <p class="text-danger"><b><i class="fa fa-exclamation-triangle fa-fw"></i>{{ resultat.error_message }}</b></p>
 {% endif %}
-<p>Nombre de ligne dans le fichier : {{ resultat.nb_lines }}</p>
+
+<hr>
+
+<p class="text-primary"><i class="fa fa-info-circle fa-fw"></i>Nombre de ligne dans le fichier : <b>{{ resultat.nb_lines }}</b></p>
+
+<hr>
+
+<p><b>Détails des erreurs :</b></p>
+
 {% if resultat.errors_list is defined %}
   <ul>
     {% for error_line in resultat.errors_list %}

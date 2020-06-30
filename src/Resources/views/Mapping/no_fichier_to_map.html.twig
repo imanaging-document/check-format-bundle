@@ -1,11 +1,18 @@
+{% extends basePath %}
+
+{% block body %}
 <div class="container">
+  <h4 class="text-center display-4">{{ mapping_configuration_type.libelle }} - Mapping</h4>
+
+  <button class="btn btn-primary" onclick="history.back()"><i class="fa fa-backward fa-fw"></i>Retour</button>
   <div class="card">
     <div class="card-header bg-primary text-white">
       <h4>Soumettre un nouveau fichier</h4>
     </div>
     <div class="card-body">
-      <h5>Aucun fichier à mapper n'a été trouvé dans le dossier prévu à cet effet.</h5>
-      <p>Veuillez télécharger un fichier avant d'effectuer un mapping.</p>
+      <h5>Aucun fichier à mapper n'a été trouvé dans le dossier prévu à cet effet :</h5>
+      <p><i>{{ mapping_configuration_type.filesDirectory }}</i></p>
+      <p>Veuillez télécharger un fichier avant de configurer un mapping.</p>
 
       <hr>
 
@@ -22,18 +29,12 @@
 </div>
 
 <script>
-  let filesDirectory = null;
-  $(document).ready(function(){
-    filesDirectory = "{{ files_directory }}";
-  });
-
   $('#btn-upload-file').on('click', function() {
     let fileData = $('#fichier').prop('files')[0];
     let data = new FormData();
     data.append('file', fileData);
-    data.append('files_directory', filesDirectory);
     $.ajax({
-      url: "{{ path('check_format_mapping_files_upload') }}",
+      url: "{{ path('check_format_mapping_files_upload', {code: mapping_configuration_type.code}) }}",
       cache: false,
       contentType: false,
       processData: false,
@@ -45,3 +46,4 @@
     });
   });
 </script>
+{% endblock %}

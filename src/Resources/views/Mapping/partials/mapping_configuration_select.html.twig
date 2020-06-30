@@ -48,12 +48,12 @@
   $('#btn_add_configuration').click(function() {
     let libelle = $('#mapping_configuration_libelle').val();
     if (libelle !== "") {
-      let data = {libelle: libelle, mapping_configuration_type: mappingConfigurationType};
+      let data = {libelle: libelle};
       $.ajax({
-        url: "{{ path('check_format_mapping_add_configuration') }}",
+        url: "{{ path('check_format_mapping_add_configuration', {code: mapping_configuration_type.code}) }}",
         type: 'POST',
         data: data,
-        success: function (data) {
+        success: function () {
           $('#addConfigurationModal').modal('hide');
           loadMappingConfigurations();
         },
