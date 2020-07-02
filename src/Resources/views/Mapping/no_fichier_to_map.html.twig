@@ -23,6 +23,9 @@
 
       <div class="text-center">
         <button id="btn-upload-file" class="btn btn-primary btn-raised">Envoyer le fichier</button>
+        <div id="loader-upload">
+          <i class="fa fa-spin fa-spinner fa-fw"></i>Veuillez patienter pendant l'envoi du fichier
+        </div>
       </div>
     </div>
   </div>
@@ -30,6 +33,11 @@
 
 <script>
   $('#btn-upload-file').on('click', function() {
+    let btn = $(this);
+    let loader = $('#loader-upload');
+    btn.addClass('d-none');
+    loader.removeClass('d-none');
+
     let fileData = $('#fichier').prop('files')[0];
     let data = new FormData();
     data.append('file', fileData);
@@ -42,6 +50,10 @@
       type: 'POST',
       success: function(){
         location.reload();
+      },
+      error: function() {
+        btn.removeClass('d-none');
+        loader.addClass('d-none');
       }
     });
   });
