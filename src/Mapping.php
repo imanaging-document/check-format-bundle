@@ -3,6 +3,7 @@
 namespace Imanaging\CheckFormatBundle;
 
 use App\Entity\MappingConfigurationType;
+use App\Entity\MappingConfigurationValueAvanceFileTransformation;
 use Doctrine\ORM\EntityManagerInterface;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedDateCustom;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatBoolean;
@@ -10,6 +11,7 @@ use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatFloat;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatInteger;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationTypeInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceDateCustomInterface;
+use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceFileTransformationInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceTypeInterface;
 use Symfony\Component\Templating\EngineInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -353,6 +355,17 @@ class Mapping
                     $avance->getFichierIndex(),
                     $champ['nullable']
                   );
+
+                  foreach ($avance->getMappingConfigurationValueAvanceFileTransformations() as $transformation) {
+                    if ($transformation instanceof MappingConfigurationValueAvanceFileTransformationInterface) {
+                      $fieldtemp->addTransformation(
+                        new FieldCheckFormatTransformation(
+                          $transformation->getTransformation(),
+                          $transformation->getNbCaract()
+                        )
+                      );
+                    }
+                  }
                   $fieldAdvancedTemp->addField($fieldtemp);
                 } elseif ($avance instanceof MappingConfigurationValueAvanceDateCustomInterface) {
                   $fieldtemp = new FieldCheckFormatAdvancedDateCustom(

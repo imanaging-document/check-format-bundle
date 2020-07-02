@@ -99,7 +99,7 @@ class CheckFormatFile
                 if (!$field->validValuesPossibles($transformedValue)) {
                   array_push($errorsList['advanced'], array('field' => $fieldAdvanced->getLibelle() . " -> " . $field->getLibelle(), 'error_message' => 'la valeur "' . $datas[$field->getIndexFichier()] . '"' . $libelleTranslatedValue  . ' ne respecte pas la liste des valeurs possibles (' . $field->getValeursPossiblesString() . ').'));
                 } else {
-                  $fieldConcat .= $field->getValue($translatedValue);
+                  $fieldConcat .= $field->getValue($transformedValue);
                 }
               }
             } else {

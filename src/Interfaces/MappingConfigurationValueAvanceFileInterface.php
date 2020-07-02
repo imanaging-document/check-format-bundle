@@ -31,4 +31,8 @@ interface MappingConfigurationValueAvanceFileInterface extends MappingConfigurat
   public function setFichierEntete(string $fichierEntete);
 
   public function getValue(): string;
+
+  public function getMappingConfigurationValueAvanceFileTransformations();
+
+  public function setMappingConfigurationValueAvanceFileTransformations($mappingConfigurationValueTransformations);
 }
