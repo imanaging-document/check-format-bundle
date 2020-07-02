@@ -1,0 +1,35 @@
+<h3 class="text-dark">Analyse des données</h3>
+  <p>La validation du format est terminée, vous pouvez maintenant analyser les données de ce fichier</p>
+  <button id="btnAnalyseDonneesFichier" class="btn btn-dark">
+    Controler les données <i class="fa fa-check text-success"></i>
+  </button>
+  <div id="divResultatAnalyseDonnees">
+
+  </div>
+
+
+<script>
+  $('#btnAnalyseDonneesFichier').click(function() {
+    $('#btnAnalyseDonneesFichier').addClass('d-none');
+    var divResultat = $('#divResultatAnalyseDonnees');
+    divResultat.html(showLoader('Analyse des données en cours ...'));
+
+    // on lance le contrôle du fichier en ajax
+    $.ajax({
+      url: "{{ path(mapping_configuration_type.routeAnalyseFichierBeforeIntegration) }}",
+      type: 'POST',
+      success: function(data){
+        divResultat.html(data);
+      },
+      error: function(){
+        $('#btnGroupIntegrationFichierSas').removeClass('d-none');
+        divResultat.html();
+        showSweetAlert('top-end', 'error', "Une erreur est survenue lors du contrôle du fichier. Veuillez réessayer plus tard.", true, 3000);
+      }
+    });
+  });
+
+  function showLoader(text) {
+    return '<div class="text-warning"><i class="fa fa-spin fa-spinner fa-lg"></i><span> ' + text+ '</span></div>';
+  }
+</script>

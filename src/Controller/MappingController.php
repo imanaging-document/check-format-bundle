@@ -3,10 +3,12 @@
 
 namespace Imanaging\CheckFormatBundle\Controller;
 
+use App\Entity\MappingConfigurationFile;
 use DateTime;
 use Exception;
 use Imanaging\CheckFormatBundle\Enum\TransformationEnum;
 use Imanaging\CheckFormatBundle\Interfaces\MappingChampPossibleInterface;
+use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationFileInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationTypeInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceDateCustomInterface;
@@ -113,10 +115,25 @@ class MappingController extends AbstractController
         try {
           $now = new DateTime();
           $newFileName = $mappingConfigurationType->getFilename().'_'.$now->format('YmdHis').'.'.$fichier->getClientOriginalExtension();
-          $fichier->move($dir, $newFileName);
-          return new JsonResponse();
+          
+          $className = $this->em->getRepository(MappingConfigurationFileInterface::class)->getClassName();
+          $mappingFile = new $className();
+          if ($mappingFile instanceof MappingConfigurationFileInterface) {
+            $mappingFile->setMappingConfigurationType($mappingConfigurationType);
+            $mappingFile->setDateImport($now);
+            $mappingFile->setInitialFilename($fichier->getClientOriginalName());
+            $mappingFile->setFilename($newFileName);
+            $this->em->persist($mappingFile);
+            $this->em->flush();
+
+            $fichier->move($dir, $newFileName);
+
+            return new JsonResponse();
+          } else {
+            return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :("], 500);
+          }
         } catch (Exception $e){
-          return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :("], 500);
+          return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :( ". $e->getMessage()], 500);
         }
       } else {
         return new JsonResponse(["error_message" => "Veuillez soumettre un fichier valide."], 500);
@@ -132,23 +149,24 @@ class MappingController extends AbstractController
     if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
       $params = $request->request->all();
       $dir = $this->projectDir.$mappingConfigurationType->getFilesDirectory();
-      if (is_dir($dir)){
-        if (file_exists($dir.'/'.$params['filename'])){
-          try{
-            unlink($dir.'/'.$params['filename']);
-            return new JsonResponse();
-          } catch (Exception $e){
-            return new JsonResponse([], 500);
+      $mappingConfigurationFile = $this->em->getRepository(MappingConfigurationFileInterface::class)->findOneBy(['filename' => $params['filename'], 'mappingConfigurationType' => $mappingConfigurationType]);
+      if ($mappingConfigurationFile instanceof MappingConfigurationFileInterface) {
+        if (is_dir($dir)){
+          if (file_exists($dir.'/'.$params['filename'])){
+            try{
+              unlink($dir.'/'.$params['filename']);
+
+              $this->em->remove($mappingConfigurationFile);
+              $this->em->flush();
+              return new JsonResponse();
+            } catch (Exception $e){
+              return new JsonResponse([], 500);
+            }
           }
-        } else {
-          return new JsonResponse([], 500);
         }
-      } else {
-        return new JsonResponse([], 500);
       }
-    } else {
-      return new JsonResponse([], 500);
     }
+    return new JsonResponse([], 500);
   }
 
   public function controlePageAction($code)

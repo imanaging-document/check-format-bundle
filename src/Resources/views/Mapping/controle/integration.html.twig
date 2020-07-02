@@ -1,0 +1,19 @@
+<h3 class="text-dark">Intégration</h3>
+<p>La validation du fichier est terminée, vous pouvez dès à présent intégrer ce fichier à l'aide du bouton ci-dessous.</p>
+
+<div class="btn-group" id="btn_actions">
+  <a href="{{ path(mapping_configuration_type.routeIntegrationFichier) }}" class="btn btn-dark" id="btn_import_fichier">Intégrer le fichier <i class="fa fa-check text-success"></i></a>
+</div>
+<div id="loader-actions" class="d-none">
+  <i class="fa fa-spin fa-lg fa-spinner"></i><i> Intégration en cours ... Merci de patienter jusqu'à la fin des traitements</i>
+</div>
+
+<div id="div_resultat_import"></div>
+
+<script>
+  $('#btn_import_fichier').click(function() {
+    $('#loader-actions').removeClass('d-none');
+    $('#btn_actions').addClass('d-none');
+    $(this).prop('disabled', true);
+  });
+</script>
