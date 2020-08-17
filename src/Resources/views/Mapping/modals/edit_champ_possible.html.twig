@@ -13,39 +13,39 @@
         </h4>
 
         <div class="form-group">
-          <label for="libelle">Libellé</label>
-          <input type="text" id="libelle" value="{{ champPossible.libelle }}" class="form-control">
+          <label for="modal-champ-possible-libelle">Libellé</label>
+          <input type="text" id="modal-champ-possible-libelle" value="{{ champPossible.libelle }}" class="form-control">
         </div>
 
         <div class="form-group">
-          <label for="table">Table</label>
-          <input type="text" id="table" value="{{ champPossible.table }}" class="form-control">
+          <label for="modal-champ-possible-table">Table</label>
+          <input type="text" id="modal-champ-possible-table" value="{{ champPossible.table }}" class="form-control">
         </div>
 
         <div class="form-group">
-          <label for="data">Data</label>
-          <input type="text" id="data" value="{{ champPossible.data }}" class="form-control" disabled>
+          <label for="modal-champ-possible-data">Data</label>
+          <input type="text" id="modal-champ-possible-data" value="{{ champPossible.data }}" class="form-control" disabled>
           <small><i class="fa fa-info-circle fa-fw"></i>Information non modifiable</small>
         </div>
 
         <div class="form-group">
-          <label for="type">Type</label>
-          <input type="text" id="type" value="{{ champPossible.type }}" class="form-control">
+          <label for="modal-champ-possible-type">Type</label>
+          <input type="text" id="modal-champ-possible-type" value="{{ champPossible.type }}" class="form-control">
         </div>
 
         <div class="form-check">
-          <input type="checkbox" class="form-check-input" id="obligatoire" {% if champPossible.obligatoire %}checked{% endif %}>
-          <label class="form-check-label" for="obligatoire">Obligatoire</label>
+          <input type="checkbox" class="form-check-input" id="modal-champ-possible-obligatoire" {% if champPossible.obligatoire %}checked{% endif %}>
+          <label class="form-check-label" for="modal-champ-possible-obligatoire">Obligatoire</label>
         </div>
 
         <div class="form-check">
-          <input type="checkbox" class="form-check-input" id="nullable" {% if champPossible.nullable %}checked{% endif %}>
-          <label class="form-check-label" for="nullable">Nullable</label>
+          <input type="checkbox" class="form-check-input" id="modal-champ-possible-nullable" {% if champPossible.nullable %}checked{% endif %}>
+          <label class="form-check-label" for="modal-champ-possible-nullable">Nullable</label>
         </div>
 
         <div class="form-check">
-          <input type="checkbox" class="form-check-input" id="integration-local" {% if champPossible.integrationLocal %}checked{% endif %}>
-          <label class="form-check-label" for="integration-local">Intégration locale</label>
+          <input type="checkbox" class="form-check-input" id="modal-champ-possible-integration-local" {% if champPossible.integrationLocal %}checked{% endif %}>
+          <label class="form-check-label" for="modal-champ-possible-integration-local">Intégration locale</label>
         </div>
 
         <div class="text-center">
@@ -61,12 +61,12 @@
 <script>
   $("#btn-save-champ-possible").click(function(){
     let champId = {{ champPossible.id }};
-    let libelle = $("#libelle").val();
-    let table = $("#table").val();
-    let type = $("#type").val();
-    let obligatoire = $("#obligatoire").prop('checked');
-    let nullable = $("#nullable").prop('checked');
-    let integrationLocal = $("#integration-local").prop('checked');
+    let libelle = $("#modal-champ-possible-libelle").val();
+    let table = $("#modal-champ-possible-table").val();
+    let type = $("#modal-champ-possible-type").val();
+    let obligatoire = $("#modal-champ-possible-obligatoire").prop('checked');
+    let nullable = $("#modal-champ-possible-nullable").prop('checked');
+    let integrationLocal = $("#modal-champ-possible-integration-local").prop('checked');
 
     let data = {champ_id: champId, libelle: libelle, table: table, type: type, obligatoire: obligatoire, nullable: nullable, integrationLocal: integrationLocal};
     $.ajax({

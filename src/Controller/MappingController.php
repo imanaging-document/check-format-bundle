@@ -246,9 +246,9 @@ class MappingController extends AbstractController
       $champPossible->setLibelle($params['libelle']);
       $champPossible->setTable($params['table']);
       $champPossible->setType($params['type']);
-      $champPossible->setObligatoire(isset($params['obligatoire']) && $params['obligatoire']);
-      $champPossible->setNullable(isset($params['nullable']) && $params['nullable']);
-      $champPossible->setIntegrationLocal(isset($params['integrationLocal']) && $params['integrationLocal']);
+      $champPossible->setObligatoire($params['obligatoire'] == 'true');
+      $champPossible->setNullable($params['nullable'] == 'true');
+      $champPossible->setIntegrationLocal($params['integrationLocal'] == 'true');
       $this->em->persist($champPossible);
       $this->em->flush();
       return new JsonResponse();
