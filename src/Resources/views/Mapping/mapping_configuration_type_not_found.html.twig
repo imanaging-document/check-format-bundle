@@ -1,7 +1,9 @@
 {% extends basePath %}
 
-<div class="container">
-  <div class="card">
-    <h4 class="text-danger">Type de configuration de mapping introuvable : {{ code }}</h4>
+{% block body %}
+  <div class="container">
+    <div class="card">
+      <h4 class="text-danger">Type de configuration de mapping introuvable : {{ code }}</h4>
+    </div>
   </div>
-</div>
+{% endblock %}
