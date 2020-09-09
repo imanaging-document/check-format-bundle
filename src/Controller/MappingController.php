@@ -115,7 +115,7 @@ class MappingController extends AbstractController
         try {
           $now = new DateTime();
           $newFileName = $mappingConfigurationType->getFilename().'_'.$now->format('YmdHis').'.'.$fichier->getClientOriginalExtension();
-          
+
           $className = $this->em->getRepository(MappingConfigurationFileInterface::class)->getClassName();
           $mappingFile = new $className();
           if ($mappingFile instanceof MappingConfigurationFileInterface) {
@@ -127,8 +127,12 @@ class MappingController extends AbstractController
             $this->em->flush();
 
             $fichier->move($dir, $newFileName);
-
-            return new JsonResponse();
+            if (file_exists($dir.$newFileName)){
+              chmod($dir.$newFileName, 0755);
+              return new JsonResponse();
+            } else {
+              return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :( #2"], 500);
+            }
           } else {
             return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :("], 500);
           }
@@ -246,9 +250,9 @@ class MappingController extends AbstractController
       $champPossible->setLibelle($params['libelle']);
       $champPossible->setTable($params['table']);
       $champPossible->setType($params['type']);
-      $champPossible->setObligatoire($params['obligatoire'] == 'true');
-      $champPossible->setNullable($params['nullable'] == 'true');
-      $champPossible->setIntegrationLocal($params['integrationLocal'] == 'true');
+      $champPossible->setObligatoire(isset($params['obligatoire']) && $params['obligatoire']);
+      $champPossible->setNullable(isset($params['nullable']) && $params['nullable']);
+      $champPossible->setIntegrationLocal(isset($params['integrationLocal']) && $params['integrationLocal']);
       $this->em->persist($champPossible);
       $this->em->flush();
       return new JsonResponse();
