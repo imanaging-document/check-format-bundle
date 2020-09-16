@@ -36,9 +36,9 @@ interface MappingConfigurationTypeInterface
 
   public function getRouteAnalyseFichierBeforeIntegration();
 
-  public function setRouteAnalyseFichierBeforeIntegration(string $routeAnalyseFichierBeforeIntegration);
+  public function setRouteAnalyseFichierBeforeIntegration($routeAnalyseFichierBeforeIntegration);
 
-  public function getRouteIntegrationFichier(): string;
+  public function getRouteIntegrationFichier();
 
   public function setRouteIntegrationFichier(string $routeIntegrationFichier);
 
