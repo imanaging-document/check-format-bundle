@@ -5,6 +5,7 @@ namespace Imanaging\CheckFormatBundle;
 use App\Entity\MappingConfigurationType;
 use App\Entity\MappingConfigurationValueAvanceFileTransformation;
 use Doctrine\ORM\EntityManagerInterface;
+use Exception;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedDateCustom;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatBoolean;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatFloat;
@@ -227,6 +228,7 @@ class Mapping
    * @param MappingConfigurationTypeInterface $mappingConfigurationType
    * @param $withEntete
    * @return array
+   * @throws Exception
    */
   public function controlerFichiers(MappingConfigurationTypeInterface $mappingConfigurationType, $withEntete){
     $result = [
@@ -246,8 +248,10 @@ class Mapping
       if ($fields) {
         $result = CheckFormatFile::checkFormatFile($fields['classic'], $fields['advanced'], $lignes);
       } else {
-        $result['error'] = true;
-        $result['error_message'] = 'Une erreur est survenue lors de la récupération des champs de mapping';
+        return [
+          'error' => true,
+          'error_message' => 'Une erreur est survenue lors de la récupération des champs de mapping'
+        ];
       }
     }
     return $result;

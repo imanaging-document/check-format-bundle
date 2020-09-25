@@ -25,6 +25,7 @@ class CheckFormatFile
    * @param array $fieldsAdvanced
    * @param array $lines
    * @return array
+   * @throws Exception
    */
   public static function checkFormatFile(Array $fields, Array $fieldsAdvanced, Array $lines) {
     $result = array(
