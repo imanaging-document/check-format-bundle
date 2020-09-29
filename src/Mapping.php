@@ -205,7 +205,7 @@ class Mapping
   public function setMappingConfigurationActive(MappingConfigurationInterface $mappingConfiguration)
   {
     $mappingActifSaved = false;
-    $mappingsConfigurations = $this->em->getRepository(MappingConfigurationInterface::class)->findAll();
+    $mappingsConfigurations = $this->em->getRepository(MappingConfigurationInterface::class)->findBy(['type' => $mappingConfiguration->getType()]);
     foreach ($mappingsConfigurations as $configuration) {
       if ($configuration instanceof MappingConfigurationInterface) {
         if ($configuration->getId() == $mappingConfiguration->getId()) {
