@@ -87,9 +87,11 @@ class MappingController extends AbstractController
           'mapping_configuration_type' => $mappingConfigurationType
         ]);
       } else {
+        $champsObligatoires = $this->em->getRepository(MappingChampPossibleInterface::class)->findBy(['mappingConfigurationType' => $mappingConfigurationType, 'visible' => true, 'obligatoire' => true]);
         return $this->render("@ImanagingCheckFormat/Mapping/no_fichier_to_map.html.twig", [
           'basePath' => 'base.html.twig',
-          'mapping_configuration_type' => $mappingConfigurationType
+          'mapping_configuration_type' => $mappingConfigurationType,
+          'champs_obligatoires' => $champsObligatoires
         ]);
       }
     } else {

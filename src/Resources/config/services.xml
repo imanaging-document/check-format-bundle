@@ -9,6 +9,7 @@
         <service id="Imanaging\CheckFormatBundle\CheckFormatFile" alias="imanaging_check_format.check_format_file" public="false" />
 
         <service id="imanaging_check_format.converter" class="Imanaging\CheckFormatBundle\Service\CsvToArrayService" public="true" />
+        <service id="imanaging_check_format.excel_converter" class="Imanaging\CheckFormatBundle\Service\ExcelToArrayService" public="true" />
         <service id="Imanaging\CheckFormatBundle\Service\CsvToArrayService" alias="imanaging_check_format.converter" public="false" />
 
         <service id="imanaging_check_format.mapping" class="Imanaging\CheckFormatBundle\Mapping">
@@ -16,6 +17,7 @@
             <argument type="service" id="imanaging_check_format.converter" />
             <argument type="service" id="templating.engine.twig" />
             <argument>%kernel.project_dir%</argument>
+            <argument type="service" id="imanaging_check_format.excel_converter" />
         </service>
         <service id="Imanaging\CheckFormatBundle\Mapping" alias="imanaging_check_format.mapping" public="false" />
 

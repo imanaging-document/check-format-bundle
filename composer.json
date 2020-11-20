@@ -1,16 +1,21 @@
 {
     "name": "imanaging-document/check-format-bundle",
-    "description": "This bundle allows you to check format",
+    "description": "This bundle allows you to check format, and provide mapping file system",
     "type": "symfony-bundle",
     "license": "MIT",
     "authors": [
         {
             "name": "Rémi Zanzi",
             "email": "r.zanzi@imanaging-document.fr"
+        },
+        {
+            "name": "Antonin Auffray",
+            "email": "a.auffray@imanaging-document.fr"
         }
     ],
     "require": {
-        "php": "^7.1.3"
+        "php": "^7.1.3",
+        "phpoffice/phpspreadsheet": "^1.12"
     },
     "autoload": {
         "psr-4": {

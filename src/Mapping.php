@@ -14,6 +14,7 @@ use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationTypeInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceDateCustomInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceFileTransformationInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceTypeInterface;
+use Imanaging\CheckFormatBundle\Service\ExcelToArrayService;
 use Symfony\Component\Templating\EngineInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -40,6 +41,7 @@ class Mapping
   private $champsPossiblesAIntegrer;
   private $templating;
   private $projectDir;
+  private $excelConverter;
 
   /**
    * Mapping constructor.
@@ -48,13 +50,14 @@ class Mapping
    * @param EngineInterface $templating
    * @param $projectDir
    */
-  public function __construct(EntityManagerInterface $em, CsvToArrayService $converter, EngineInterface $templating, $projectDir)
+  public function __construct(EntityManagerInterface $em, CsvToArrayService $converter, EngineInterface $templating, $projectDir, ExcelToArrayService $excelConverter)
   {
     $this->em = $em;
     $this->converter = $converter;
     $this->champsPossiblesAIntegrer = [];
     $this->templating = $templating;
     $this->projectDir = $projectDir;
+    $this->excelConverter = $excelConverter;
   }
 
   /**
@@ -240,7 +243,7 @@ class Mapping
     $filesDirectory = $mappingConfigurationType->getFilesDirectory() . $mappingConfigurationType->getFilename() . '*';
     foreach (glob($this->projectDir.$filesDirectory) as $fichier){
       // On parse le fichier CSV
-      $lignes = $this->converter->convert($fichier, ';');
+      $lignes = $this->getDataFromFile($fichier);
       if ($withEntete){
         unset($lignes[0]);
       }
@@ -419,7 +422,8 @@ class Mapping
    * @return array
    */
   public function getFirstLinesFromFile($file, $nbLines = 15){
-    $data = $this->converter->convert($file, ';');
+    $data = $this->getDataFromFile($file);
+
     $entete = $data[0];
     if (count($data) < $nbLines) {
       $nbLines = count($data) -1;
@@ -428,6 +432,7 @@ class Mapping
     for ($i = 1; $i <= $nbLines; $i++) {
       array_push($firstLines, $data[$i]);
     }
+
     return [
       'entete' => $entete,
       'first_lines' =>
@@ -447,5 +452,22 @@ class Mapping
       }
     }
     return null;
+  }
+
+  public function getDataFromFile($file)
+  {
+    switch (pathinfo($file, PATHINFO_EXTENSION)) {
+      case 'xlsx':
+      case 'xls':
+        $data = $this->excelConverter->convert($file);
+        break;
+      case "csv":
+        $data = $this->converter->convert($file, ';');
+        break;
+      default:
+        var_dump('L\'extention ' . pathinfo($file, PATHINFO_EXTENSION) . ' du fichier n\'est pas géré par ce module.');
+        die;
+    }
+    return $data;
   }
 }
