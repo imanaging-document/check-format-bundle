@@ -24,7 +24,7 @@ class ExcelToArrayService
     $data = [];
     $spreadsheet = IOFactory::load($filename);
     if ($spreadsheet instanceof Spreadsheet) {
-      $worksheet = $spreadsheet->getActiveSheet();
+      $worksheet = $spreadsheet->getSheet(0);
 
       $highestRow = $worksheet->getHighestRow();
       $highestColumn = $worksheet->getHighestColumn();
