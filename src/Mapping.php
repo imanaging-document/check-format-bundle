@@ -233,21 +233,21 @@ class Mapping
    * @return array
    * @throws Exception
    */
-  public function controlerFichiers(MappingConfigurationTypeInterface $mappingConfigurationType, $withEntete){
+  public function controlerFichiers(MappingConfigurationInterface $mappingConfiguration, $withEntete){
     $result = [
       'nb_lines' => 0,
       'error' => false,
       'error_list' => []
     ];
     // On parcourt les fichiers un à un
-    $filesDirectory = $mappingConfigurationType->getFilesDirectory() . $mappingConfigurationType->getFilename() . '*';
+    $filesDirectory = $mappingConfiguration->getType()->getFilesDirectory() . $mappingConfiguration->getType()->getFilename() . '*';
     foreach (glob($this->projectDir.$filesDirectory) as $fichier){
       // On parse le fichier CSV
       $lignes = $this->getDataFromFile($fichier);
       if ($withEntete){
         unset($lignes[0]);
       }
-      $fields = $this->getFieldsConfigurationMappingImport($mappingConfigurationType->getCode());
+      $fields = $this->getFieldsConfigurationMappingImport($mappingConfiguration);
       if ($fields) {
         $result = CheckFormatFile::checkFormatFile($fields['classic'], $fields['advanced'], $lignes);
       } else {
@@ -264,129 +264,47 @@ class Mapping
    * @param $codeMappingType
    * @return array|bool
    */
-  public function getFieldsConfigurationMappingImport($codeMappingType){
-    $this->champsPossiblesAIntegrer = $this->getChampsPossiblesAIntegrer($codeMappingType);
-    $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $codeMappingType]);
-    if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
-      $configuration = $this->em->getRepository(MappingConfigurationInterface::class)->findOneBy(['type' => $mappingConfigurationType, 'active' => true]);
-      if ($configuration instanceof MappingConfigurationInterface){
-        $fields = [
-          'classic' => [],
-          'advanced' => []
-        ];
-        foreach ($configuration->getMappingConfigurationValues() as $value) {
-          if ($value instanceof MappingConfigurationValueInterface) {
-            if (!is_null($value->getFichierIndex())) {
-              if (!is_null($value->getMappingCode())) {
-                $champ = $this->searchChampInPossible($value->getMappingCode());
-                if (!is_null($champ)) {
-                  $code = $champ['data'];
-                  $libelle = $champ['libelle'] .' (' . $value->getFichierEntete() . ' )';
-                  $nullable = $champ['nullable'];
-                  $valeursPossibles = $champ['valeurs_possibles'];
-                  switch ($champ['type']) {
-                    case 'string':
-                      $fieldtemp = new FieldCheckFormat('string', $code, $libelle, $nullable, $valeursPossibles);
-                      break;
-                    case 'date':
-                      $fieldtemp = new FieldCheckFormatDate(
-                        $code, $libelle, $nullable, $valeursPossibles,
-                        $value->getMappingType()
-                      );
-                      break;
-                    case 'boolean':
-                      $fieldtemp = new FieldCheckFormatBoolean($code, $libelle, $nullable, $valeursPossibles);
-                      break;
-                    case 'integer':
-                      $fieldtemp = new FieldCheckFormatInteger($code, $libelle, $nullable, $valeursPossibles);
-                      break;
-                    case 'float':
-                      $fieldtemp = new FieldCheckFormatFloat($code, $libelle, $nullable, $valeursPossibles);
-                      break;
-                    default:
-                      return false;
-                  }
-                  foreach ($value->getMappingConfigurationValueTranslations() as $translation) {
-                    if ($translation instanceof MappingConfigurationValueTranslationInterface) {
-                      $fieldtemp->addTranslation(
-                        new FieldCheckFormatTranslation(
-                          $translation->getValue(),
-                          $translation->getTranslation()
-                        )
-                      );
-                    }
-                  }
-                  foreach ($value->getMappingConfigurationValueTransformations() as $transformation) {
-                    if ($transformation instanceof MappingConfigurationValueTransformationInterface) {
-                      $fieldtemp->addTransformation(
-                        new FieldCheckFormatTransformation(
-                          $transformation->getTransformation(),
-                          $transformation->getNbCaract()
-                        )
-                      );
-                    }
-                  }
-                  array_push($fields['classic'], $fieldtemp);
-                } else {
+  public function getFieldsConfigurationMappingImport(MappingConfigurationInterface $configuration){
+    $this->champsPossiblesAIntegrer = $this->getChampsPossiblesAIntegrer($configuration->getType()->getCode());
+    $fields = [
+      'classic' => [],
+      'advanced' => []
+    ];
+    foreach ($configuration->getMappingConfigurationValues() as $value) {
+      if ($value instanceof MappingConfigurationValueInterface) {
+        if (!is_null($value->getFichierIndex())) {
+          if (!is_null($value->getMappingCode())) {
+            $champ = $this->searchChampInPossible($value->getMappingCode());
+            if (!is_null($champ)) {
+              $code = $champ['data'];
+              $libelle = $champ['libelle'] .' (' . $value->getFichierEntete() . ' )';
+              $nullable = $champ['nullable'];
+              $valeursPossibles = $champ['valeurs_possibles'];
+              switch ($champ['type']) {
+                case 'string':
+                  $fieldtemp = new FieldCheckFormat('string', $code, $libelle, $nullable, $valeursPossibles);
+                  break;
+                case 'date':
+                  $fieldtemp = new FieldCheckFormatDate(
+                    $code, $libelle, $nullable, $valeursPossibles,
+                    $value->getMappingType()
+                  );
+                  break;
+                case 'boolean':
+                  $fieldtemp = new FieldCheckFormatBoolean($code, $libelle, $nullable, $valeursPossibles);
+                  break;
+                case 'integer':
+                  $fieldtemp = new FieldCheckFormatInteger($code, $libelle, $nullable, $valeursPossibles);
+                  break;
+                case 'float':
+                  $fieldtemp = new FieldCheckFormatFloat($code, $libelle, $nullable, $valeursPossibles);
+                  break;
+                default:
                   return false;
-                }
-              } else {
-                // Champs non intégré
-                $fieldtemp = new FieldCheckFormat('string', 'non_integre', $value->getFichierEntete(), true, []);
-                array_push($fields['classic'], $fieldtemp);
               }
-            } else {
-              $champ = $this->searchChampInPossible($value->getMappingCode());
-              if (!is_null($champ)) {
-                $libelle = $champ['libelle'];$champ = $this->searchChampInPossible($value->getMappingCode());
-                $valeursPossibles = $champ['valeurs_possibles'];
-              } else {
-                $libelle = $value->getMappingCode();
-                $valeursPossibles = [];
-              }
-              $fieldAdvancedTemp = new FieldCheckFormatAdvanced($value->getMappingCode(), $libelle, $valeursPossibles);
-
-              foreach ($value->getMappingConfigurationValueAvances() as $avance) {
-                if ($avance instanceof MappingConfigurationValueAvanceTextInterface) {
-                  $fieldtemp = new FieldCheckFormatAdvancedConst(
-                    '',
-                    'Valeur saisie : ' . $avance->getValue(),
-                    $avance->getValue()
-                  );
-                  $fieldAdvancedTemp->addField($fieldtemp);
-                } elseif ($avance instanceof MappingConfigurationValueAvanceFileInterface) {
-                  // TODO GESTION DES TRANSLATION
-                  $fieldtemp = new FieldCheckFormatAdvancedString(
-                    '',
-                    $value->getMappingCode() . ' (' . $avance->getFichierEntete() . ' )',
-                    $avance->getFichierIndex(),
-                    $champ['nullable']
-                  );
-
-                  foreach ($avance->getMappingConfigurationValueAvanceFileTransformations() as $transformation) {
-                    if ($transformation instanceof MappingConfigurationValueAvanceFileTransformationInterface) {
-                      $fieldtemp->addTransformation(
-                        new FieldCheckFormatTransformation(
-                          $transformation->getTransformation(),
-                          $transformation->getNbCaract()
-                        )
-                      );
-                    }
-                  }
-                  $fieldAdvancedTemp->addField($fieldtemp);
-                } elseif ($avance instanceof MappingConfigurationValueAvanceDateCustomInterface) {
-                  $fieldtemp = new FieldCheckFormatAdvancedDateCustom(
-                    '',
-                    'Date custom',
-                    $avance->getFormat(), $avance->getModifier()
-                  );
-                  $fieldAdvancedTemp->addField($fieldtemp);
-                }
-              }
-
               foreach ($value->getMappingConfigurationValueTranslations() as $translation) {
                 if ($translation instanceof MappingConfigurationValueTranslationInterface) {
-                  $fieldAdvancedTemp->addTranslation(
+                  $fieldtemp->addTranslation(
                     new FieldCheckFormatTranslation(
                       $translation->getValue(),
                       $translation->getTranslation()
@@ -396,7 +314,7 @@ class Mapping
               }
               foreach ($value->getMappingConfigurationValueTransformations() as $transformation) {
                 if ($transformation instanceof MappingConfigurationValueTransformationInterface) {
-                  $fieldAdvancedTemp->addTransformation(
+                  $fieldtemp->addTransformation(
                     new FieldCheckFormatTransformation(
                       $transformation->getTransformation(),
                       $transformation->getNbCaract()
@@ -404,16 +322,89 @@ class Mapping
                   );
                 }
               }
-              array_push($fields['advanced'], $fieldAdvancedTemp);
+              array_push($fields['classic'], $fieldtemp);
+            } else {
+              return false;
+            }
+          } else {
+            // Champs non intégré
+            $fieldtemp = new FieldCheckFormat('string', 'non_integre', $value->getFichierEntete(), true, []);
+            array_push($fields['classic'], $fieldtemp);
+          }
+        } else {
+          $champ = $this->searchChampInPossible($value->getMappingCode());
+          if (!is_null($champ)) {
+            $libelle = $champ['libelle'];$champ = $this->searchChampInPossible($value->getMappingCode());
+            $valeursPossibles = $champ['valeurs_possibles'];
+          } else {
+            $libelle = $value->getMappingCode();
+            $valeursPossibles = [];
+          }
+          $fieldAdvancedTemp = new FieldCheckFormatAdvanced($value->getMappingCode(), $libelle, $valeursPossibles);
+
+          foreach ($value->getMappingConfigurationValueAvances() as $avance) {
+            if ($avance instanceof MappingConfigurationValueAvanceTextInterface) {
+              $fieldtemp = new FieldCheckFormatAdvancedConst(
+                '',
+                'Valeur saisie : ' . $avance->getValue(),
+                $avance->getValue()
+              );
+              $fieldAdvancedTemp->addField($fieldtemp);
+            } elseif ($avance instanceof MappingConfigurationValueAvanceFileInterface) {
+              // TODO GESTION DES TRANSLATION
+              $fieldtemp = new FieldCheckFormatAdvancedString(
+                '',
+                $value->getMappingCode() . ' (' . $avance->getFichierEntete() . ' )',
+                $avance->getFichierIndex(),
+                $champ['nullable']
+              );
+
+              foreach ($avance->getMappingConfigurationValueAvanceFileTransformations() as $transformation) {
+                if ($transformation instanceof MappingConfigurationValueAvanceFileTransformationInterface) {
+                  $fieldtemp->addTransformation(
+                    new FieldCheckFormatTransformation(
+                      $transformation->getTransformation(),
+                      $transformation->getNbCaract()
+                    )
+                  );
+                }
+              }
+              $fieldAdvancedTemp->addField($fieldtemp);
+            } elseif ($avance instanceof MappingConfigurationValueAvanceDateCustomInterface) {
+              $fieldtemp = new FieldCheckFormatAdvancedDateCustom(
+                '',
+                'Date custom',
+                $avance->getFormat(), $avance->getModifier()
+              );
+              $fieldAdvancedTemp->addField($fieldtemp);
             }
           }
+
+          foreach ($value->getMappingConfigurationValueTranslations() as $translation) {
+            if ($translation instanceof MappingConfigurationValueTranslationInterface) {
+              $fieldAdvancedTemp->addTranslation(
+                new FieldCheckFormatTranslation(
+                  $translation->getValue(),
+                  $translation->getTranslation()
+                )
+              );
+            }
+          }
+          foreach ($value->getMappingConfigurationValueTransformations() as $transformation) {
+            if ($transformation instanceof MappingConfigurationValueTransformationInterface) {
+              $fieldAdvancedTemp->addTransformation(
+                new FieldCheckFormatTransformation(
+                  $transformation->getTransformation(),
+                  $transformation->getNbCaract()
+                )
+              );
+            }
+          }
+          array_push($fields['advanced'], $fieldAdvancedTemp);
         }
-        return $fields;
       }
-      return false;
-    } else {
-      return false;
     }
+    return $fields;
   }
 
   /**

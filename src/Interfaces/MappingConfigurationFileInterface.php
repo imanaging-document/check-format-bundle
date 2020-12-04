@@ -38,7 +38,7 @@ interface MappingConfigurationFileInterface
 
   public function setCoreIntegrationId($coreIntegrationId): void;
 
-  public function getMappingConfigurationType() : MappingConfigurationTypeInterface;
+  public function getMappingConfiguration() : MappingConfigurationInterface;
 
-  public function setMappingConfigurationType(MappingConfigurationTypeInterface $mappingConfigurationType): void;
+  public function setMappingConfiguration(MappingConfigurationInterface $mappingConfiguration): void;
 }

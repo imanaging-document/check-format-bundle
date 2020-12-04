@@ -3,6 +3,7 @@
 
 namespace Imanaging\CheckFormatBundle\Controller;
 
+use App\Entity\MappingConfiguration;
 use App\Entity\MappingConfigurationFile;
 use DateTime;
 use Exception;
@@ -106,43 +107,48 @@ class MappingController extends AbstractController
   {
     $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
     if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
-      $dir = $this->projectDir.$mappingConfigurationType->getFilesDirectory();
-      if (!is_dir($dir)){
-        mkdir($dir, 0775, true);
-      }
+      $mappingConfiguration = $this->em->getRepository(MappingConfigurationInterface::class)->findOneBy(['active' => true, 'type' => $mappingConfigurationType]);
+      if ($mappingConfiguration instanceof MappingConfigurationInterface) {
+        $dir = $this->projectDir.$mappingConfigurationType->getFilesDirectory();
+        if (!is_dir($dir)){
+          mkdir($dir, 0775, true);
+        }
 
-      $files = $request->files->all();
-      $fichier = $files['file'];
-      if ($fichier instanceof UploadedFile){
-        try {
-          $now = new DateTime();
-          $newFileName = $mappingConfigurationType->getFilename().'_'.$now->format('YmdHis').'.'.$fichier->getClientOriginalExtension();
+        $files = $request->files->all();
+        $fichier = $files['file'];
+        if ($fichier instanceof UploadedFile){
+          try {
+            $now = new DateTime();
+            $newFileName = $mappingConfigurationType->getFilename().'_'.$now->format('YmdHis').'.'.$fichier->getClientOriginalExtension();
 
-          $className = $this->em->getRepository(MappingConfigurationFileInterface::class)->getClassName();
-          $mappingFile = new $className();
-          if ($mappingFile instanceof MappingConfigurationFileInterface) {
-            $mappingFile->setMappingConfigurationType($mappingConfigurationType);
-            $mappingFile->setDateImport($now);
-            $mappingFile->setInitialFilename($fichier->getClientOriginalName());
-            $mappingFile->setFilename($newFileName);
-            $this->em->persist($mappingFile);
-            $this->em->flush();
+            $className = $this->em->getRepository(MappingConfigurationFileInterface::class)->getClassName();
+            $mappingFile = new $className();
+            if ($mappingFile instanceof MappingConfigurationFileInterface) {
+              $mappingFile->setMappingConfiguration($mappingConfiguration);
+              $mappingFile->setDateImport($now);
+              $mappingFile->setInitialFilename($fichier->getClientOriginalName());
+              $mappingFile->setFilename($newFileName);
+              $this->em->persist($mappingFile);
+              $this->em->flush();
 
-            $fichier->move($dir, $newFileName);
-            if (file_exists($dir.$newFileName)){
-              chmod($dir.$newFileName, 0755);
-              return new JsonResponse();
+              $fichier->move($dir, $newFileName);
+              if (file_exists($dir.$newFileName)){
+                chmod($dir.$newFileName, 0755);
+                return new JsonResponse();
+              } else {
+                return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :( #2"], 500);
+              }
             } else {
-              return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :( #2"], 500);
+              return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :("], 500);
             }
-          } else {
-            return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :("], 500);
+          } catch (Exception $e){
+            return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :( ". $e->getMessage()], 500);
           }
-        } catch (Exception $e){
-          return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :( ". $e->getMessage()], 500);
+        } else {
+          return new JsonResponse(["error_message" => "Veuillez soumettre un fichier valide."], 500);
         }
       } else {
-        return new JsonResponse(["error_message" => "Veuillez soumettre un fichier valide."], 500);
+        return $this->redirectToRoute('check_format_mapping_page', ['code' => $code]);
       }
     } else {
       return $this->redirectToRoute('check_format_mapping_page', ['code' => $code]);
@@ -200,21 +206,31 @@ class MappingController extends AbstractController
   {
     $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
     if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
-      $result = $this->mapping->controlerFichiers($mappingConfigurationType, true);
-      if ($result['error']) {
-        return $this->render('@ImanagingCheckFormat/Mapping/controle/controle_ko.html.twig', [
-          'mapping_configuration_type' => $mappingConfigurationType,
-          'resultat' => $result
-        ]);
+      $mappingConfiguration = $this->getMappingConfigurationActive($mappingConfigurationType);
+      if ($mappingConfiguration instanceof MappingConfigurationInterface) {
+        $result = $this->mapping->controlerFichiers($mappingConfiguration, true);
+        if ($result['error']) {
+          return $this->render('@ImanagingCheckFormat/Mapping/controle/controle_ko.html.twig', [
+            'mapping_configuration_type' => $mappingConfigurationType,
+            'resultat' => $result
+          ]);
+        } else {
+          return $this->render('@ImanagingCheckFormat/Mapping/controle/controle_ok.html.twig', [
+            'mapping_configuration_type' => $mappingConfigurationType,
+            'resultat' => $result
+          ]);
+        }
       } else {
-        return $this->render('@ImanagingCheckFormat/Mapping/controle/controle_ok.html.twig', [
-          'mapping_configuration_type' => $mappingConfigurationType,
-          'resultat' => $result
-        ]);
+        return new JsonResponse([], 500);
       }
     } else {
       return new JsonResponse([], 500);
     }
+  }
+
+  private function getMappingConfigurationActive(MappingConfigurationTypeInterface $mappingConfigurationType) {
+    $mappingConfiguration = $this->em->getRepository(MappingConfigurationInterface::class)->findOneBy(['active' => true, 'type' => $mappingConfigurationType]);
+    return $mappingConfiguration;
   }
 
   public function gererChampsPossiblesAction($code)
