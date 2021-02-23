@@ -1,5 +1,13 @@
 {% extends basePath %}
 
+{% block others_js %}
+  {{ encore_entry_script_tags('js/check_format/mapping') }}
+{% endblock %}
+
+{% block others_stylesheets %}
+  {{ encore_entry_link_tags('css/imanaging_bootstrap_min') }}
+{% endblock %}
+
 {% block body %}
 <style>
   .delete-file{
@@ -42,7 +50,7 @@
       <h5>Nombre de fichiers : {{ fichiers_en_attente|length }}</h5>
       <ul>
         {% for fichier in fichiers_en_attente %}
-          <li>{{ basename(fichier) }} (<span class="delete-file" data-file-basename="{{ basename(fichier) }}">supprimer ce fichier</span>)</li>
+          <li>{{ fichier.basename }} (<span class="delete-file" data-file-basename="{{ fichier.basename }}" data-url="{{ path('check_format_mapping_files_delete', {code: mapping_configuration_type.code}) }}">supprimer ce fichier</span>)</li>
         {% endfor %}
       </ul>
     </div>
@@ -57,7 +65,7 @@
         <i class="fa fa-spin fa-spinner fa-lg"></i>
         <span>Chargement des configurations en cours ...</span>
       </div>
-      <div id="mapping_configuration"></div>
+      <div id="mapping_configuration" data-url="{{ path('check_format_mapping_select_configurations', {codeMappingConfiguration: mapping_configuration_type.code}) }}"></div>
     </div>
   </div>
 
@@ -71,24 +79,18 @@
       </div>
 
       <div id="affichageMappingGlobal">
-        <div id="divObligatoiresAMapper">
+        <div id="divObligatoiresAMapper" data-url="{{ path('check_format_mapping_get_champs_obligatoires_a_mapper') }}">
         </div>
         <div class="text-center">
-          <button id="btnGererChampsPossibles" class="btn btn-primary btn-raised"><i class="fa fa-pencil fa-fw"></i>Gérer les champs possibles</button>
+          <button id="btnGererChampsPossibles" class="btn btn-primary btn-raised" data-url="{{ path('check_format_mapping_champs_possibles_gerer', {code: mapping_configuration_type.code}) }}"><i class="fa fa-pencil fa-fw"></i>Gérer les champs possibles</button>
         </div>
 
         <hr>
 
-        <div class="row text-center mb-4">
-          <div class="col-sm">
+        <div class="d-flex justify-content-space-around text-center mb-4">
             <button id="btnModeRecapitulaif" class="btn btn-raised btn-success">Mode récapitulatif</button>
-          </div>
-          <div class="col-sm">
             <button id="btnModeMapping" class="btn btn-outline-secondary">Mode mapping</button>
-          </div>
-          <div class="col-sm">
             <button id="btnModeAvance" class="btn btn-outline-secondary">Mode avancé</button>
-          </div>
         </div>
 
         <div id="divRecapitulatif">
@@ -103,7 +105,7 @@
               <th>Transformations</th>
             </tr>
             </thead>
-            <tbody id="tableRecapitulatif">
+            <tbody id="tableRecapitulatif" data-url="{{ path('check_format_mapping_show_recap_configuration') }}">
               <tr><th colspan="5">Chargement en cours ...</th></tr>
             </tbody>
           </table>
@@ -119,9 +121,9 @@
                   <th data-index="{{ loop.index }}">{{ donnee }}</th>
                 {% endfor %}
               </tr>
-              <tr id="tr_mapping">
+              <tr id="tr_mapping" data-url="{{ path('check_format_mapping_get_configuration_values') }}" data-url-select-champs="{{ path('check_format_mapping_select_champs', {code: mapping_configuration_type.code}) }}">
                 {% for donnee in ligne_entete %}
-                  <th data-index="{{ loop.index - 1 }}" data-lib-colonne="{{ donnee }}" class="mapping_data_value d"></th>
+                  <th data-index="{{ loop.index - 1 }}" data-lib-colonne="{{ donnee }}" class="mapping_data_value d" ></th>
                 {% endfor %}
               </tr>
               </thead>
@@ -138,7 +140,7 @@
           </div>
         </div>
 
-        <div id="divModeAvance" class="d-none">
+        <div id="divModeAvance" data-url="{{ path('check_format_mapping_get_configuration_values_avances') }}" class="d-none">
           <h3><i class="fa fa-spin fa-spinner"></i><span> Configuration en cours de chargement ...</span></h3>
         </div>
 
@@ -164,374 +166,13 @@
   <div id="gerer-champs-possibles-card" class="mt-4 d-none">
   </div>
 
-  <div id="translations-card" class="mt-4 d-none">
+  <div id="translations-card" class="mt-4 d-none" data-url="{{ path('check_format_mapping_update_translations') }}">
   </div>
 
-  <div id="transformations-card" class="mt-4 d-none">
+  <div id="transformations-card" class="mt-4 d-none" data-url="{{ path('check_format_mapping_update_transformations') }}">
   </div>
 </div>
 
 <div id="divModalSelectChamps">
 </div>
-
-<script>
-  $( document ).ready( function () {
-    loadMappingConfigurations();
-  });
-
-  $(".delete-file").click(function(){
-    let filename = $(this).data('file-basename');
-    let data = {filename: filename};
-    $.ajax({
-      url: "{{ path('check_format_mapping_files_delete', {code: mapping_configuration_type.code}) }}",
-      type: 'POST',
-      data: data,
-      success: function(){
-        location.reload();
-      },
-      error: function(){
-        alert('Une erreur est survenue lors de la suppression');
-      }
-    });
-  });
-
-  $("#btnGererChampsPossibles").click(function(){
-    $.ajax({
-      url: "{{ path('check_format_mapping_champs_possibles_gerer', {code: mapping_configuration_type.code}) }}",
-      type: 'GET',
-      success: function(data){
-        $("#gerer-champs-possibles-card").html(data).removeClass('d-none');
-        document.getElementById('gerer-champs-possibles-card').scrollIntoView();
-      },
-      error: function(){
-        alert("Une erreur est survenue lors du chargement des champs possibles");
-      }
-    });
-  });
-
-  $('#btnModeRecapitulaif').click(function() {
-    $('#divRecapitulatif').removeClass('d-none');
-    $('#divModeAvance').addClass('d-none');
-    $('#divMappingMode').addClass('d-none');
-    $('#btnModeRecapitulaif').addClass('btn-success btn-raised').removeClass('btn-outline-secondary');
-    $('#btnModeMapping').addClass('btn-outline-secondary').removeClass('btn-warning btn-raised');
-    $('#btnModeAvance').addClass('btn-outline-secondary').removeClass('btn-info btn-raised');
-  });
-
-  $('#btnModeMapping').click(function() {
-    $('#divRecapitulatif').addClass('d-none');
-    $('#divModeAvance').addClass('d-none');
-    $('#divMappingMode').removeClass('d-none');
-    $('#btnModeRecapitulaif').addClass('btn-outline-secondary').removeClass('btn-raised btn-success');
-    $('#btnModeMapping').removeClass('btn-outline-secondary').addClass('btn-warning btn-raised');
-    $('#btnModeAvance').addClass('btn-outline-secondary').removeClass('btn-info btn-raised');
-  });
-
-  $('#btnModeAvance').click(function() {
-    $('#divRecapitulatif').addClass('d-none');
-    $('#divMappingMode').addClass('d-none');
-    $('#divModeAvance').removeClass('d-none');
-    $('#btnModeRecapitulaif').removeClass('btn-success btn-raised').addClass('btn-outline-secondary');
-    $('#btnModeMapping').addClass('btn-outline-secondary').removeClass('btn-warning btn-raised');
-    $('#btnModeAvance').removeClass('btn-outline-secondary').addClass('btn-info btn-raised');
-  });
-
-  var mappingId = "";
-  $('.mapping_data_value').click(function() {
-    let data = {lib_colonne: $(this).data('lib-colonne')};
-    $.ajax({
-      url: "{{ path('check_format_mapping_select_champs', {code: mapping_configuration_type.code}) }}",
-      type: 'POST',
-      data: data,
-      success: function (data) {
-        $("#divModalSelectChamps").html(data);
-        $("#modalSelectChamps").modal();
-      },
-      error: function () {
-        alert('Une erreur est survenue lors de la sélection du champs. Veuillez réessayer plus tard.');
-      }
-    });
-  });
-
-  function saveMapping() {
-    var mappingConfiguration = $('#mapping').val();
-    if (mappingConfiguration !== null && mappingConfiguration !== undefined) {
-      var dataMapping = [];
-      $('#tr_mapping th').each(function() {
-        var thTemp = $(this);
-        dataMapping.push(
-          {
-            index: thTemp.data('index'),
-            nom_entete: thTemp.data('lib-colonne'),
-            mapping_code: thTemp.data('code-mapping'),
-            mapping_type: thTemp.data('type-mapping')
-          }
-        );
-      });
-
-      var data = {mapping_id: mappingConfiguration, mapping: dataMapping};
-      $.ajax({
-        url: "{{ path('check_format_mapping_save_configuration') }}",
-        type: 'POST',
-        data: data,
-        success: function (){
-          updateRecapitulatif();
-        },
-        error: function (){
-          alert('Une erreur est survenue lors de l\'enregistrement de laconfiguration. Veuillez réessayer plus tard.');
-        }
-      });
-    } else {
-      alert('Erreur lors de l\'enregistrement du mapping. Aucune configuration n\'a été sélectionnée.');
-    }
-  }
-
-  function loadMappingConfigurations() {
-    var loader = $('#mapping_configuration_loader');
-    if (loader.hasClass('d-none')) {
-      loader.removeClass('d-none');
-    }
-    $.ajax({
-      url: "{{ path('check_format_mapping_select_configurations', {codeMappingConfiguration: mapping_configuration_type.code}) }}",
-      type: 'GET',
-      success: function(data){
-        loader.addClass('d-none');
-        $('#mapping_configuration').html(data);
-        loadConfiguration();
-      },
-      error: function(){
-        alert('Une erreur est survenue lors du chargement des configurations. Veuillez réessayer plus tard.');
-      }
-    });
-  }
-
-  function loadConfiguration() {
-    $('#mappingConfigurationLoad').removeClass('d-none');
-    $('#affichageMappingGlobal').addClass('d-none');
-    var mappingConfiguration = $('#mapping').val();
-    if (mappingConfiguration !== null) {
-      // on vide la configuration actuelle
-      $('#tr_mapping th').each(function() {
-        $(this).text("");
-        $(this).removeData('code-mapping');
-        $(this).removeData('type-mapping');
-        $(this).removeData('entete-fichier');
-        $(this).removeClass("mapping_data_value_ok");
-      });
-
-      $.ajax({
-        url: "{{ path('check_format_mapping_get_configuration_values') }}",
-        type: 'POST',
-        data: {mapping_id: mappingConfiguration},
-        success: function (data) {
-          data.forEach(function(el) {
-            var th = $('tr#tr_mapping th[data-index="' + el.fichier_index + '"]');
-            if (el.mapping_code != null) {
-              th.text(el.mapping_code);
-              th.data('id-mapping', el.id);
-              th.data('code-mapping', el.mapping_code);
-              th.data('entete-fichier', el.fichier_entete);
-              th.data('translations', el.mapping_translations);
-              th.data('transformations', el.mapping_transformations);
-              if (el.mapping_type != null) {
-                th.data('type-mapping', el.mapping_type);
-              }
-              th.addClass("mapping_data_value_ok")
-            }
-          });
-          updateRecapitulatif();
-          saveMapping();
-        },
-        error: function () {
-          showSweetAlert('top-end', 'error', 'Une erreur est survenue lors de la récupération de la configuration. Veuillez réessayer plus tard.', true, 3000);
-        },
-        complete: function() {
-          $('#mappingConfigurationLoad').addClass('d-none');
-          $('#affichageMappingGlobal').removeClass('d-none');
-        }
-      });
-
-      $.ajax({
-        url: "{{ path('check_format_mapping_get_configuration_values_avances') }}",
-        type: 'POST',
-        data: {mapping_id: mappingConfiguration},
-        success: function (data) {
-          $('#divModeAvance').html(data);
-        },
-        error: function () {
-          showSweetAlert('top-end', 'error', 'Une erreur est survenue lors de la récupération de la configuration. Veuillez réessayer plus tard.', true, 3000);
-        }
-      });
-    } else {
-      $("#mappingConfigurationLoad").html('<p>Il n\'existe aucune configuration de mapping pour ce type. ' +
-          'Créer votre première configuration en cliquant sur <b>Ajouter une nouvelle configuration</b>.</h4>');
-    }
-  }
-
-  function updateRecapitulatif() {
-    $('#tableRecapitulatif').html('<tr><th colspan="5">Chargement en cours ...</th></tr>');
-    var htmlRecapitulatif = "";
-    $('#tr_mapping th').each(function() {
-      if (!! $(this).data('lib-colonne')) {
-         var libColonne = $(this).data('lib-colonne');
-      } else {
-         var libColonne = "";
-      }
-      if (!! $(this).data('entete-fichier')) {
-         var enteteFichier = $(this).data('entete-fichier');
-      } else {
-         var enteteFichier = "";
-      }
-      if (!! $(this).data('code-mapping')) {
-         var codeMapping = $(this).data('code-mapping');
-      } else {
-         var codeMapping = "";
-      }
-      if (!! $(this).data('type-mapping')) {
-         var typeMapping = $(this).data('type-mapping');
-      } else {
-         var typeMapping = "";
-      }
-      if (!! $(this).data('translations')) {
-        var translationsTemp = JSON.parse($(this).data('translations'));
-        var translations = translationsTemp.length + " traductions";
-      } else {
-        var translations = "";
-      }
-      if (!! $(this).data('transformations')) {
-        var transformationsTemp = JSON.parse($(this).data('transformations'));
-        var transformations = transformationsTemp.length + " transformations";
-      } else {
-        var transformations = "";
-      }
-      if (!! $(this).data('id-mapping')) {
-        var idMappingValue = $(this).data('id-mapping');
-      } else {
-        var idMappingValue = "";
-      }
-
-      htmlRecapitulatif += "<tr>";
-      htmlRecapitulatif += "<td>" + libColonne + "</td>";
-      htmlRecapitulatif += "<td>" + enteteFichier + "</td>";
-      htmlRecapitulatif += "<td>" + codeMapping + "</td>";
-      htmlRecapitulatif += "<td>" + typeMapping + "</td>";
-      if (translations !== ''){
-        htmlRecapitulatif += "<td><button class='btn btn-raised btn-primary btn-sm btn-edit-translations' data-mapping-id='"+idMappingValue+"'><small>" + translations + "</small></button></td>";
-      } else {
-        htmlRecapitulatif += '<td class="text-danger">Mapping en attente</td>';
-      }
-      if (transformations !== ''){
-        htmlRecapitulatif += "<td><button class='btn btn-raised btn-primary btn-sm btn-edit-transformations' data-mapping-id='"+idMappingValue+"'><small>" + transformations + "</small></button></td>";
-      } else {
-        htmlRecapitulatif += '<td class="text-danger">Mapping en attente</td>';
-      }
-
-      htmlRecapitulatif += "</tr>";
-    });
-
-    var mappingConfiguration = $('#mapping').val();
-    var data = {mapping_id: mappingConfiguration};
-    $.ajax({
-      url: "{{ path('check_format_mapping_show_recap_configuration') }}",
-      type: 'POST',
-      data: data,
-      success: function (data) {
-        $('#tableRecapitulatif').html(data);
-      },
-      error: function () {
-        showSweetAlert('top-end', 'error', 'Une erreur est survenue lors de la sélection du champs. Veuillez réessayer plus tard.', true, 3000);
-      }
-    });
-    // $('#tableRecapitulatif').html(htmlRecapitulatif);
-    updateObligatoiresAMapper();
-  }
-
-  $(document).on('click', '.btn-edit-translations', function(){
-    let loader = $("#loader-transitions-translations");
-    loader.removeClass('d-none');
-    $("#translations-card").addClass('d-none');
-    $("#transformations-card").addClass('d-none');
-    let mappingId = $(this).data('mapping-id');
-    let data = {mapping_id: mappingId};
-    $.ajax({
-      url: "{{ path('check_format_mapping_update_translations') }}",
-      type: 'POST',
-      data: data,
-      success: function (data){
-        $("#translations-card").html(data).removeClass('d-none');
-        document.getElementById('translations-card').scrollIntoView();
-      },
-      error: function (){
-        alert('Une erreur est survenue lors du chargement de la page de gestion des traductions');
-      },
-      complete: function(){
-        loader.addClass('d-none');
-      }
-    });
-  });
-
-  $(document).on('click', '.btn-edit-transformations', function(){
-    let loader = $("#loader-transitions-translations");
-    loader.removeClass('d-none');
-    $("#translations-card").addClass('d-none');
-    $("#transformations-card").addClass('d-none');
-    let mappingId = $(this).data('mapping-id');
-    let data = {mapping_id: mappingId};
-    $.ajax({
-      url: "{{ path('check_format_mapping_update_transformations') }}",
-      type: 'POST',
-      data: data,
-      success: function (data){
-        $("#transformations-card").html(data).removeClass('d-none');
-        document.getElementById('transformations-card').scrollIntoView();
-      },
-      error: function (){
-        alert('Une erreur est survenue lors du chargement de la page de gestion des transformations');
-      },
-      complete: function(){
-        loader.addClass('d-none');
-      }
-    });
-  });
-
-  function updateObligatoiresAMapper() {
-    $('#btnValidMappingAndRunIntegration').addClass('disabled');
-    $('#divObligatoiresAMapper').html("");
-
-    let mappingConfiguration = $('#mapping').val();
-    if (mappingConfiguration !== null){
-      let data = {mapping_id: mappingConfiguration};
-      $.ajax({
-        url: "{{ path('check_format_mapping_get_champs_obligatoires_a_mapper') }}",
-        type: 'POST',
-        data: data,
-        success: function (data) {
-          var text = "<h5>Liste des champs obligatoires non mappé pour l'instant : <span class='text-danger'>";
-          var first = true;
-          for (var v in data) {
-            if (first) {
-              first = false;
-              text += data[v].libelle;
-            } else {
-              text += ", " + data[v].libelle;
-            }
-          }
-
-          if (first) {
-            $('#btnValidMappingAndRunIntegration').removeClass('disabled');
-          }
-          text += "</span></h5>";
-          $('#divObligatoiresAMapper').html(text);
-        },
-        error: function () {
-          showSweetAlert('top-end', 'error', 'Une erreur est survenue lors de la récupération de la configuration. Veuillez réessayer plus tard.', true, 3000);
-        },
-        complete: function() {
-          $('#mappingConfigurationLoad').addClass('d-none');
-          $('#affichageMappingGlobal').removeClass('d-none');
-        }
-      });
-    }
-  }
-</script>
 {% endblock %}

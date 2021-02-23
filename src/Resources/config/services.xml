@@ -15,16 +15,20 @@
         <service id="imanaging_check_format.mapping" class="Imanaging\CheckFormatBundle\Mapping">
             <argument type="service" id="doctrine.orm.default_entity_manager" />
             <argument type="service" id="imanaging_check_format.converter" />
-            <argument type="service" id="templating.engine.twig" />
+            <argument type="service" id="twig" />
             <argument>%kernel.project_dir%</argument>
             <argument type="service" id="imanaging_check_format.excel_converter" />
         </service>
         <service id="Imanaging\CheckFormatBundle\Mapping" alias="imanaging_check_format.mapping" public="false" />
 
         <service id="imanaging_check_format.mapping_controller" class="Imanaging\CheckFormatBundle\Controller\MappingController" public="true">
-            <argument type="service" id="doctrine.orm.default_entity_manager" />
-            <argument type="service" id="imanaging_check_format.mapping" />
-            <argument>%kernel.project_dir%</argument>
+          <call method="setContainer">
+            <argument type="service" id="Psr\Container\ContainerInterface"/>
+          </call>
+          <tag name="container.service_subscriber"/>
+          <argument type="service" id="doctrine.orm.default_entity_manager" />
+          <argument type="service" id="imanaging_check_format.mapping" />
+          <argument>%kernel.project_dir%</argument>
         </service>
     </services>
 </container>

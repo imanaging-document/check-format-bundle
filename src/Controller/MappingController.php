@@ -15,6 +15,7 @@ use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationTypeInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceDateCustomInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceFileInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceInterface;
+use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceMultiColumnArrayInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceTextInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceTypeInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueInterface;
@@ -75,6 +76,10 @@ class MappingController extends AbstractController
       $directory = $this->projectDir . $mappingConfigurationType->getFilesDirectory() . $mappingConfigurationType->getFilename() . '*';
       $fichiersClient = glob($directory);
       if (count($fichiersClient) == 1) {
+        $fichiersClientFormatted = [];
+        foreach ($fichiersClient as $fichier) {
+          $fichiersClientFormatted[] = ['filename' => $fichier, 'basename' => basename($fichier)];
+        }
         $data = $this->mapping->getFirstLinesFromFile($fichiersClient[0], 10);
         $ligneEntete = $data['entete'];
         $lignes = $data['first_lines'];
@@ -84,7 +89,7 @@ class MappingController extends AbstractController
           'champs' => $this->mapping->getChampsPossiblesAIntegrer($code),
           'ligne_entete' => $ligneEntete,
           'lignes' => $lignes,
-          'fichiers_en_attente' => $fichiersClient,
+          'fichiers_en_attente' => $fichiersClientFormatted,
           'mapping_configuration_type' => $mappingConfigurationType
         ]);
       } else {
@@ -161,18 +166,22 @@ class MappingController extends AbstractController
     if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
       $params = $request->request->all();
       $dir = $this->projectDir.$mappingConfigurationType->getFilesDirectory();
-      $mappingConfigurationFile = $this->em->getRepository(MappingConfigurationFileInterface::class)->findOneBy(['filename' => $params['filename'], 'mappingConfigurationType' => $mappingConfigurationType]);
-      if ($mappingConfigurationFile instanceof MappingConfigurationFileInterface) {
-        if (is_dir($dir)){
-          if (file_exists($dir.'/'.$params['filename'])){
-            try{
-              unlink($dir.'/'.$params['filename']);
+      foreach ($mappingConfigurationType->getMappingConfigurations() as $mappingConfiguration) {
+        if ($mappingConfiguration instanceof MappingConfigurationInterface) {
+          $mappingConfigurationFile = $this->em->getRepository(MappingConfigurationFileInterface::class)->findOneBy(['filename' => $params['filename'], 'mappingConfiguration' => $mappingConfigurationType]);
+          if ($mappingConfigurationFile instanceof MappingConfigurationFileInterface) {
+            if (is_dir($dir)){
+              if (file_exists($dir.'/'.$params['filename'])){
+                try{
+                  unlink($dir.'/'.$params['filename']);
 
-              $this->em->remove($mappingConfigurationFile);
-              $this->em->flush();
-              return new JsonResponse();
-            } catch (Exception $e){
-              return new JsonResponse([], 500);
+                  $this->em->remove($mappingConfigurationFile);
+                  $this->em->flush();
+                  return new JsonResponse();
+                } catch (Exception $e){
+                  return new JsonResponse([], 500);
+                }
+              }
             }
           }
         }
@@ -450,6 +459,13 @@ class MappingController extends AbstractController
             $value->setFormat($params['date_custom_format']);
             $value->setModifier($params['date_custom_modify']);
           }
+        } elseif ($type->getCode() == 'multi_column_array') {
+          $className = $this->em->getRepository(MappingConfigurationValueAvanceMultiColumnArrayInterface::class)->getClassName();
+          $value = new $className();
+          if ($value instanceof MappingConfigurationValueAvanceMultiColumnArrayInterface){
+            $value->setDelimiter($params['delimiter']);
+            $value->setColumns($params['multi_column_array']);
+          }
         } else {
           if (isset($params['value'])){
             $className = $this->em->getRepository(MappingConfigurationValueAvanceTextInterface::class)->getClassName();
@@ -518,8 +534,9 @@ class MappingController extends AbstractController
     if (!is_null($champSelect)) {
       switch ($champSelect['type']) {
         case 'date':
-
           return $this->render('@ImanagingCheckFormat/Mapping/partials/mapping_fichier_select_champs_options_date.html.twig', ['lib_colonne' => $params['lib_colonne']]);
+        case 'array':
+          return $this->render('@ImanagingCheckFormat/Mapping/partials/mapping_fichier_select_champs_options_array.html.twig', ['lib_colonne' => $params['lib_colonne']]);
         default:
           return $this->render('@ImanagingCheckFormat/Mapping/partials/mapping_fichier_select_champs_options_default.html.twig', ['lib_colonne' => $params['lib_colonne']]);
       }
@@ -530,6 +547,7 @@ class MappingController extends AbstractController
 
   public function saveMappingConfigurationAction(Request $request)
   {
+    $valuesToDelete = [];
     $translationsArr = [];
     $params = $request->request->all();
     if (isset($params['mapping_id']) && isset($params['mapping'])) {
@@ -541,57 +559,53 @@ class MappingController extends AbstractController
           $values = $this->em->getRepository(MappingConfigurationValueInterface::class)->findBy(['mappingConfiguration' => $configuration]);
           foreach ($values as $value) {
             if ($value instanceof MappingConfigurationValueInterface) {
-              foreach ($value->getMappingConfigurationValueTranslations() as $translation) {
-                if ($translation instanceof MappingConfigurationValueTranslationInterface) {
-                  $translationsArr[] = [
-                    'index_fichier' => $translation->getMappingConfigurationValue()->getFichierIndex(),
-                    'mapping_code' => $translation->getMappingConfigurationValue()->getMappingCode(),
-                    'value' => $translation->getValue(),
-                    'translation' => $translation->getTranslation(),
-                  ];
-                  $this->em->remove($translation);
-                }
+              if (!is_null($value->getFichierIndex())) {
+                $valuesToDelete[$value->getId()] = $value;
               }
             }
-            $this->em->remove($value);
           }
-          $this->em->flush();
 
           // on boucle sur toutes les lignes pour les ajouter
           foreach ($mappings as $mapping){
-            $className = $this->em->getRepository(MappingConfigurationValueInterface::class)->getClassName();
-            $valueTemp = new $className();
-            if ($valueTemp instanceof MappingConfigurationValueInterface){
-              if (isset($mapping['mapping_code']) && $mapping['mapping_code'] != '') {
-                $mapping_code = $mapping['mapping_code'];
-              } else {
-                $mapping_code = null;
+            // on recherche la ligne
+            $configurationValue = $this->em->getRepository(MappingConfigurationValueInterface::class)->findOneBy(['mappingConfiguration' => $configuration, 'fichierIndex' => $mapping['index']]);
+            if ($configurationValue instanceof MappingConfigurationValueInterface) {
+              unset($valuesToDelete[$configurationValue->getId()]); // on enlève de la liste à supprimer
+            } else {
+              $className = $this->em->getRepository(MappingConfigurationValueInterface::class)->getClassName();
+              $configurationValue = new $className();
+              if ($configurationValue instanceof MappingConfigurationValueInterface){
+                $configurationValue->setFichierIndex($mapping['index']);
+                $configurationValue->setMappingConfiguration($configuration);
               }
-              if (isset($mapping['mapping_type'])) {
-                $mapping_type = $mapping['mapping_type'];
-              } else {
-                $mapping_type = null;
-              }
-              $valueTemp->setFichierIndex($mapping['index']);
-              $valueTemp->setFichierEntete($mapping['nom_entete']);
-              $valueTemp->setMappingCode($mapping_code);
-              $valueTemp->setMappingType($mapping_type);
-              $valueTemp->setMappingConfiguration($configuration);
-              $this->em->persist($valueTemp);
+            }
 
-              // on cherche si une translation correspond pour la remettre
-              foreach ($translationsArr as $translation) {
-                if ($translation['index_fichier'] == $mapping['index'] && $translation['mapping_code'] == $mapping_code) {
-                  $classTranslationName = $this->em->getRepository(MappingConfigurationValueTranslationInterface::class)->getClassName();
-                  $translationValue = new $classTranslationName();
-                  if ($translationValue instanceof MappingConfigurationValueTranslationInterface){
-                    $translationValue->setMappingConfigurationValue($valueTemp);
-                    $translationValue->setTranslation($translation['translation']);
-                    $translationValue->setValue($translation['value']);
-                    $this->em->persist($translationValue);
-                  }
-                }
+            if (isset($mapping['mapping_code']) && $mapping['mapping_code'] != '') {
+              $mapping_code = $mapping['mapping_code'];
+            } else {
+              $mapping_code = null;
+            }
+            if (isset($mapping['mapping_type'])) {
+              $mapping_type = $mapping['mapping_type'];
+            } else {
+              $mapping_type = null;
+            }
+            $configurationValue->setFichierEntete($mapping['nom_entete']);
+            $configurationValue->setMappingCode($mapping_code);
+            $configurationValue->setMappingType($mapping_type);
+            $this->em->persist($configurationValue);
+          }
+
+          // on supprimes les valeurs non retrouvées
+          foreach ($valuesToDelete as $id => $valueToDelete) {
+            if ($valueToDelete instanceof MappingConfigurationValueInterface) {
+              foreach ($valueToDelete->getMappingConfigurationValueTranslations() as $translation) {
+                $this->em->remove($translation);
               }
+              foreach ($valueToDelete->getMappingConfigurationValueTransformations() as $transformation) {
+                $this->em->remove($transformation);
+              }
+              $this->em->remove($valueToDelete);
             }
           }
           $this->em->flush();

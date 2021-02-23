@@ -7,15 +7,16 @@ use App\Entity\MappingConfigurationValueAvanceFileTransformation;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedDateCustom;
+use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedMultiColumnArray;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatBoolean;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatFloat;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatInteger;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationTypeInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceDateCustomInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceFileTransformationInterface;
+use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceMultiColumnArrayInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceTypeInterface;
 use Imanaging\CheckFormatBundle\Service\ExcelToArrayService;
-use Symfony\Component\Templating\EngineInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormat;
@@ -23,6 +24,7 @@ use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvanced;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedConst;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedString;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatDate;
+use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatArray;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatTransformation;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatTranslation;
 use Imanaging\CheckFormatBundle\Interfaces\MappingChampPossibleInterface;
@@ -33,36 +35,44 @@ use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueTransformationInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueTranslationInterface;
 use Imanaging\CheckFormatBundle\Service\CsvToArrayService;
+use Twig\Environment;
+use Twig\Error\LoaderError;
+use Twig\Error\RuntimeError;
+use Twig\Error\SyntaxError;
 
 class Mapping
 {
   private $em;
   private $converter;
   private $champsPossiblesAIntegrer;
-  private $templating;
   private $projectDir;
   private $excelConverter;
+  private $twig;
 
   /**
    * Mapping constructor.
    * @param EntityManagerInterface $em
    * @param CsvToArrayService $converter
-   * @param EngineInterface $templating
+   * @param Environment $twig
    * @param $projectDir
+   * @param ExcelToArrayService $excelConverter
    */
-  public function __construct(EntityManagerInterface $em, CsvToArrayService $converter, EngineInterface $templating, $projectDir, ExcelToArrayService $excelConverter)
+  public function __construct(EntityManagerInterface $em, CsvToArrayService $converter, Environment $twig, $projectDir, ExcelToArrayService $excelConverter)
   {
     $this->em = $em;
     $this->converter = $converter;
     $this->champsPossiblesAIntegrer = [];
-    $this->templating = $templating;
     $this->projectDir = $projectDir;
     $this->excelConverter = $excelConverter;
+    $this->twig = $twig;
   }
 
   /**
    * @param $mappingId
    * @return JsonResponse|Response
+   * @throws LoaderError
+   * @throws RuntimeError
+   * @throws SyntaxError
    */
   public function showMappingConfigurationValuesAvances($mappingId){
     $configuration = $this->em->getRepository(MappingConfigurationInterface::class)->find($mappingId);
@@ -73,7 +83,8 @@ class Mapping
         if ($res['error']) {
           return new JsonResponse($res, 500);
         }
-        return new Response($this->templating->render('@ImanagingCheckFormat/Mapping/mapping_configuration_avances.html.twig', [
+
+        return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/mapping_configuration_avances.html.twig', [
           'mapping_configuration_type' => $configuration->getType(),
           'values_avances' => $values,
           'champs_possibles' => $res['champs_a_mapper'],
@@ -100,7 +111,7 @@ class Mapping
       $ligneEntete = $data['entete'];
     }
 
-    return new Response($this->templating->render('@ImanagingCheckFormat/Mapping/mapping_configuration_avances_detail.html.twig', [
+    return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/mapping_configuration_avances_detail.html.twig', [
       'values_avances' => $configurationValue->getMappingConfigurationValueAvances(),
       'types_values' => $this->em->getRepository(MappingConfigurationValueAvanceTypeInterface::class)->findAll(),
       'value' => $configurationValue,
@@ -299,6 +310,10 @@ class Mapping
                 case 'float':
                   $fieldtemp = new FieldCheckFormatFloat($code, $libelle, $nullable, $valeursPossibles);
                   break;
+                case 'array':
+                  $fieldtemp = new FieldCheckFormatArray($code, $libelle, $nullable, $valeursPossibles,
+                    $value->getMappingType());
+                  break;
                 default:
                   return false;
               }
@@ -377,6 +392,13 @@ class Mapping
                 $avance->getFormat(), $avance->getModifier()
               );
               $fieldAdvancedTemp->addField($fieldtemp);
+            } elseif ($avance instanceof MappingConfigurationValueAvanceMultiColumnArrayInterface) {
+              $fieldtemp = new FieldCheckFormatAdvancedMultiColumnArray(
+                '',
+                'Tableau multi colonne',
+                $avance->getDelimiter(), $avance->getColumns()
+              );
+              $fieldAdvancedTemp->addField($fieldtemp);
             }
           }
 
@@ -453,7 +475,7 @@ class Mapping
         $data = $this->excelConverter->convert($file);
         break;
       case "csv":
-        $data = $this->converter->convert($file, ';');
+        $data = $this->converter->convert($file, ';', 1000000);
         break;
       default:
         var_dump('L\'extention ' . pathinfo($file, PATHINFO_EXTENSION) . ' du fichier n\'est pas géré par ce module.');

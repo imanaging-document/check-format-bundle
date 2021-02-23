@@ -19,7 +19,7 @@
 
         <div class="form-group">
           <label for="champs">Champ</label>
-          <select name="champs" id="champs" class="form-control">
+          <select name="champs" id="champs" class="form-control" data-lib-colonne="{{ lib_colonne }}" data-url="{{ path('check_format_mapping_select_champs_options', {code: mapping_configuration_type.code}) }}">
             <option value=""></option>
             {% for champ in champs %}
               <option value="{{ champ.data }}" data-type="{{ champ.type }}">{{ champ.libelle }}</option>
@@ -32,30 +32,3 @@
     </div>
   </div>
 </div>
-
-<script>
-  $('#champs').change(function() {
-    var data = {lib_colonne: "{{ lib_colonne }}", champ: $(this).val()};
-    $.ajax({
-      url: "{{ path('check_format_mapping_select_champs_options', {code: mapping_configuration_type.code}) }}",
-      type: 'POST',
-      data: data,
-      success: function (data) {
-        $('#options-div').html(data);
-        $('#btn-add-anomalie').prop('disabled', false);
-      },
-      error: function () {
-        alert('Une erreur est survenue lors de la sélection du champs. Veuillez réessayer plus tard.');
-      }
-    });
-  });
-
-  $("#btn-remove-correspondance").click(function(){
-    let th = $('.mapping_data_value[data-lib-colonne="{{ lib_colonne }}"]');
-    th.data('code-mapping', '');
-    th.html('');
-    th.removeClass('mapping_data_value_ok');
-    $('#modalSelectChamps').modal('hide');
-    saveMapping();
-  });
-</script>

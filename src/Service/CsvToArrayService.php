@@ -14,7 +14,7 @@ class CsvToArrayService
   {
   }
 
-  public function convert($filename, $delimiter = ',')
+  public function convert($filename, $delimiter = ',', $maxLength = 1000)
   {
     if (!file_exists($filename) || !is_readable($filename)) {
       return false;
@@ -24,7 +24,7 @@ class CsvToArrayService
     $data = [];
 
     if (($handle = fopen($filename, 'r')) !== false) {
-      while (($row = fgetcsv($handle, 1000, $delimiter)) !== false) {
+      while (($row = fgetcsv($handle, $maxLength, $delimiter)) !== false) {
         if (!$header) {
           $header = $row;
         } else {

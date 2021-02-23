@@ -57,6 +57,11 @@
           <input type="text" class="form-control" id="value-valeur-avancee" placeholder="Entrez la valeur souhaitée">
         </div>
 
+        <div class="form-group d-none" id="modalValueDelimiter">
+          <label for="delimiter-valeur-avancee">Délimiteur</label>
+          <input type="text" class="form-control" id="delimiter-valeur-avancee" placeholder="Entrez le délimiteur souhaitée">
+        </div>
+
         <div class="form-group d-none" id="modalSelectEnteteFile" >
           <label for="select_entete">Valeur - entête fichier</label>
           <select class="form-control" id="select_entete" name="select_entete">
@@ -78,6 +83,32 @@
           </div>
         </div>
 
+        <div id="modalCustomMultiEntete" class="d-none">
+          <span >Colonnes <i class="fa fa-plus-circle text-success" id="btn-add-ligne-array"></i></span>
+          <table class="table table-bordered table-striped text-center" id="tableMultiColonne">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Colonne</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <input type="text" class="form-control" id="code_0" name="code_0">
+                </td>
+                <td>
+                  <select class="form-control" id="select_entete_0" name="select_entete_0">
+                    {% for indexFile, entete in ligne_entete %}
+                      <option value="{{ indexFile }}">{{ entete }}</option>
+                    {% endfor %}
+                  </select>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
         <div class="text-center">
           <button id="btnValidAjoutValueAvance" class="btn btn-primary">Ajouter</button>
         </div>
@@ -87,6 +118,7 @@
 </div>
 
 <script>
+  var nbColonnes = 0;
   $(function () {
     $('[data-toggle="tooltip"]').tooltip()
   });
@@ -97,18 +129,31 @@
       $('#modalValueText').addClass('d-none');
       $('#modalSelectEnteteFile').removeClass('d-none');
       $('#modalCustomDate').addClass('d-none');
+      $('#modalValueDelimiter').addClass('d-none');
+      $('#modalCustomMultiEntete').addClass('d-none');
     } else if (value === "date_custom") {
       $('#modalValueText').addClass('d-none');
       $('#modalSelectEnteteFile').addClass('d-none');
       $('#modalCustomDate').removeClass('d-none');
-    } else {
-      $('#modalValueText').removeClass('d-none');
+      $('#modalValueDelimiter').addClass('d-none');
+      $('#modalCustomMultiEntete').addClass('d-none');
+    } else if (value == "multi_column_array") {
+      $('#modalValueText').addClass('d-none');
       $('#modalSelectEnteteFile').addClass('d-none');
       $('#modalCustomDate').addClass('d-none');
+      $('#modalValueDelimiter').removeClass('d-none');
+      $('#modalCustomMultiEntete').removeClass('d-none');
+    } else {
+      $('#modalValueText').addClass('d-none');
+      $('#modalSelectEnteteFile').addClass('d-none');
+      $('#modalCustomDate').addClass('d-none');
+      $('#modalValueDelimiter').addClass('d-none');
+      $('#modalCustomMultiEntete').addClass('d-none');
     }
   });
 
   $('#btnValidAjoutValueAvance').click(function(){
+    console.log('yooyooy');
     let type = $('#type-valeur-avancee').val();
     if (type !== undefined){
       let value = $('#value-valeur-avancee').val();
@@ -116,8 +161,13 @@
       let file_entete = $('#select_entete option:selected').text();
       let date_custom_format = $('#date_custom_format').val();
       let date_custom_modify = $('#date_custom_modify').val();
+      let delimiter = $('#delimiter-valeur-avancee').val();
+      let multiColumnArray = [];
+      for (let i = 0; i <= nbColonnes; i++) {
+        multiColumnArray.push({'code' : $('#code_'+i).val(), 'value' : $('#select_entete_'+i).val()});
+      }
       let data = {'value': value, 'type': type, 'file_index': file_index, 'file_entete': file_entete,
-        'date_custom_format' : date_custom_format, 'date_custom_modify' : date_custom_modify};
+        'date_custom_format' : date_custom_format, 'date_custom_modify' : date_custom_modify, 'delimiter': delimiter, 'multi_column_array' : multiColumnArray};
 
       $('#divConfigurationAvances').html('<i class="fa fa-spin fa-spinner fa-2x fa-fw"></i><span>Enregistrement en cours ...</span>');
       $.ajax({
@@ -167,4 +217,18 @@
       }
     });
   });
+
+  $('#btn-add-ligne-array').click(function() {
+    nbColonnes ++;
+    var select = '<tr><td><input type="text" class="form-control" id="code_'+nbColonnes+'" name="code_'+nbColonnes+'"></td><td><select class="form-control" id="select_entete_'+nbColonnes+'" name="select_entete_'+nbColonnes+'">';
+
+    {% for indexFile, entete in ligne_entete %}
+      select += '<option value="{{ indexFile }}">{{ entete }}</option>';
+    {% endfor %}
+    select += '</select></td></tr>';
+
+    $('#tableMultiColonne').find("tbody").append(select);
+  });
+
+
 </script>

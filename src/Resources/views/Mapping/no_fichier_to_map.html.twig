@@ -1,5 +1,9 @@
 {% extends basePath %}
 
+{% block others_js %}
+  {{ encore_entry_script_tags('js/check_format/no_fichier_to_map') }}
+{% endblock %}
+
 {% block body %}
 <div class="container">
   <h4 class="text-center display-4">{{ mapping_configuration_type.libelle }} - Mapping</h4>
@@ -23,7 +27,7 @@
       </div>
 
       <div class="text-center">
-        <button id="btn-upload-file" class="btn btn-primary btn-raised">Envoyer le fichier</button>
+        <button id="btn-upload-file" class="btn btn-primary btn-raised" data-url="{{ path('check_format_mapping_files_upload', {code: mapping_configuration_type.code}) }}">Envoyer le fichier</button>
         <div id="loader-upload" class="d-none">
           <i class="fa fa-spin fa-spinner fa-fw"></i>Veuillez patienter pendant l'envoi du fichier
         </div>
@@ -44,32 +48,4 @@
     </div>
   </div>
 </div>
-
-<script>
-  $('#btn-upload-file').on('click', function() {
-    let btn = $(this);
-    let loader = $('#loader-upload');
-    btn.addClass('d-none');
-    loader.removeClass('d-none');
-
-    let fileData = $('#fichier').prop('files')[0];
-    let data = new FormData();
-    data.append('file', fileData);
-    $.ajax({
-      url: "{{ path('check_format_mapping_files_upload', {code: mapping_configuration_type.code}) }}",
-      cache: false,
-      contentType: false,
-      processData: false,
-      data: data,
-      type: 'POST',
-      success: function(){
-        location.reload();
-      },
-      error: function() {
-        btn.removeClass('d-none');
-        loader.addClass('d-none');
-      }
-    });
-  });
-</script>
 {% endblock %}

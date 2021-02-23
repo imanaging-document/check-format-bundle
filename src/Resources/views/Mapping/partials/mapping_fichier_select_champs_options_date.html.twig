@@ -10,21 +10,9 @@
 </div>
 
 <div class="text-center">
-  <button id="btn-save-mapping-champ-date" class="btn btn-primary btn-raised"><i class="fa fa-save fa-fw"></i>Enregistrer</button>
+  <button id="btn-save-mapping-champ-date" data-lib-colonne="{{ lib_colonne }}" class="btn btn-primary btn-raised"><i class="fa fa-save fa-fw"></i>Enregistrer</button>
 </div>
 
 <script>
-  $('#btn-save-mapping-champ-date').click(function() {
-    var th = $('.mapping_data_value[data-lib-colonne="{{ lib_colonne }}"]');
-    var selectChamps = $('#champs');
 
-    th.data('code-mapping', selectChamps.val());
-    th.data('type-mapping', $('#format_date').val());
-    th.html(selectChamps.val());
-
-    th.addClass('mapping_data_value_ok');
-    $('#modalSelectChamps').modal('hide');
-
-    saveMapping();
-  });
 </script>

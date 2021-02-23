@@ -1,4 +1,12 @@
-{% extends 'base.html.twig' %}
+{% extends basePath %}
+
+{% block others_js %}
+  {{ encore_entry_script_tags('js/check_format/controle') }}
+{% endblock %}
+
+{% block others_stylesheets %}
+  {{ encore_entry_link_tags('css/imanaging_bootstrap_min') }}
+{% endblock %}
 
 {% block body %}
   <div class="container">
@@ -23,7 +31,7 @@
         <div id="div_controle">
           <p>Procédez au contrôle du fichier :</p>
           <div class="btn-group">
-            <button id="btn_controle_fichier" class="btn btn-dark">
+            <button id="btn_controle_fichier" class="btn btn-dark" data-url="{{ path('check_format_mapping_controler_fichier', {code: mapping_configuration_type.code}) }}">
               Contrôlez le fichier <i class="fa fa-check text-success"></i>
             </button>
           </div>
@@ -37,26 +45,4 @@
       {% endif %}
     </div>
   </div>
-
-  <script>
-    $('#btn_controle_fichier').click(function() {
-      var div_controle = $('#div_controle');
-      div_controle.addClass('d-none');
-      var spinner = $('#spinner_integration');
-      spinner.removeClass('d-none');
-      var div_resultat = $('#div_resultat_import');
-      $.ajax({
-        url: "{{ path('check_format_mapping_controler_fichier', {code: mapping_configuration_type.code}) }}",
-        type: 'POST',
-        success: function(data){
-          div_resultat.html(data);
-          spinner.addClass('d-none');
-        },
-        error: function(){
-          spinner.addClass('d-none');
-          showSweetAlert('top-end', 'error', "Une erreur est survenue lors du contrôle du fichier. Veuillez réessayer plus tard.", true, 3000);
-        }
-      });
-    });
-  </script>
 {% endblock %}

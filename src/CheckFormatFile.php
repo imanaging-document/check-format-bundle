@@ -15,6 +15,7 @@ use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvanced;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedConst;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedDateCustom;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedString;
+use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedMultiColumnArray;
 use stdClass;
 
 class CheckFormatFile
@@ -87,6 +88,25 @@ class CheckFormatFile
               $translatedValue = $fieldAdvanced->getTranslatedValue($dateFormatted);
               $transformedValue = $fieldAdvanced->getTransformedValue($translatedValue);
               $fieldConcat .= $transformedValue;
+            } elseif ($field instanceof FieldCheckFormatAdvancedMultiColumnArray) {
+              $fieldConcat = [];
+              $nbCols = 0;
+              foreach ($field->getColumns() as $column) {
+                $explodes = $field->getExplodedValues($datas[$column->value]);
+                if ($nbCols > 0) {
+                  if (count($explodes) <> $nbCols) {
+                    // TODO ERROR
+                  } else {
+                    $nbCols == count($explodes);
+                  }
+                }
+                foreach ($explodes as $key => $explode) {
+                  if (!array_key_exists($key, $fieldConcat)){
+                    $fieldConcat[$key] = [];
+                  }
+                  $fieldConcat[$key][$column->code] = $explode;
+                }
+              }
             }elseif ($field instanceof FieldCheckFormatAdvancedString) {
               $translatedValue = $field->getTranslatedValue($datas[$field->getIndexFichier()]);
               $transformedValue = $field->getTransformedValue($translatedValue);

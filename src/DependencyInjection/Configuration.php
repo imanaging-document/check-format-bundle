@@ -11,8 +11,8 @@ class Configuration implements ConfigurationInterface
 {
   public function getConfigTreeBuilder()
   {
-    $treeBuilder = new TreeBuilder();
-    $rootNode = $treeBuilder->root('imanaging_check_format');
+    $treeBuilder = new TreeBuilder('imanaging_check_format');
+    $rootNode = $treeBuilder->getRootNode();
     $rootNode
       ->children()
         ->variableNode('bar')->defaultValue("")->info('Test')->end()
