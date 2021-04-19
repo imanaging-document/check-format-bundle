@@ -113,48 +113,53 @@ class MappingController extends AbstractController
     $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
     if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
       $mappingConfiguration = $this->em->getRepository(MappingConfigurationInterface::class)->findOneBy(['active' => true, 'type' => $mappingConfigurationType]);
-      if ($mappingConfiguration instanceof MappingConfigurationInterface) {
-        $dir = $this->projectDir.$mappingConfigurationType->getFilesDirectory();
-        if (!is_dir($dir)){
-          mkdir($dir, 0775, true);
-        }
+      if (!($mappingConfiguration instanceof MappingConfigurationInterface)) {
+        $className = $this->em->getRepository(MappingConfigurationInterface::class)->getClassName();
+        $mappingConfiguration = new $className();
+        $mappingConfiguration->setType($mappingConfigurationType);
+        $mappingConfiguration->setLibelle($mappingConfigurationType->getLibelle());
+        $mappingConfiguration->setActive(true);
+        $this->em->persist($mappingConfiguration);
+      }
+      $dir = $this->projectDir.$mappingConfigurationType->getFilesDirectory();
+      if (!is_dir($dir)){
+        mkdir($dir, 0775, true);
+      }
 
-        $files = $request->files->all();
-        $fichier = $files['file'];
-        if ($fichier instanceof UploadedFile){
-          try {
-            $now = new DateTime();
-            $newFileName = $mappingConfigurationType->getFilename().'_'.$now->format('YmdHis').'.'.$fichier->getClientOriginalExtension();
+      $files = $request->files->all();
+      $fichier = $files['file'];
+      if ($fichier instanceof UploadedFile){
+        try {
+          $now = new DateTime();
+          $newFileName = $mappingConfigurationType->getFilename().'_'.$now->format('YmdHis').'.'.$fichier->getClientOriginalExtension();
 
-            $className = $this->em->getRepository(MappingConfigurationFileInterface::class)->getClassName();
-            $mappingFile = new $className();
-            if ($mappingFile instanceof MappingConfigurationFileInterface) {
-              $mappingFile->setMappingConfiguration($mappingConfiguration);
-              $mappingFile->setDateImport($now);
-              $mappingFile->setInitialFilename($fichier->getClientOriginalName());
-              $mappingFile->setFilename($newFileName);
-              $this->em->persist($mappingFile);
-              $this->em->flush();
+          $className = $this->em->getRepository(MappingConfigurationFileInterface::class)->getClassName();
+          $mappingFile = new $className();
+          if ($mappingFile instanceof MappingConfigurationFileInterface) {
+            $mappingFile->setMappingConfiguration($mappingConfiguration);
+            $mappingFile->setDateImport($now);
+            $mappingFile->setInitialFilename($fichier->getClientOriginalName());
+            $mappingFile->setFilename($newFileName);
+            $this->em->persist($mappingFile);
+            $this->em->flush();
 
-              $fichier->move($dir, $newFileName);
-              if (file_exists($dir.$newFileName)){
-                chmod($dir.$newFileName, 0755);
-                return new JsonResponse();
-              } else {
-                return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :( #2"], 500);
-              }
+            $fichier->move($dir, $newFileName);
+            if (file_exists($dir.$newFileName)){
+              chmod($dir.$newFileName, 0755);
+              return new JsonResponse();
             } else {
-              return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :("], 500);
+              return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :( #2"], 500);
             }
-          } catch (Exception $e){
-            return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :( ". $e->getMessage()], 500);
+          } else {
+            return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :("], 500);
           }
-        } else {
-          return new JsonResponse(["error_message" => "Veuillez soumettre un fichier valide."], 500);
+        } catch (Exception $e){
+          return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :( ". $e->getMessage()], 500);
         }
       } else {
-        return $this->redirectToRoute('check_format_mapping_page', ['code' => $code]);
+        return new JsonResponse(["error_message" => "Veuillez soumettre un fichier valide."], 500);
       }
+
     } else {
       return $this->redirectToRoute('check_format_mapping_page', ['code' => $code]);
     }
