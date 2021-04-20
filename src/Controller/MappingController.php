@@ -173,7 +173,7 @@ class MappingController extends AbstractController
       $dir = $this->projectDir.$mappingConfigurationType->getFilesDirectory();
       foreach ($mappingConfigurationType->getMappingConfigurations() as $mappingConfiguration) {
         if ($mappingConfiguration instanceof MappingConfigurationInterface) {
-          $mappingConfigurationFile = $this->em->getRepository(MappingConfigurationFileInterface::class)->findOneBy(['filename' => $params['filename'], 'mappingConfiguration' => $mappingConfigurationType]);
+          $mappingConfigurationFile = $this->em->getRepository(MappingConfigurationFileInterface::class)->findOneBy(['filename' => $params['filename'], 'mappingConfiguration' => $mappingConfiguration]);
           if ($mappingConfigurationFile instanceof MappingConfigurationFileInterface) {
             if (is_dir($dir)){
               if (file_exists($dir.'/'.$params['filename'])){
