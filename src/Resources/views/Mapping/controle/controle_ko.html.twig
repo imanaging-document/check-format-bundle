@@ -4,10 +4,10 @@
 {% endif %}
 
 <hr>
-
-<p class="text-primary"><i class="fa fa-info-circle fa-fw"></i>Nombre de ligne dans le fichier : <b>{{ resultat.nb_lines }}</b></p>
-
-<hr>
+{% if resultat.nb_lines is defined %}
+    <p class="text-primary"><i class="fa fa-info-circle fa-fw"></i>Nombre de ligne dans le fichier : <b>{{ resultat.nb_lines }}</b></p>
+    <hr>
+{% endif %}
 
 <p><b>Détails des erreurs :</b></p>
 
