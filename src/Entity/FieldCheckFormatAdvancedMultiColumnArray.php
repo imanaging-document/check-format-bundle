@@ -58,14 +58,10 @@ class FieldCheckFormatAdvancedMultiColumnArray extends FieldCheckFormat
   }
 
   public function getExplodedValues($value) {
-    return explode($this->getTranslatedDelimiter(), $value);
-  }
-
-  private function getTranslatedDelimiter() {
     if ($this->delimiter == "\\n" || $this->delimiter == "\\r\\n") {
-      return PHP_EOL;
+      return preg_split('/\n|\r\n?/', $value);
     } else {
-      return $this->delimiter;
+      return explode($this->delimiter, $value);;
     }
   }
 }
