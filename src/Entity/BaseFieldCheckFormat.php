@@ -102,6 +102,9 @@ class BaseFieldCheckFormat
               $transformedValue = substr($transformedValue, 1);
             }
             break;
+          case TransformationEnum::TRUNCATE:
+            $transformedValue = substr($transformedValue, 0, $transformation->getNbCaract());
+            break;
         }
       }
     }
