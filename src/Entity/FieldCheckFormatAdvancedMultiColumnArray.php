@@ -58,7 +58,7 @@ class FieldCheckFormatAdvancedMultiColumnArray extends FieldCheckFormat
   }
 
   public function getExplodedValues($value) {
-    if ($this->delimiter == "\\n" || $this->delimiter == "\\r\\n") {
+    if ($this->delimiter == "EOL") {
       return preg_split('/\n|\r\n?/', $value);
     } else {
       return explode($this->delimiter, $value);;
