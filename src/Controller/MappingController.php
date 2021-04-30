@@ -127,41 +127,51 @@ class MappingController extends AbstractController
       }
 
       $files = $request->files->all();
-      $fichier = $files['file'];
-      if ($fichier instanceof UploadedFile){
-        try {
-          $now = new DateTime();
-          $newFileName = $mappingConfigurationType->getFilename().'_'.$now->format('YmdHis').'.'.$fichier->getClientOriginalExtension();
+      if (isset($files['file'])){
+        $fichier = $files['file'];
+        if ($fichier instanceof UploadedFile){
 
-          $className = $this->em->getRepository(MappingConfigurationFileInterface::class)->getClassName();
-          $mappingFile = new $className();
-          if ($mappingFile instanceof MappingConfigurationFileInterface) {
-            $mappingFile->setMappingConfiguration($mappingConfiguration);
-            $mappingFile->setDateImport($now);
-            $mappingFile->setInitialFilename($fichier->getClientOriginalName());
-            $mappingFile->setFilename($newFileName);
-            $this->em->persist($mappingFile);
-            $this->em->flush();
+          try {
+            $now = new DateTime();
+            $newFileName = $mappingConfigurationType->getFilename().'_'.$now->format('YmdHis').'.'.$fichier->getClientOriginalExtension();
 
-            $fichier->move($dir, $newFileName);
-            if (file_exists($dir.$newFileName)){
-              chmod($dir.$newFileName, 0755);
-              return new JsonResponse();
+            $className = $this->em->getRepository(MappingConfigurationFileInterface::class)->getClassName();
+            $mappingFile = new $className();
+            if ($mappingFile instanceof MappingConfigurationFileInterface) {
+              $mappingFile->setMappingConfiguration($mappingConfiguration);
+              $mappingFile->setDateImport($now);
+              $mappingFile->setInitialFilename($fichier->getClientOriginalName());
+              $mappingFile->setFilename($newFileName);
+
+              $params = $request->request->all();
+              if (count($params) > 0){
+                $mappingFile->setFormData(json_encode($params));
+              }
+
+              $this->em->persist($mappingFile);
+              $this->em->flush();
+
+              $fichier->move($dir, $newFileName);
+              if (file_exists($dir.$newFileName)){
+                chmod($dir.$newFileName, 0755);
+                return new JsonResponse();
+              } else {
+                return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :( #2"], 500);
+              }
             } else {
-              return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :( #2"], 500);
+              return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :("], 500);
             }
-          } else {
-            return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :("], 500);
+          } catch (Exception $e){
+            return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :( ". $e->getMessage()], 500);
           }
-        } catch (Exception $e){
-          return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :( ". $e->getMessage()], 500);
+        } else {
+          return new JsonResponse(["error_message" => "Veuillez soumettre un fichier valide."], 500);
         }
       } else {
-        return new JsonResponse(["error_message" => "Veuillez soumettre un fichier valide."], 500);
+        return new JsonResponse(["error_message" => "Veuillez soumettre un fichier."], 500);
       }
-
     } else {
-      return $this->redirectToRoute('check_format_mapping_page', ['code' => $code]);
+      return new JsonResponse(["error_message" => "Type de configuration introuvable :".$code], 500);
     }
   }
 

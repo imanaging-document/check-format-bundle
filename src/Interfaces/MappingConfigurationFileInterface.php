@@ -30,6 +30,10 @@ interface MappingConfigurationFileInterface
 
   public function setAnalyses(string $analyses): void;
 
+  public function getFormData();
+
+  public function setFormData(string $formData): void;
+
   public function getAnalysesPostImport();
 
   public function setAnalysesPostImport(string $analysesPostImport): void;

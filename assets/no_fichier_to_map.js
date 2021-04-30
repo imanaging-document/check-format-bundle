@@ -7,6 +7,10 @@ $('#btn-upload-file').on('click', function() {
   let fileData = $('#fichier').prop('files')[0];
   let data = new FormData();
   data.append('file', fileData);
+  let formData = $("#custom-form").serializeArray();
+  formData.forEach(function(item){
+    data.append(item.name, item.value);
+  });
   $.ajax({
     url: $(this).data('url'),
     cache: false,
@@ -17,7 +21,12 @@ $('#btn-upload-file').on('click', function() {
     success: function(){
       location.reload();
     },
-    error: function() {
+    error: function(data) {
+      if (data.responseJSON !== undefined){
+        $("#error-message").html(data.responseJSON.error_message).removeClass('d-none');
+      } else {
+        $("#error-message").html('Une erreur inconnue est survenue').removeClass('d-none');
+      }
       btn.removeClass('d-none');
       loader.addClass('d-none');
     }

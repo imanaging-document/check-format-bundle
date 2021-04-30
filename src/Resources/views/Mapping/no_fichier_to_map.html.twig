@@ -5,47 +5,55 @@
 {% endblock %}
 
 {% block body %}
-<div class="container">
-  <h4 class="text-center display-4">{{ mapping_configuration_type.libelle }} - Mapping</h4>
+  <div class="container">
+    <h4 class="text-center display-4">{{ mapping_configuration_type.libelle }} - Mapping</h4>
 
-  <button class="btn btn-primary" onclick="history.back()"><i class="fa fa-backward fa-fw"></i>Retour</button>
+    <button class="btn btn-primary" onclick="history.back()"><i class="fa fa-backward fa-fw"></i>Retour</button>
 
-  <div class="card">
-    <div class="card-header bg-primary text-white">
-      <h4>Soumettre un nouveau fichier</h4>
-    </div>
-    <div class="card-body">
-      <h5>Aucun fichier à mapper n'a été trouvé dans le dossier prévu à cet effet :</h5>
-      <p><i>{{ mapping_configuration_type.filesDirectory }}</i></p>
-      <p>Veuillez télécharger un fichier avant de configurer un mapping.</p>
-
-      <hr>
-
-      <div class="form-group">
-        <label for="fichier">Sélectionnez le fichier à mapper</label>
-        <input type="file" class="form-control-file" id="fichier" accept="text/csv">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        <h4>Soumettre un nouveau fichier</h4>
       </div>
+      <div class="card-body">
+        <h5>Aucun fichier à mapper n'a été trouvé dans le dossier prévu à cet effet :</h5>
+        <p><i>{{ mapping_configuration_type.filesDirectory }}</i></p>
+        <p>Veuillez télécharger un fichier avant de configurer un mapping.</p>
 
-      <div class="text-center">
-        <button id="btn-upload-file" class="btn btn-primary btn-raised" data-url="{{ path('check_format_mapping_files_upload', {code: mapping_configuration_type.code}) }}">Envoyer le fichier</button>
-        <div id="loader-upload" class="d-none">
-          <i class="fa fa-spin fa-spinner fa-fw"></i>Veuillez patienter pendant l'envoi du fichier
+        <hr>
+
+        <div class="form-group">
+          <label for="fichier">Sélectionnez le fichier à mapper</label>
+          <input type="file" class="form-control-file" id="fichier" accept="text/csv">
+        </div>
+
+        <form id="custom-form">
+          {% block custom_form %}
+          {% endblock %}
+        </form>
+
+        <div class="text-center mt-2 mb-2">
+          <button id="btn-upload-file" class="btn btn-primary btn-raised" data-url="{{ path('check_format_mapping_files_upload', {code: mapping_configuration_type.code}) }}">Envoyer le fichier</button>
+          <div id="loader-upload" class="d-none">
+            <i class="fa fa-spin fa-spinner fa-fw"></i>Veuillez patienter pendant l'envoi du fichier
+          </div>
+        </div>
+
+        <div id="error-message" class="alert alert-danger d-none">
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="card mt-5">
-    <div class="card-header bg-warning text-dark">
-      <h4>Données obligatoires du fichier</h4>
-    </div>
-    <div class="card-body">
-      <ul>
-        {% for champ in champs_obligatoires %}
-          <li>{{ champ.libelle }}</li>
-        {% endfor %}
-      </ul>
+    <div class="card mt-5">
+      <div class="card-header bg-warning text-dark">
+        <h4>Données obligatoires du fichier</h4>
+      </div>
+      <div class="card-body">
+        <ul>
+          {% for champ in champs_obligatoires %}
+            <li>{{ champ.libelle }}</li>
+          {% endfor %}
+        </ul>
+      </div>
     </div>
   </div>
-</div>
 {% endblock %}
