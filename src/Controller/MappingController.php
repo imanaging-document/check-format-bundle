@@ -51,16 +51,23 @@ class MappingController extends AbstractController
   {
     $params = $request->request->all();
     $mappingsConfigurationsTypes = [];
+    $othersParam = '';
     foreach ($params as $param => $value){
       if ($param == $value){
         $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $value]);
         if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
           $mappingsConfigurationsTypes[] = $mappingConfigurationType;
         }
+      } elseif ($param != 'basePath') {
+        if ($othersParam == '') {
+          $othersParam = '?' . $param . '=' . $value;
+        } else {
+          $othersParam = '&' . $param . '=' . $value;
+        }
       }
     }
     if (count($mappingsConfigurationsTypes) == 1){
-      return $this->redirectToRoute('check_format_mapping_page', ['code' => $mappingsConfigurationsTypes[0]->getCode()]);
+      return $this->redirect($this->generateUrl('check_format_mapping_page', ['code' => $mappingsConfigurationsTypes[0]->getCode()]).$othersParam);
     }
 
     return $this->render("@ImanagingCheckFormat/Mapping/index.html.twig", [
