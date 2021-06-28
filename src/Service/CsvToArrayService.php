@@ -14,22 +14,17 @@ class CsvToArrayService
   {
   }
 
-  public function convert($filename, $delimiter = ',', $maxLength = 1000)
+  public function convert($filename, $delimiter = ',')
   {
     if (!file_exists($filename) || !is_readable($filename)) {
       return false;
     }
-
     $header = true;
     $data = [];
-
     if (($handle = fopen($filename, 'r')) !== false) {
-      while (($row = fgetcsv($handle, $maxLength, $delimiter)) !== false) {
-        if (!$header) {
-          $header = $row;
-        } else {
-          array_push($data, $row);
-        }
+      $row = null;
+      while (($raw_string = fgets($handle)) !== false) {
+        $data[] = explode($delimiter, $raw_string);
       }
       fclose($handle);
     }

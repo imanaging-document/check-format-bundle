@@ -475,7 +475,7 @@ class Mapping
         $data = $this->excelConverter->convert($file);
         break;
       case "csv":
-        $data = $this->converter->convert($file, ';', 1000000);
+        $data = $this->converter->convert($file, ';');
         break;
       default:
         var_dump('L\'extention ' . pathinfo($file, PATHINFO_EXTENSION) . ' du fichier n\'est pas géré par ce module.');
