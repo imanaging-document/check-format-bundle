@@ -24,7 +24,7 @@ class CsvToArrayService
     if (($handle = fopen($filename, 'r')) !== false) {
       $row = null;
       while (($raw_string = fgets($handle)) !== false) {
-        $data[] = explode($delimiter, $raw_string);
+        $data[] = explode($delimiter, strtok($raw_string, "\n"));
       }
       fclose($handle);
     }
