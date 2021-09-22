@@ -10,6 +10,7 @@ namespace Imanaging\CheckFormatBundle\Entity;
 
 
 use DateTime;
+use Yectep\PhpSpreadsheetBundle\DependencyInjection\PhpSpreadsheetExtension;
 
 class FieldCheckFormatDate extends FieldCheckFormat
 {
@@ -62,6 +63,13 @@ class FieldCheckFormatDate extends FieldCheckFormat
       return true;
     }
 
+    if ($format == 'excel') {
+      $unixDate = ($value - 25569) * 86400;
+      $dateTmp = new \DateTime();
+      $dateTmp->setTimestamp($unixDate);
+      return (!is_null($dateTmp) && $dateTmp instanceof DateTime);
+    }
+
     $date = DateTime::createFromFormat($format, $value);
     if (!is_null($date) && $date instanceof \DateTime) {
       return true;
@@ -84,6 +92,18 @@ class FieldCheckFormatDate extends FieldCheckFormat
    * @return string
    */
   public function getValue($value) {
+    if ($this->format == 'excel') {
+      if (is_int($value)) {
+        $unixDate = ($value - 25569) * 86400;
+        $dateTmp = new \DateTime();
+        $dateTmp->setTimestamp($unixDate);
+        if (!is_null($dateTmp) && $dateTmp instanceof DateTime) {
+          return $dateTmp->format('YmdHis');
+        }
+      }
+      return "";
+    }
+
     $dateTemp = DateTime::createFromFormat($this->format, $value);
     if ($dateTemp instanceof DateTime) {
       return $dateTemp->format('YmdHis');
