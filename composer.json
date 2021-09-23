@@ -15,7 +15,7 @@
     ],
     "require": {
         "php": "^7.1.3",
-        "phpoffice/phpspreadsheet": "^1.12",
+        "viest/php-ext-xlswriter-ide-helper": "dev-master",
         "symfony/templating": "^5.2",
         "twig/twig": "^3.3"
     },
