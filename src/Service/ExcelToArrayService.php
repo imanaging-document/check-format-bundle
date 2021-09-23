@@ -8,11 +8,6 @@
 
 namespace Imanaging\CheckFormatBundle\Service;
 
-use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
-use PhpOffice\PhpSpreadsheet\IOFactory;
-use PhpOffice\PhpSpreadsheet\Reader\IReader;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-
 class ExcelToArrayService
 {
   public function __construct()
@@ -21,26 +16,13 @@ class ExcelToArrayService
 
   public function convert($filename)
   {
-    $data = [];
-    $spreadsheet = IOFactory::load($filename);
-    if ($spreadsheet instanceof Spreadsheet) {
-      $worksheet = $spreadsheet->getSheet(0);
-
-      $highestRow = $worksheet->getHighestRow();
-      $highestColumn = $worksheet->getHighestColumn();
-      $highestColumnIndex = Coordinate::columnIndexFromString($highestColumn);
-      $data =[];
-      for($row=1; $row <= $highestRow ; $row++){
-        $rowIndex = $row-1;
-        $rowArray = [];
-        for($col = 1; $col <= $highestColumnIndex; $col++){
-          $value = $worksheet->getCellByColumnAndRow($col,$row)->getValue();
-          array_push($rowArray,$value);
-        }
-        $data[$rowIndex] = $rowArray;
-      }
-    }
-    return $data;
+    $directoryPath = dirname($filePath);
+    $filename = basename($filePath);
+    $config   = ['path' => $directoryPath];
+    $excel    = new \Vtiful\Kernel\Excel($config);
+    return $excel->openFile($filename)
+      ->openSheet()
+      ->getSheetData();
   }
 
   public function invert($data, $filename)
