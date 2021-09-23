@@ -14,7 +14,7 @@ class ExcelToArrayService
   {
   }
 
-  public function convert($filename)
+  public function convert($filePath)
   {
     $directoryPath = dirname($filePath);
     $filename = basename($filePath);
