@@ -160,7 +160,7 @@ class CheckFormatFile
             } else {
               if ($returnDataObj) {
                 $lib = str_replace(' ','_',$fieldTemp->getCode());
-                $objData->{$lib} = $fieldTemp->getValue((int)$transformedValue);
+                $objData->{$lib} = $fieldTemp->getValue($transformedValue);
               }
             }
           }
