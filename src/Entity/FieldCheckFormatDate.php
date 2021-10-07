@@ -93,13 +93,12 @@ class FieldCheckFormatDate extends FieldCheckFormat
    */
   public function getValue($value) {
     if ($this->format == 'excel') {
-      if (is_int($value)) {
-        $unixDate = ($value - 25569) * 86400;
-        $dateTmp = new \DateTime();
-        $dateTmp->setTimestamp($unixDate);
-        if (!is_null($dateTmp) && $dateTmp instanceof DateTime) {
-          return $dateTmp->format('YmdHis');
-        }
+      $value = (int)$value;
+      $unixDate = ($value - 25569) * 86400;
+      $dateTmp = new \DateTime();
+      $dateTmp->setTimestamp($unixDate);
+      if (!is_null($dateTmp) && $dateTmp instanceof DateTime) {
+        return $dateTmp->format('YmdHis');
       }
       return "";
     }
