@@ -43,6 +43,15 @@
     <route id="check_format_mapping_remove_configuration" path="/mapping/remove-configuration" controller="imanaging_check_format.mapping_controller:removeMappingConfigurationValuesAction">
     </route>
 
+    <route id="check_format_mapping_export_configuration" path="/mapping/export-configuration" controller="imanaging_check_format.mapping_controller:exportMappingConfigurationAction">
+    </route>
+
+    <route id="check_format_mapping_download_export_configuration" path="/mapping/export-configuration/download/{filename}" controller="imanaging_check_format.mapping_controller:downloadExportMappingConfigurationAction">
+    </route>
+
+    <route id="check_format_mapping_import_configuration" path="/mapping/import-configuration" controller="imanaging_check_format.mapping_controller:importMappingConfigurationAction">
+    </route>
+
     <route id="check_format_mapping_select_champs" path="/mapping/{code}/select-champs" controller="imanaging_check_format.mapping_controller:mappingFichierClientSelectChampsAction">
     </route>
 

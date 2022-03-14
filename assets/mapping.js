@@ -127,6 +127,7 @@ function loadMappingConfigurations() {
   var loader = $('#mapping_configuration_loader');
   if (loader.hasClass('d-none')) {
     loader.removeClass('d-none');
+    $('#mapping_configuration').html('');
   }
   $.ajax({
     url: $('#mapping_configuration').data('url'),
@@ -143,6 +144,7 @@ function loadMappingConfigurations() {
 }
 
 function loadConfiguration() {
+  console.log("hebrhehbre");
   $('#mappingConfigurationLoad').removeClass('d-none');
   $('#affichageMappingGlobal').addClass('d-none');
   var mappingConfiguration = $('#mapping').val();
@@ -435,4 +437,79 @@ $(document).on('click', '#btn-save-mapping-champ-array', function() {
   $('#modalSelectChamps').modal('hide');
 
   saveMapping();
+});
+
+$(document).on('change', '#mapping', function() {
+  console.log('load mapping change ')
+  loadConfiguration();
+});
+
+
+$(document).on('click', '#btn_add_configuration', function() {
+  let libelle = $('#mapping_configuration_libelle').val();
+  if (libelle !== "") {
+
+    var formData = new FormData($('#form-add-configuration')[0]);
+
+    $.ajax({
+      url: $(this).data('url'),
+      type: 'POST',
+      enctype: 'multipart/form-data',
+      data: formData,
+      processData: false,  // tell jQuery not to process the data
+      contentType: false,  // tell jQuery not to set contentType
+      success: function () {
+        $('#addConfigurationModal').modal('hide');
+        $('#addConfigurationModal').trigger('click');
+        loadMappingConfigurations();
+      },
+      error: function () {
+        showSweetAlert('top-end', 'error', 'Une erreur est survenue lors de la sélection du champs. Veuillez réessayer plus tard.', true, 3000);
+      }
+    });
+  } else {
+    showSweetAlert('top-end', 'error',"Il faut saisir un libellé pour la configuration");
+  }
+});
+
+$(document).on('click', '#btn_remove_mapping_configuration', function() {
+  var mappingConfiguration = $('#mapping').val();
+  if (mappingConfiguration !== null ) {
+    $.ajax({
+      url: $(this).data('url'),
+      type: 'POST',
+      data: {mapping_id: mappingConfiguration},
+      success: function () {
+        loadMappingConfigurations();
+      },
+      error: function () {
+        toastr.error('Une erreur est survenue lors de la suppression de la configuration. Veuillez réessayer plus tard.');
+      }
+    });
+  } else {
+    toastr.error('Veuillez sélectionner un mapping avant de tenter de le supprimer.');
+  }
+});
+
+$(document).on('click', '#btn_export_mapping_configuration', function() {
+  var mappingConfiguration = $('#mapping').val();
+  if (mappingConfiguration !== null ) {
+    $.ajax({
+      url: $(this).data('url'),
+      type: 'POST',
+      data: {mapping_id: mappingConfiguration},
+      success: function (data) {
+        if (data.success) {
+          document.location = data.url;
+        } else {
+          toastr.error('Une erreur est survenue lors de la récupération du fichier. Veuillez réessayer plus tard.');
+        }
+      },
+      error: function () {
+        toastr.error('Une erreur est survenue lors de l\'export de la configuration. Veuillez réessayer plus tard.');
+      }
+    });
+  } else {
+    toastr.error('Veuillez sélectionner un mapping avant de l\'exporter.');
+  }
 });

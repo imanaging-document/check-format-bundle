@@ -23,4 +23,8 @@ interface MappingConfigurationValueAvanceInterface
   public function getMappingConfigurationValueAvanceType();
 
   public function setMappingConfigurationValueAvanceType($mappingConfigurationValueAvanceType);
+
+  public function initFromImportFileValueAvance(array $importFileValueAvance);
+
+  public function getExportValueAvance() : array;
 }

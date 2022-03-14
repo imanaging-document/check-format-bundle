@@ -29,4 +29,6 @@ interface MappingConfigurationInterface
   public function getMappingConfigurationValues();
 
   public function setMappingConfigurationValues($mappingConfigurationValues);
+
+  public function getFormattedConfiguration() : array;
 }

@@ -5,6 +5,8 @@ namespace Imanaging\CheckFormatBundle\Controller;
 
 use App\Entity\MappingConfiguration;
 use App\Entity\MappingConfigurationFile;
+use App\Entity\MappingConfigurationValue;
+use App\Entity\MappingConfigurationValueTransformation;
 use DateTime;
 use Exception;
 use Imanaging\CheckFormatBundle\Enum\TransformationEnum;
@@ -24,9 +26,12 @@ use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueTranslationI
 use Imanaging\CheckFormatBundle\Mapping;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
+use Symfony\Component\Yaml\Yaml;
 
 class MappingController extends AbstractController
 {
@@ -352,9 +357,9 @@ class MappingController extends AbstractController
   public function addMappingConfigurationAction($code, Request $request)
   {
     $params = $request->request->all();
-    $em = $this->getDoctrine()->getManager();
-    if (isset($params['libelle'])) {
-      $libelle = $params['libelle'];
+    $files = $request->files->all();
+    if (isset($params['mapping_configuration_libelle'])) {
+      $libelle = $params['mapping_configuration_libelle'];
       $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
       if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
         $className = $this->em->getRepository(MappingConfigurationInterface::class)->getClassName();
@@ -363,8 +368,65 @@ class MappingController extends AbstractController
           $configuration->setType($mappingConfigurationType);
           $configuration->setLibelle($libelle);
           $configuration->setActive(true);
-          $em->persist($configuration);
-          $em->flush();
+          if (isset($files['file_import'])) {
+            // mode importation
+            $data = Yaml::parseFile($files['file_import']->getPathname());
+            foreach ($data['values'] as $_value) {
+              $className = $this->em->getRepository(MappingConfigurationValueInterface::class)->getClassName();
+              $value = new $className();
+              $value->setMappingConfiguration($configuration);
+              $value->setFichierEntete($_value['entete']);
+              $value->setFichierIndex($_value['fichier_index']);
+              $value->setMappingCode($_value['mapping_code']);
+              $value->setMappingType($_value['type_mapping']);
+              $this->em->persist($value);
+
+
+              foreach ($_value['transformations'] as $_transformation) {
+                $className = $this->em->getRepository(MappingConfigurationValueTransformationInterface::class)->getClassName();
+                $transformation = new $className();
+                $transformation->setMappingConfigurationValue($value);
+                $transformation->setNbCaract($_transformation['nb_caract']);
+                $transformation->setTransformation($_transformation['transformation']);
+                $this->em->persist($transformation);
+              }
+              foreach ($_value['translations'] as $_translation) {
+                $className = $this->em->getRepository(MappingConfigurationValueTranslationInterface::class)->getClassName();
+                $translation = new $className();
+                $translation->setMappingConfigurationValue($value);
+                $translation->setValue($_translation['value']);
+                $translation->setTranslation($_translation['translation']);
+                $this->em->persist($translation);
+              }
+              foreach ($_value['values_avances'] as $_valueAvance) {
+                $type = $this->em->getRepository(MappingConfigurationValueAvanceTypeInterface::class)->findOneBy(['code' => $_valueAvance['type']]);
+                if ($type instanceof MappingConfigurationValueAvanceTypeInterface){
+                  // on ajoute la value avancée
+                  if ($type->getCode() == 'value_file') {
+                    $className = $this->em->getRepository(MappingConfigurationValueAvanceFileInterface::class)->getClassName();
+                  } elseif ($type->getCode() == 'date_custom') {
+                    $className = $this->em->getRepository(MappingConfigurationValueAvanceDateCustomInterface::class)->getClassName();
+                  } elseif ($type->getCode() == 'multi_column_array') {
+                    $className = $this->em->getRepository(MappingConfigurationValueAvanceMultiColumnArrayInterface::class)->getClassName();
+                  } else {
+                    $className = $this->em->getRepository(MappingConfigurationValueAvanceTextInterface::class)->getClassName();
+                  }
+                  $valueAvance = new $className();
+                  if ($valueAvance instanceof MappingConfigurationValueAvanceInterface) {
+                    $valueAvance->initFromImportFileValueAvance($_valueAvance);
+                    $valueAvance->setMappingConfigurationValueAvanceType($type);
+                    $valueAvance->setMappingConfigurationValue($value);
+                  }
+
+                  $this->em->persist($valueAvance);
+                } else {
+                  return new JsonResponse(['error_message' => 'Une erreur est survenue. (2)'], 500);
+                }
+              }
+            }
+          }
+          $this->em->persist($configuration);
+          $this->em->flush();
           return new JsonResponse();
         } else {
           return new JsonResponse(['error' => true, 'error_message' => 'Une erreur est survenue lors de l\'ajout de la configuration'], 500);
@@ -375,6 +437,49 @@ class MappingController extends AbstractController
       }
     }
     return new JsonResponse(['error' => true, 'error_message' => 'Une erreur est survenue lors de l\'ajout de la configuration'], 500);
+  }
+
+  public function exportMappingConfigurationAction(Request $request) {
+    $params = $request->request->all();
+    if (isset($params['mapping_id'])) {
+      $configuration = $this->em->getRepository(MappingConfigurationInterface::class)->find($params['mapping_id']);
+      if ($configuration instanceof MappingConfigurationInterface) {
+        $publicDir = $this->projectDir.'/public';
+        $tmpDir = $publicDir.'/database/tmp_files';
+        if (!is_dir($tmpDir)) {
+          mkdir($tmpDir, '0755', true);
+        }
+        $filename = 'tmp_export_mapping_configuration_'.$configuration->getId();
+        $filePath = $tmpDir.'/' . $filename . '.yaml';
+        if (file_exists($filePath)) {
+          unlink($filePath);
+        }
+
+        $dumpedData = Yaml::dump($configuration->getFormattedConfiguration(), 2, 4, Yaml::DUMP_MULTI_LINE_LITERAL_BLOCK);
+        file_put_contents($filePath, $dumpedData);
+
+        return new JsonResponse(['success' => true, 'url' => $this->generateUrl('check_format_mapping_download_export_configuration', ['filename' => $filename ])]);
+      } else {
+        return new JsonResponse(['error_message' => 'La configuration n\'a pas été trouvé'], 500);
+      }
+    }
+    return new JsonResponse(['error_message' => 'Un paramètre est manquant pour exporter la configuration.'], 500);
+  }
+
+  public function downloadExportMappingConfigurationAction($filename) {
+    $filepath = $this->projectDir.'/public/database/tmp_files/'.$filename.'.yaml';
+    if (file_exists($filepath)) {
+      return $this->file($filepath);
+    }
+    throw new Exception('File not found');
+  }
+
+  public function importMappingConfigurationAction(Request $request) {
+    $params = $request->request->all();
+    $files = $request->files->all();
+    var_dump($params);
+    var_dump($files);
+    die;
   }
 
   public function removeMappingConfigurationValuesAction(Request $request)
