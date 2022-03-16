@@ -19,12 +19,13 @@ class CsvToArrayService
     if (!file_exists($filename) || !is_readable($filename)) {
       return false;
     }
-    $header = true;
     $data = [];
+
     if (($handle = fopen($filename, 'r')) !== false) {
       $row = null;
-      while (($raw_string = fgets($handle)) !== false) {
-        $data[] = explode($delimiter, trim($raw_string));
+      while (($row = fgetcsv($handle, 100000, $delimiter)) !== FALSE)
+      {
+         $data[] = $row;
       }
       fclose($handle);
     }
