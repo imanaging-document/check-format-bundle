@@ -181,6 +181,7 @@
           let td = $('.nb-valeur-avancee[data-id="' + id + '"]');
           let currentNumber = parseInt(td.html());
           td.html(currentNumber + 1);
+          $('.lookingForDetail[data-id="' + id + '"]').trigger('click');
         },
         error: function (data){
           $('.modal-backdrop').remove();
