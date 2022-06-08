@@ -211,6 +211,7 @@
         let td = $('.nb-valeur-avancee[data-id="' + id + '"]');
         let currentNumber = parseInt(td.html());
         td.html(currentNumber - 1);
+        $('.lookingForDetail[data-id="' + id + '"]').trigger('click');
       },
       error: function () {
         $('#divConfigurationAvances').html('<i class="fa fa-warning fa-2x text-danger"></i><span> Le chargement du détail a échoué.</span>');
