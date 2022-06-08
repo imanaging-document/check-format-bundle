@@ -607,6 +607,7 @@ class MappingController extends AbstractController
         }
         $value->setMappingConfigurationValue($configurationValue);
         $value->setMappingConfigurationValueAvanceType($type);
+        $value->setOrdre(count($configurationValue->getMappingConfigurationValueAvances()) + 1);
         $this->em->persist($value);
         $this->em->flush();
 
