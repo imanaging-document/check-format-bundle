@@ -14,9 +14,9 @@ interface MappingConfigurationValueAvanceInterface
 
   public function setId(int $id);
 
-  public function getOrder(): int;
+  public function getOrdre(): int;
 
-  public function setOrder(int $order);
+  public function setOrdre(int $ordre);
 
   public function getValue(): string;
 
