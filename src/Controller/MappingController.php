@@ -416,7 +416,7 @@ class MappingController extends AbstractController
                     $valueAvance->initFromImportFileValueAvance($_valueAvance);
                     $valueAvance->setMappingConfigurationValueAvanceType($type);
                     $valueAvance->setMappingConfigurationValue($value);
-                    $valueAvance->setOrder($_valueAvance['order']);
+                    $valueAvance->setOrdre($_valueAvance['order']);
                   }
 
                   $this->em->persist($valueAvance);
