@@ -25,7 +25,7 @@ class ImanagingCheckFormatExtension extends Extension
     $config = $this->processConfiguration($configuration, $configs);
   }
 
-  public function getAlias()
+  public function getAlias() : string
   {
     return 'imanaging_check_format';
   }
