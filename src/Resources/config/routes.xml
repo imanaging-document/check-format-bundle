@@ -4,105 +4,139 @@
         xsi:schemaLocation="http://symfony.com/schema/routing
         https://symfony.com/schema/routing/routing-1.0.xsd">
 
-    <route id="check_format_mapping" path="/mapping" controller="imanaging_check_format.mapping_controller:indexAction">
+    <route id="check_format_mapping" path="/mapping">
+        <default key="_controller">imanaging_check_format.mapping_controller::indexAction</default>
     </route>
 
-    <route id="check_format_mapping_page" path="/mapping-page/{code}" controller="imanaging_check_format.mapping_controller:mappingPageAction">
+    <route id="check_format_mapping_page" path="/mapping-page/{code}">
+        <default key="_controller">imanaging_check_format.mapping_controller::mappingPageAction</default>
     </route>
 
-    <route id="check_format_mapping_controle_page" path="/mapping/{code}/controle" controller="imanaging_check_format.mapping_controller:controlePageAction">
+    <route id="check_format_mapping_controle_page" path="/mapping/{code}/controle">
+        <default key="_controller">imanaging_check_format.mapping_controller::controlePageAction</default>
     </route>
 
-    <route id="check_format_mapping_controler_fichier" path="/mapping/{code}/controler-fichier" controller="imanaging_check_format.mapping_controller:controlerFichierAction">
+    <route id="check_format_mapping_controler_fichier" path="/mapping/{code}/controler-fichier">
+        <default key="_controller">imanaging_check_format.mapping_controller::controlerFichierAction</default>
     </route>
 
-    <route id="check_format_mapping_files_upload" path="/mapping/{code}/files/upload" controller="imanaging_check_format.mapping_controller:uploadFileAction">
+    <route id="check_format_mapping_files_upload" path="/mapping/{code}/files/upload">
+        <default key="_controller">imanaging_check_format.mapping_controller::uploadFileAction</default>
     </route>
 
-    <route id="check_format_mapping_files_delete" path="/mapping/{code}/files/delete" controller="imanaging_check_format.mapping_controller:deleteFileAction">
+    <route id="check_format_mapping_files_delete" path="/mapping/{code}/files/delete">
+        <default key="_controller">imanaging_check_format.mapping_controller::deleteFileAction</default>
     </route>
 
-    <route id="check_format_mapping_champs_possibles_gerer" path="/mapping/{code}/champs-possibles/gerer" controller="imanaging_check_format.mapping_controller:gererChampsPossiblesAction">
+    <route id="check_format_mapping_champs_possibles_gerer" path="/mapping/{code}/champs-possibles/gerer">
+        <default key="_controller">imanaging_check_format.mapping_controller::gererChampsPossiblesAction</default>
     </route>
 
-    <route id="check_format_mapping_champs_possibles_modal_edition" path="/mapping/champs-possibles/modal-edition" controller="imanaging_check_format.mapping_controller:modelEditChampPossibleAction">
+    <route id="check_format_mapping_champs_possibles_modal_edition" path="/mapping/champs-possibles/modal-edition">
+        <default key="_controller">imanaging_check_format.mapping_controller::modelEditChampPossibleAction</default>
     </route>
 
-    <route id="check_format_mapping_champs_possibles_save" path="/mapping/champs-possibles/save" controller="imanaging_check_format.mapping_controller:saveChampPossibleAction">
+    <route id="check_format_mapping_champs_possibles_save" path="/mapping/champs-possibles/save">
+        <default key="_controller">imanaging_check_format.mapping_controller::saveChampPossibleAction</default>
     </route>
 
-    <route id="check_format_mapping_champs_possibles_toggle_boolean_value" path="/mapping/champs-possibles/toggle-boolean-value" controller="imanaging_check_format.mapping_controller:toggleBooleanValueChampPossibleAction">
+    <route id="check_format_mapping_champs_possibles_toggle_boolean_value" path="/mapping/champs-possibles/toggle-boolean-value">
+        <default key="_controller">imanaging_check_format.mapping_controller::toggleBooleanValueChampPossibleAction</default>
     </route>
 
-    <route id="check_format_mapping_select_configurations" path="/mapping/select-configurations/{codeMappingConfiguration}" controller="imanaging_check_format.mapping_controller:getMappingConfigurationSelectAction">
+    <route id="check_format_mapping_select_configurations" path="/mapping/select-configurations/{codeMappingConfiguration}">
+        <default key="_controller">imanaging_check_format.mapping_controller::getMappingConfigurationSelectAction</default>
     </route>
 
-    <route id="check_format_mapping_add_configuration" path="/mapping/{code}/add-configuration" controller="imanaging_check_format.mapping_controller:addMappingConfigurationAction">
+    <route id="check_format_mapping_add_configuration" path="/mapping/{code}/add-configuration">
+        <default key="_controller">imanaging_check_format.mapping_controller::addMappingConfigurationAction</default>
     </route>
 
-    <route id="check_format_mapping_remove_configuration" path="/mapping/remove-configuration" controller="imanaging_check_format.mapping_controller:removeMappingConfigurationValuesAction">
+    <route id="check_format_mapping_remove_configuration" path="/mapping/remove-configuration">
+        <default key="_controller">imanaging_check_format.mapping_controller::removeMappingConfigurationValuesAction</default>
     </route>
 
-    <route id="check_format_mapping_export_configuration" path="/mapping/export-configuration" controller="imanaging_check_format.mapping_controller:exportMappingConfigurationAction">
+    <route id="check_format_mapping_export_configuration" path="/mapping/export-configuration">
+        <default key="_controller">imanaging_check_format.mapping_controller::exportMappingConfigurationAction</default>
     </route>
 
-    <route id="check_format_mapping_download_export_configuration" path="/mapping/export-configuration/download/{filename}" controller="imanaging_check_format.mapping_controller:downloadExportMappingConfigurationAction">
+    <route id="check_format_mapping_download_export_configuration" path="/mapping/export-configuration/download/{filename}">
+        <default key="_controller">imanaging_check_format.mapping_controller::downloadExportMappingConfigurationAction</default>
     </route>
 
-    <route id="check_format_mapping_import_configuration" path="/mapping/import-configuration" controller="imanaging_check_format.mapping_controller:importMappingConfigurationAction">
+    <route id="check_format_mapping_import_configuration" path="/mapping/import-configuration">
+        <default key="_controller">imanaging_check_format.mapping_controller::importMappingConfigurationAction</default>
     </route>
 
-    <route id="check_format_mapping_select_champs" path="/mapping/{code}/select-champs" controller="imanaging_check_format.mapping_controller:mappingFichierClientSelectChampsAction">
+    <route id="check_format_mapping_select_champs" path="/mapping/{code}/select-champs">
+        <default key="_controller">imanaging_check_format.mapping_controller::mappingFichierClientSelectChampsAction</default>
     </route>
 
-    <route id="check_format_mapping_select_champs_options" path="/mapping/{code}/select-champs-options" controller="imanaging_check_format.mapping_controller:mappingFichierClientSelectChampsOptionsAction">
+    <route id="check_format_mapping_select_champs_options" path="/mapping/{code}/select-champs-options">
+        <default key="_controller">imanaging_check_format.mapping_controller::mappingFichierClientSelectChampsOptionsAction</default>
     </route>
 
-    <route id="check_format_mapping_save_configuration" path="/mapping/save-configuration" controller="imanaging_check_format.mapping_controller:saveMappingConfigurationAction">
+    <route id="check_format_mapping_save_configuration" path="/mapping/save-configuration">
+        <default key="_controller">imanaging_check_format.mapping_controller::saveMappingConfigurationAction</default>
     </route>
 
-    <route id="check_format_mapping_show_recap_configuration" path="/mapping/show-recap" controller="imanaging_check_format.mapping_controller:showRecapMappingConfigurationAction">
+    <route id="check_format_mapping_show_recap_configuration" path="/mapping/show-recap">
+        <default key="_controller">imanaging_check_format.mapping_controller::showRecapMappingConfigurationAction</default>
     </route>
 
-    <route id="check_format_mapping_get_configuration_values" path="/mapping/get-configuration-values" controller="imanaging_check_format.mapping_controller:getMappingConfigurationValuesAction">
+    <route id="check_format_mapping_get_configuration_values" path="/mapping/get-configuration-values">
+        <default key="_controller">imanaging_check_format.mapping_controller::getMappingConfigurationValuesAction</default>
     </route>
 
-    <route id="check_format_mapping_get_configuration_values_avances" path="/mapping/get-configuration-value-avancees" controller="imanaging_check_format.mapping_controller:getMappingConfigurationValuesAvancesAction">
+    <route id="check_format_mapping_get_configuration_values_avances" path="/mapping/get-configuration-value-avancees">
+        <default key="_controller">imanaging_check_format.mapping_controller::getMappingConfigurationValuesAvancesAction</default>
     </route>
 
-    <route id="check_format_mapping_add_translations" path="/mapping/translations/{idValue}/add" controller="imanaging_check_format.mapping_controller:addTranslationAction">
+    <route id="check_format_mapping_add_translations" path="/mapping/translations/{idValue}/add">
+        <default key="_controller">imanaging_check_format.mapping_controller::addTranslationAction</default>
     </route>
 
-    <route id="check_format_mapping_remove_translations" path="/mapping/translations/remove" controller="imanaging_check_format.mapping_controller:removeTranslationAction">
+    <route id="check_format_mapping_remove_translations" path="/mapping/translations/remove">
+        <default key="_controller">imanaging_check_format.mapping_controller::removeTranslationAction</default>
     </route>
 
-    <route id="check_format_mapping_update_translations" path="/mapping/translations/update" controller="imanaging_check_format.mapping_controller:updateTranslationsAction">
+    <route id="check_format_mapping_update_translations" path="/mapping/translations/update">
+        <default key="_controller">imanaging_check_format.mapping_controller::updateTranslationsAction</default>
     </route>
 
-    <route id="check_format_mapping_add_transformations" path="/mapping/transformations/{idValue}/add" controller="imanaging_check_format.mapping_controller:addTransformationAction">
+    <route id="check_format_mapping_add_transformations" path="/mapping/transformations/{idValue}/add">
+        <default key="_controller">imanaging_check_format.mapping_controller::addTransformationAction</default>
     </route>
 
-    <route id="check_format_mapping_remove_transformations" path="/mapping/transformations/remove" controller="imanaging_check_format.mapping_controller:removeTransformationAction">
+    <route id="check_format_mapping_remove_transformations" path="/mapping/transformations/remove">
+        <default key="_controller">imanaging_check_format.mapping_controller::removeTransformationAction</default>
     </route>
 
-    <route id="check_format_mapping_update_transformations" path="/mapping/transformations/update" controller="imanaging_check_format.mapping_controller:updateTransformationsAction">
+    <route id="check_format_mapping_update_transformations" path="/mapping/transformations/update">
+        <default key="_controller">imanaging_check_format.mapping_controller::updateTransformationsAction</default>
     </route>
 
-    <route id="check_format_mapping_get_champs_obligatoires_a_mapper" path="/mapping/get-champs-obligatoires-a-mapper" controller="imanaging_check_format.mapping_controller:getChampsObligatoiresAMapperAction">
+    <route id="check_format_mapping_get_champs_obligatoires_a_mapper" path="/mapping/get-champs-obligatoires-a-mapper">
+        <default key="_controller">imanaging_check_format.mapping_controller::getChampsObligatoiresAMapperAction</default>
     </route>
 
-    <route id="check_format_mapping_remove_configuration_values_avances" path="/mapping/configuration-values-avances/remove" controller="imanaging_check_format.mapping_controller:removeConfigurationValuesAvancesAction">
+    <route id="check_format_mapping_remove_configuration_values_avances" path="/mapping/configuration-values-avances/remove">
+        <default key="_controller">imanaging_check_format.mapping_controller::removeConfigurationValuesAvancesAction</default>
     </route>
 
-    <route id="check_format_mapping_add_configuration_values_avances" path="/mapping/{id}/configuration-values-avances/add" controller="imanaging_check_format.mapping_controller:addConfigurationValuesAvancesAction">
+    <route id="check_format_mapping_add_configuration_values_avances" path="/mapping/{id}/configuration-values-avances/add">
+        <default key="_controller">imanaging_check_format.mapping_controller::addConfigurationValuesAvancesAction</default>
     </route>
 
-    <route id="check_format_mapping_configuration_values_avances_detail" path="/mapping/configuration-values-avances/detail" controller="imanaging_check_format.mapping_controller:getMappingConfigurationValuesAvancesDetailAction">
+    <route id="check_format_mapping_configuration_values_avances_detail" path="/mapping/configuration-values-avances/detail">
+        <default key="_controller">imanaging_check_format.mapping_controller::getMappingConfigurationValuesAvancesDetailAction</default>
     </route>
 
-    <route id="check_format_mapping_configuration_values_avances_detail_remove" path="/mapping/configuration-values-avances/detail/remove" controller="imanaging_check_format.mapping_controller:removeConfigurationValuesAvancesDetailAction">
+    <route id="check_format_mapping_configuration_values_avances_detail_remove" path="/mapping/configuration-values-avances/detail/remove">
+        <default key="_controller">imanaging_check_format.mapping_controller::removeConfigurationValuesAvancesDetailAction</default>
     </route>
 
-    <route id="check_format_mapping_configuration_values_avances_detail_add" path="/mapping/configuration-values-avances/detail/{id}/add" controller="imanaging_check_format.mapping_controller:addConfigurationValueAvanceDetailAction">
+    <route id="check_format_mapping_configuration_values_avances_detail_add" path="/mapping/configuration-values-avances/detail/{id}/add">
+        <default key="_controller">imanaging_check_format.mapping_controller::addConfigurationValueAvanceDetailAction</default>
     </route>
 </routes>

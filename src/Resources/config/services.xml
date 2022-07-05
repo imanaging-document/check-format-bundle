@@ -4,31 +4,32 @@
            xsi:schemaLocation="http://symfony.com/schema/dic/services
         https://symfony.com/schema/dic/services/services-1.0.xsd">
 
-    <services>
-        <service id="imanaging_check_format.check_format_file" class="Imanaging\CheckFormatBundle\CheckFormatFile" public="true" />
-        <service id="Imanaging\CheckFormatBundle\CheckFormatFile" alias="imanaging_check_format.check_format_file" public="false" />
+  <services>
+    <service id="imanaging_check_format.check_format_file" class="Imanaging\CheckFormatBundle\CheckFormatFile" public="true" />
+    <service id="Imanaging\CheckFormatBundle\CheckFormatFile" alias="imanaging_check_format.check_format_file" public="false" />
 
-        <service id="imanaging_check_format.converter" class="Imanaging\CheckFormatBundle\Service\CsvToArrayService" public="true" />
-        <service id="imanaging_check_format.excel_converter" class="Imanaging\CheckFormatBundle\Service\ExcelToArrayService" public="true" />
-        <service id="Imanaging\CheckFormatBundle\Service\CsvToArrayService" alias="imanaging_check_format.converter" public="false" />
+    <service id="imanaging_check_format.converter" class="Imanaging\CheckFormatBundle\Service\CsvToArrayService" public="true" />
+    <service id="imanaging_check_format.excel_converter" class="Imanaging\CheckFormatBundle\Service\ExcelToArrayService" public="true" />
+    <service id="Imanaging\CheckFormatBundle\Service\CsvToArrayService" alias="imanaging_check_format.converter" public="false" />
 
-        <service id="imanaging_check_format.mapping" class="Imanaging\CheckFormatBundle\Mapping">
-            <argument type="service" id="doctrine.orm.default_entity_manager" />
-            <argument type="service" id="imanaging_check_format.converter" />
-            <argument type="service" id="twig" />
-            <argument>%kernel.project_dir%</argument>
-            <argument type="service" id="imanaging_check_format.excel_converter" />
-        </service>
-        <service id="Imanaging\CheckFormatBundle\Mapping" alias="imanaging_check_format.mapping" public="false" />
+    <service id="imanaging_check_format.mapping" class="Imanaging\CheckFormatBundle\Mapping">
+      <argument type="service" id="doctrine.orm.default_entity_manager" />
+      <argument type="service" id="imanaging_check_format.converter" />
+      <argument type="service" id="twig" />
+      <argument>%kernel.project_dir%</argument>
+      <argument type="service" id="imanaging_check_format.excel_converter" />
+    </service>
+    <service id="Imanaging\CheckFormatBundle\Mapping" alias="imanaging_check_format.mapping" public="false" />
 
-        <service id="imanaging_check_format.mapping_controller" class="Imanaging\CheckFormatBundle\Controller\MappingController" public="true">
-          <call method="setContainer">
-            <argument type="service" id="Psr\Container\ContainerInterface"/>
-          </call>
-          <tag name="container.service_subscriber"/>
-          <argument type="service" id="doctrine.orm.default_entity_manager" />
-          <argument type="service" id="imanaging_check_format.mapping" />
-          <argument>%kernel.project_dir%</argument>
-        </service>
-    </services>
+    <service id="imanaging_check_format.mapping_controller" class="Imanaging\CheckFormatBundle\Controller\MappingController" public="true">
+      <call method="setContainer">
+        <argument type="service" id="service_container"/>
+      </call>
+      <tag name="container.service_subscriber"/>
+      <argument type="service" id="doctrine.orm.default_entity_manager" />
+      <argument type="service" id="imanaging_check_format.mapping" />
+      <argument>%kernel.project_dir%</argument>
+      <argument type="service" id="twig" />
+    </service>
+  </services>
 </container>

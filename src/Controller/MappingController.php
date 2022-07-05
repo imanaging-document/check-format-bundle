@@ -8,6 +8,7 @@ use App\Entity\MappingConfigurationFile;
 use App\Entity\MappingConfigurationValue;
 use App\Entity\MappingConfigurationValueTransformation;
 use DateTime;
+use Symfony\Component\HttpFoundation\Response;
 use Exception;
 use Imanaging\CheckFormatBundle\Enum\TransformationEnum;
 use Imanaging\CheckFormatBundle\Interfaces\MappingChampPossibleInterface;
@@ -31,13 +32,16 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Yaml\Yaml;
+use Twig\Environment;
 
 class MappingController extends AbstractController
 {
   private $em;
   private $mapping;
   private $projectDir;
+  private $twig;
 
   /**
    * MappingController constructor.
@@ -45,11 +49,12 @@ class MappingController extends AbstractController
    * @param Mapping $mapping
    * @param $projectDir
    */
-  public function __construct(EntityManagerInterface $em, Mapping $mapping, $projectDir)
+  public function __construct(EntityManagerInterface $em, Mapping $mapping, $projectDir, Environment $twig)
   {
     $this->em = $em;
     $this->mapping = $mapping;
     $this->projectDir = $projectDir;
+    $this->twig = $twig;
   }
 
   public function indexAction(Request $request)
@@ -75,10 +80,10 @@ class MappingController extends AbstractController
       return $this->redirect($this->generateUrl('check_format_mapping_page', ['code' => $mappingsConfigurationsTypes[0]->getCode()]).$othersParam);
     }
 
-    return $this->render("@ImanagingCheckFormat/Mapping/index.html.twig", [
+    return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/index.html.twig", [
       'mappings_configurations_types' => $mappingsConfigurationsTypes,
       'basePath' => $params['basePath']
-    ]);
+    ]));
   }
 
   public function mappingPageAction($code)
@@ -96,27 +101,27 @@ class MappingController extends AbstractController
         $ligneEntete = $data['entete'];
         $lignes = $data['first_lines'];
 
-        return $this->render("@ImanagingCheckFormat/Mapping/mapping_page.html.twig", [
+        return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/mapping_page.html.twig", [
           'basePath' => 'base.html.twig',
           'champs' => $this->mapping->getChampsPossiblesAIntegrer($code),
           'ligne_entete' => $ligneEntete,
           'lignes' => $lignes,
           'fichiers_en_attente' => $fichiersClientFormatted,
           'mapping_configuration_type' => $mappingConfigurationType
-        ]);
+        ]));
       } else {
         $champsObligatoires = $this->em->getRepository(MappingChampPossibleInterface::class)->findBy(['mappingConfigurationType' => $mappingConfigurationType, 'visible' => true, 'obligatoire' => true]);
-        return $this->render("@ImanagingCheckFormat/Mapping/no_fichier_to_map.html.twig", [
+        return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/no_fichier_to_map.html.twig", [
           'basePath' => 'base.html.twig',
           'mapping_configuration_type' => $mappingConfigurationType,
           'champs_obligatoires' => $champsObligatoires
-        ]);
+        ]));
       }
     } else {
-      return $this->render("@ImanagingCheckFormat/Mapping/mapping_configuration_type_not_found.html.twig", [
+      return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/mapping_configuration_type_not_found.html.twig", [
         'code' => $code,
         'basePath' => 'base.html.twig',
-      ]);
+      ]));
     }
   }
 
@@ -225,16 +230,16 @@ class MappingController extends AbstractController
       foreach (glob($this->projectDir . $mappingConfigurationType->getFilesDirectory() . $mappingConfigurationType->getFilename() . '*') as $path) {
         $fichiersClients[] = basename($path);
       }
-      return $this->render("@ImanagingCheckFormat/Mapping/controle.html.twig", [
+      return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/controle.html.twig", [
         'mapping_configuration_type' => $mappingConfigurationType,
         'basePath' => 'base.html.twig',
         "fichiers_clients" => $fichiersClients
-      ]);
+      ]));
     } else {
-      return $this->render("@ImanagingCheckFormat/Mapping/mapping_configuration_type_not_found.html.twig", [
+      return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/mapping_configuration_type_not_found.html.twig", [
         'code' => $code,
         'basePath' => 'base.html.twig',
-      ]);
+      ]));
     }
   }
 
@@ -246,15 +251,15 @@ class MappingController extends AbstractController
       if ($mappingConfiguration instanceof MappingConfigurationInterface) {
         $result = $this->mapping->controlerFichiers($mappingConfiguration, true);
         if ($result['error']) {
-          return $this->render('@ImanagingCheckFormat/Mapping/controle/controle_ko.html.twig', [
+          return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/controle/controle_ko.html.twig', [
             'mapping_configuration_type' => $mappingConfigurationType,
             'resultat' => $result
-          ]);
+          ]));
         } else {
-          return $this->render('@ImanagingCheckFormat/Mapping/controle/controle_ok.html.twig', [
+          return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/controle/controle_ok.html.twig', [
             'mapping_configuration_type' => $mappingConfigurationType,
             'resultat' => $result
-          ]);
+          ]));
         }
       } else {
         return new JsonResponse([], 500);
@@ -274,10 +279,10 @@ class MappingController extends AbstractController
     $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
     if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
       $champsPossibles = $this->em->getRepository(MappingChampPossibleInterface::class)->findBy(['mappingConfigurationType' => $mappingConfigurationType, 'visible' => true]);
-      return $this->render("@ImanagingCheckFormat/Mapping/gerer_champs_possibles.html.twig", [
+      return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/gerer_champs_possibles.html.twig", [
         'mapping_configuration_type' => $mappingConfigurationType,
         'champsPossibles' => $champsPossibles,
-      ]);
+      ]));
     } else {
       return new JsonResponse([], 500);
     }
@@ -288,9 +293,9 @@ class MappingController extends AbstractController
     $params = $request->request->all();
     $champPossible = $this->em->getRepository(MappingChampPossibleInterface::class)->find($params['champ_id']);
     if ($champPossible instanceof MappingChampPossibleInterface){
-      return $this->render("@ImanagingCheckFormat/Mapping/modals/edit_champ_possible.html.twig", [
+      return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/modals/edit_champ_possible.html.twig", [
         'champPossible' => $champPossible
-      ]);
+      ]));
     } else {
       return new JsonResponse([], 500);
     }
@@ -345,10 +350,10 @@ class MappingController extends AbstractController
     $mappingTypeConfiguration = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $codeMappingConfiguration]);
     if ($mappingTypeConfiguration instanceof MappingConfigurationTypeInterface){
       $mappingConfigurations = $this->em->getRepository(MappingConfigurationInterface::class)->findBy(['type' => $mappingTypeConfiguration]);
-      return $this->render('@ImanagingCheckFormat/Mapping/partials/mapping_configuration_select.html.twig', [
+      return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/partials/mapping_configuration_select.html.twig', [
         'mapping_configuration_type' => $mappingTypeConfiguration,
         'mapping_configurations' => $mappingConfigurations,
-      ]);
+      ]));
     } else {
       return new JsonResponse([], 500);
     }
@@ -643,14 +648,14 @@ class MappingController extends AbstractController
     $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
     if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
       $params = $request->request->all();
-      return $this->render(
+      return new Response($this->twig->render(
         '@ImanagingCheckFormat/Mapping/partials/mapping_fichier_select_champs.html.twig',
         [
           'mapping_configuration_type' => $mappingConfigurationType,
           'champs' => $this->mapping->getChampsPossiblesAIntegrer($mappingConfigurationType->getCode()),
           'lib_colonne' => $params['lib_colonne']
         ]
-      );
+      ));
     } else {
       return new JsonResponse(['error_message' => 'Une erreur est survenue'], 500);
     }
@@ -663,11 +668,11 @@ class MappingController extends AbstractController
     if (!is_null($champSelect)) {
       switch ($champSelect['type']) {
         case 'date':
-          return $this->render('@ImanagingCheckFormat/Mapping/partials/mapping_fichier_select_champs_options_date.html.twig', ['lib_colonne' => $params['lib_colonne']]);
+          return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/partials/mapping_fichier_select_champs_options_date.html.twig', ['lib_colonne' => $params['lib_colonne']]));
         case 'array':
-          return $this->render('@ImanagingCheckFormat/Mapping/partials/mapping_fichier_select_champs_options_array.html.twig', ['lib_colonne' => $params['lib_colonne']]);
+          return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/partials/mapping_fichier_select_champs_options_array.html.twig', ['lib_colonne' => $params['lib_colonne']]));
         default:
-          return $this->render('@ImanagingCheckFormat/Mapping/partials/mapping_fichier_select_champs_options_default.html.twig', ['lib_colonne' => $params['lib_colonne']]);
+          return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/partials/mapping_fichier_select_champs_options_default.html.twig', ['lib_colonne' => $params['lib_colonne']]));
       }
     } else {
       return new Response(['error_message' => 'Une erreur est survenue lors de la sélection du champ. Si le problème persiste, veuillez contacter un administrateur.'], 500);
@@ -752,9 +757,9 @@ class MappingController extends AbstractController
     if (isset($params['mapping_id'])) {
       $configuration = $this->em->getRepository(MappingConfigurationInterface::class)->find($params['mapping_id']);
       if ($configuration instanceof MappingConfigurationInterface) {
-        return $this->render('@ImanagingCheckFormat/Mapping/mapping_configuration_recapitulatif.html.twig', [
+        return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/mapping_configuration_recapitulatif.html.twig', [
           'config' => $configuration
-        ]);
+        ]));
       }
     }
   }
@@ -850,9 +855,9 @@ class MappingController extends AbstractController
     $params = $request->request->all();
     $value = $this->em->getRepository(MappingConfigurationValueInterface::class)->find($params['mapping_id']);
     if ($value instanceof MappingConfigurationValueInterface){
-      return $this->render('@ImanagingCheckFormat/Mapping/mapping_configuration_translations.html.twig', [
+      return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/mapping_configuration_translations.html.twig', [
         'mapping_value' => $value
-      ]);
+      ]));
     } else {
       return new JsonResponse(['error_message' => 'Impossible de trouver la configuration pour l\'id : '.$params['mapping_id'].'.'], 500);
     }
@@ -899,10 +904,10 @@ class MappingController extends AbstractController
     $value = $this->em->getRepository(MappingConfigurationValueInterface::class)->find($params['mapping_id']);
     $transformations = TransformationEnum::getAvailableTransformationsWithLibelle();
     if ($value instanceof MappingConfigurationValueInterface) {
-      return $this->render('@ImanagingCheckFormat/Mapping/mapping_configuration_transformations.html.twig', [
+      return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/mapping_configuration_transformations.html.twig', [
         'mapping_value' => $value,
         'transformations' => $transformations
-      ]);
+      ]));
     } else {
       return new JsonResponse(['error_message' => 'Impossible de trouver la configuration pour l\'id : '.$params['mapping_id'].'.'], 500);
     }
