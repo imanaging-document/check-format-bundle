@@ -22,6 +22,7 @@ class ExcelToArrayService
     $excel    = new \Vtiful\Kernel\Excel($config);
     return $excel->openFile($filename)
       ->openSheet()
+      ->setGlobalType(\Vtiful\Kernel\Excel::TYPE_STRING)
       ->getSheetData();
   }
 
