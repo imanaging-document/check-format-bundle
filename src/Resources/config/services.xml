@@ -11,6 +11,7 @@
     <service id="imanaging_check_format.converter" class="Imanaging\CheckFormatBundle\Service\CsvToArrayService" public="true" />
     <service id="imanaging_check_format.excel_converter" class="Imanaging\CheckFormatBundle\Service\ExcelToArrayService" public="true" />
     <service id="Imanaging\CheckFormatBundle\Service\CsvToArrayService" alias="imanaging_check_format.converter" public="false" />
+    <service id="Imanaging\CheckFormatBundle\Service\ExcelToArrayService" alias="imanaging_check_format.excel_converter" public="false" />
 
     <service id="imanaging_check_format.mapping" class="Imanaging\CheckFormatBundle\Mapping">
       <argument type="service" id="doctrine.orm.default_entity_manager" />
