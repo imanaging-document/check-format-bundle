@@ -82,6 +82,13 @@ class BaseFieldCheckFormat
               $transformedValue = "0" . $transformedValue;
             }
             break;
+          case TransformationEnum::ADD_CHARACTER_ZERO_START_IF_NOT_EMPTY:
+            if ($transformedValue != '') {
+              while(strlen($transformedValue) < $transformation->getNbCaract()) {
+                $transformedValue = "0" . $transformedValue;
+              }
+            }
+            break;
           case TransformationEnum::ADD_CHARACTER_ZERO_END:
             while(strlen($transformedValue) < $transformation->getNbCaract()) {
               $transformedValue .= "0";
