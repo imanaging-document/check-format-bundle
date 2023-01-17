@@ -84,6 +84,10 @@
         <default key="_controller">imanaging_check_format.mapping_controller::showRecapMappingConfigurationAction</default>
     </route>
 
+    <route id="check_format_mapping_show_decoupage_champs_configuration" path="/mapping/show-decoupage-champs">
+        <default key="_controller">imanaging_check_format.mapping_controller::showRecapDecoupageChampsMappingConfigurationAction</default>
+    </route>
+
     <route id="check_format_mapping_get_configuration_values" path="/mapping/get-configuration-values">
         <default key="_controller">imanaging_check_format.mapping_controller::getMappingConfigurationValuesAction</default>
     </route>
@@ -138,5 +142,9 @@
 
     <route id="check_format_mapping_configuration_values_avances_detail_add" path="/mapping/configuration-values-avances/detail/{id}/add">
         <default key="_controller">imanaging_check_format.mapping_controller::addConfigurationValueAvanceDetailAction</default>
+    </route>
+
+    <route id="check_format_mapping_configuration_file_save_saisies_manuelles" path="/mapping/configuration-file/{id}/save-saisies-manuelles">
+        <default key="_controller">imanaging_check_format.mapping_controller::saveSaisiesManuellesConfigurationFileAction</default>
     </route>
 </routes>

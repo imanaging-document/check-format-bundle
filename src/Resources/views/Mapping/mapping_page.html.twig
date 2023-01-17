@@ -89,6 +89,7 @@
 
         <div class="d-flex justify-content-space-around text-center mb-4">
             <button id="btnModeRecapitulaif" class="btn btn-raised btn-success">Mode récapitulatif</button>
+            <button id="btnModeDecoupageChamps" class="btn btn-outline-secondary">Mode découpage champs</button>
             <button id="btnModeMapping" class="btn btn-outline-secondary">Mode mapping</button>
             <button id="btnModeAvance" class="btn btn-outline-secondary">Mode avancé</button>
         </div>
@@ -106,6 +107,23 @@
             </tr>
             </thead>
             <tbody id="tableRecapitulatif" data-url="{{ path('check_format_mapping_show_recap_configuration') }}">
+              <tr><th colspan="4">Chargement en cours ...</th></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="divModeDecoupageChamps" class="d-none">
+          <h3 class="text-success text-center mb-3">Mode découpage champs</h3>
+          <table class="table table-bordered table-striped text-center">
+            <thead>
+            <tr>
+              <th>Type</th>
+              <th>Libelle</th>
+              <th>Offset</th>
+              <th>Longueur</th>
+            </tr>
+            </thead>
+            <tbody id="tableModeDecoupageChamp" data-url="{{ path('check_format_mapping_show_decoupage_champs_configuration') }}">
               <tr><th colspan="5">Chargement en cours ...</th></tr>
             </tbody>
           </table>

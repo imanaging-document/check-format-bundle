@@ -12,8 +12,10 @@ use DateTime;
 use Exception;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormat;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvanced;
+use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedAutoIncrement;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedConst;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedDateCustom;
+use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedSaisieManuelle;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedString;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedMultiColumnArray;
 use stdClass;
@@ -28,7 +30,7 @@ class CheckFormatFile
    * @return array
    * @throws Exception
    */
-  public static function checkFormatFile(Array $fields, Array $fieldsAdvanced, Array $lines) {
+  public static function checkFormatFile(Array $fields, Array $fieldsAdvanced, Array $lines, $valuesSaisiesManuelles = []) {
     $result = array(
       'nb_lines' => 0,
       'error' => false,
@@ -40,7 +42,7 @@ class CheckFormatFile
     $nbLignes = 0;
     foreach ($lines as $line) {
       $nbLignes ++;
-      $res = self::checkFormatLine($fields, $fieldsAdvanced, $line);
+      $res = self::checkFormatLine($fields, $fieldsAdvanced, $nbLignes, $line, $valuesSaisiesManuelles);
 
       if ($res['error']) {
         array_push($errorsList, array('ligne' => $nbLignes, 'errors_list' => $res['errors_list']));
@@ -64,7 +66,7 @@ class CheckFormatFile
    * @return array
    * @throws Exception
    */
-  public static function checkFormatLine(Array $fields, Array $fieldsAdvanced ,Array $datas, $returnDataObj = false){
+  public static function checkFormatLine(Array $fields, Array $fieldsAdvanced , $index, Array $datas, $valuesSaisiesManuelles = [], $returnDataObj = false){
     if ($returnDataObj) {
       $objData = new stdClass();
     } else {
@@ -123,6 +125,10 @@ class CheckFormatFile
                   $fieldConcat .= $field->getValue($transformedValue);
                 }
               }
+            } elseif ($field instanceof FieldCheckFormatAdvancedSaisieManuelle) {
+              $fieldConcat .= $valuesSaisiesManuelles[$field->getIdValueAvance()];
+            } elseif ($field instanceof FieldCheckFormatAdvancedAutoIncrement) {
+              $fieldConcat .= $index;
             } else {
               return array(
                 'error' => true,
@@ -141,7 +147,6 @@ class CheckFormatFile
           }
         }
       }
-
 
       for ($i = 0; $i < count($fields); $i++) {
         $fieldTemp = $fields[$i];
@@ -183,10 +188,18 @@ class CheckFormatFile
         'obj_data' => $objData
       );
     } else {
-      return array(
+      return [
         'error' => true,
-        'errors_list' => array('classic' => array(array('field' => null, 'error_message' => 'Le nombre de colonne est différent du nombre prévu (' . count($datas) . ' / ' . count($fields) . " attendus )")), 'advanced' => [])
-      );
+        'errors_list' => [
+          'classic' => [
+            [
+              'field' => null,
+              'error_message' => 'Le nombre de colonne est différent du nombre prévu (' . count($datas) . ' / ' . count($fields) . " attendus )"
+            ]
+          ],
+          'advanced' => []
+        ]
+      ];
     }
   }
 
@@ -197,9 +210,8 @@ class CheckFormatFile
    * @return mixed|null
    * @throws Exception
    */
-  public static function getObjByLine(Array $fields, Array $fieldsAdvanced, Array $datas){
-    $res = self::checkFormatLine($fields, $fieldsAdvanced, $datas, true);
-
+  public static function getObjByLine(Array $fields, Array $fieldsAdvanced, $index, Array $datas, $valuesSaisiesManuelles = []){
+    $res = self::checkFormatLine($fields, $fieldsAdvanced, $index, $datas, $valuesSaisiesManuelles, true);
     if (!$res['error']) {
       return $res['obj_data'];
     } else {

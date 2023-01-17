@@ -32,6 +32,22 @@ class CsvToArrayService
     return $data;
   }
 
+  public function getFromTxt($filename) : array
+  {
+    if (!file_exists($filename) || !is_readable($filename)) {
+      return false;
+    }
+    $data = [];
+
+    if (($handle = fopen($filename, 'r')) !== false) {
+      while(!feof($handle)) {
+        $data[] = fgets($handle);
+      }
+      fclose($handle);
+    }
+    return $data;
+  }
+
   public function invert($data, $filename)
   {
     $fp = fopen($filename, 'w');

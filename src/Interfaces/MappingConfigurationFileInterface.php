@@ -34,6 +34,12 @@ interface MappingConfigurationFileInterface
 
   public function setFormData(string $formData): void;
 
+  public function getValueSaisieManuelle(int $idValueAvance) : string;
+
+  public function getValuesSaisiesManuelles() : array;
+
+  public function setValueSaisieManuelle(int $idValueAvance, string $value): void;
+
   public function getAnalysesPostImport();
 
   public function setAnalysesPostImport(string $analysesPostImport): void;

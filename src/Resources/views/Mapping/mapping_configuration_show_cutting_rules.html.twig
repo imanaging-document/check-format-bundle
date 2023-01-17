@@ -1,0 +1,8 @@
+{% for cutting_rule in config.getMappingConfigurationCuttingRules %}
+  <tr>
+    <td>Global</td>
+    <td>{{ cutting_rule.label }}</td>
+    <td>{{ cutting_rule.offset }}</td>
+    <td>{{ cutting_rule.length }}</td>
+  </tr>
+{% endfor %}

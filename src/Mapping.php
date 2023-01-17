@@ -2,19 +2,29 @@
 
 namespace Imanaging\CheckFormatBundle;
 
+use App\Entity\MappingConfiguration;
+use App\Entity\MappingConfigurationFile;
 use App\Entity\MappingConfigurationType;
+use App\Entity\MappingConfigurationValueAvanceAutoIncrement;
 use App\Entity\MappingConfigurationValueAvanceFileTransformation;
+use Countable;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
+use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedAutoIncrement;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedDateCustom;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedMultiColumnArray;
+use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedSaisieManuelle;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatBoolean;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatFloat;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatInteger;
+use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationCuttingRuleInterface;
+use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationFileInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationTypeInterface;
+use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceAutoIncrementInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceDateCustomInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceFileTransformationInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceMultiColumnArrayInterface;
+use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceSaisieManuelleInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceTypeInterface;
 use Imanaging\CheckFormatBundle\Service\ExcelToArrayService;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -104,10 +114,18 @@ class Mapping
    */
   public function showMappingConfigurationValuesAvancesDetail(MappingConfigurationValueInterface $configurationValue){
     $ligneEntete = [];
-    $directory = $this->projectDir.$configurationValue->getMappingConfiguration()->getType()->getFilesDirectory() . $configurationValue->getMappingConfiguration()->getType()->getFilename() . '*';
+    $mappingConfiguration = $this->em->getRepository(MappingConfigurationInterface::class)->findOneBy(
+      ['active' => true, 'type' => $configurationValue->getMappingConfiguration()->getType()]);
+    if ($mappingConfiguration instanceof MappingConfiguration) {
+      $cuttingRules = $mappingConfiguration->getMappingConfigurationCuttingRules();
+    } else {
+      $cuttingRules = [];
+    }
+    $directory = $this->projectDir.$configurationValue->getMappingConfiguration()->getType()->getFilesDirectory() .
+      $configurationValue->getMappingConfiguration()->getType()->getFilename() . '*';
     $fichiersClient = glob($directory);
     if (count($fichiersClient) == 1) {
-      $data = $this->getFirstLinesFromFile($fichiersClient[0], 1);
+      $data = $this->getFirstLinesFromFile($fichiersClient[0], 1, $cuttingRules);
       $ligneEntete = $data['entete'];
     }
 
@@ -253,20 +271,34 @@ class Mapping
     // On parcourt les fichiers un à un
     $filesDirectory = $mappingConfiguration->getType()->getFilesDirectory() . $mappingConfiguration->getType()->getFilename() . '*';
     foreach (glob($this->projectDir.$filesDirectory) as $fichier){
-      // On parse le fichier CSV
-      $lignes = $this->getDataFromFile($fichier);
-      if ($withEntete){
-        unset($lignes[0]);
-      }
-      $fields = $this->getFieldsConfigurationMappingImport($mappingConfiguration);
-      if ($fields) {
-        $result = CheckFormatFile::checkFormatFile($fields['classic'], $fields['advanced'], $lignes);
+      $mappingConfigurationFile = $this->em->getRepository(MappingConfigurationFileInterface::class)->findOneBy([
+        'filename' => basename($fichier), 'mappingConfiguration' => $mappingConfiguration
+      ]);
+
+      if ($mappingConfigurationFile instanceof MappingConfigurationFileInterface) {
+        // On parse le fichier CSV
+        $res =  $this->getDataFromFile($fichier, $mappingConfiguration->getMappingConfigurationCuttingRules());
+        $lignes = $res['data'];
+        $withEntete= $res['entete'];
+        if ($withEntete){
+          unset($lignes[0]);
+        }
+        $fields = $this->getFieldsConfigurationMappingImport($mappingConfiguration);
+        if ($fields) {
+          $result = CheckFormatFile::checkFormatFile($fields['classic'], $fields['advanced'], $lignes, $mappingConfigurationFile->getValuesSaisiesManuelles());
+        } else {
+          return [
+            'error' => true,
+            'error_message' => 'Une erreur est survenue lors de la récupération des champs de mapping'
+          ];
+        }
       } else {
         return [
           'error' => true,
-          'error_message' => 'Une erreur est survenue lors de la récupération des champs de mapping'
+          'error_message' => 'Une erreur est survenue lors de la récupération du fichier'
         ];
       }
+
     }
     return $result;
   }
@@ -281,6 +313,7 @@ class Mapping
       'classic' => [],
       'advanced' => []
     ];
+
     foreach ($configuration->getMappingConfigurationValues() as $value) {
       if ($value instanceof MappingConfigurationValueInterface) {
         if (!is_null($value->getFichierIndex())) {
@@ -399,6 +432,13 @@ class Mapping
                 $avance->getDelimiter(), $avance->getColumns()
               );
               $fieldAdvancedTemp->addField($fieldtemp);
+            } elseif ($avance instanceof MappingConfigurationValueAvanceAutoIncrementInterface) {
+              $fieldtemp = new FieldCheckFormatAdvancedAutoIncrement('Auto incrément');
+              $fieldAdvancedTemp->addField($fieldtemp);
+            }  elseif ($avance instanceof MappingConfigurationValueAvanceSaisieManuelleInterface) {
+              $fieldtemp = new FieldCheckFormatAdvancedSaisieManuelle('Saisie manuelle');
+              $fieldtemp->setIdValueAvance($avance->getId());
+              $fieldAdvancedTemp->addField($fieldtemp);
             }
           }
 
@@ -430,16 +470,42 @@ class Mapping
   }
 
   /**
+   * @param $codeMappingType
+   * @return array|bool
+   */
+  public function getValueAvancesSaisieManuelleConfigurationMappingImport(MappingConfigurationInterface $configuration){
+    $fields = [];
+
+    foreach ($configuration->getMappingConfigurationValues() as $value) {
+      if ($value instanceof MappingConfigurationValueInterface) {
+        foreach ($value->getMappingConfigurationValueAvances() as $avance) {
+          if ($avance instanceof MappingConfigurationValueAvanceSaisieManuelleInterface) {
+            $fields[] = $avance;
+          }
+        }
+      }
+    }
+    return $fields;
+  }
+
+  /**
    * @param $file
    * @param int $nbLines
+   * @param array $cuttingRules
    * @return array
    */
-  public function getFirstLinesFromFile($file, $nbLines = 15){
-    $data = $this->getDataFromFile($file);
+  public function getFirstLinesFromFile($file, $nbLines = 15, $cuttingRules = []){
+    $res = $this->getDataFromFile($file, $cuttingRules);
 
-    $entete = $data[0];
+    $withEntete= $res['entete'];
+    $data = $res['data'];
+    if ($withEntete) {
+      $entete = $data[0];
+    } else {
+      $entete = ['no_entete'];
+    }
     if (count($data) < $nbLines) {
-      $nbLines = count($data) -1;
+      $nbLines = count($data) - $withEntete;
     }
     $firstLines = [];
     for ($i = 1; $i <= $nbLines; $i++) {
@@ -467,19 +533,55 @@ class Mapping
     return null;
   }
 
-  public function getDataFromFile($file)
+  public function getDataFromFile($file, $cuttingRules = [])
   {
     switch (pathinfo($file, PATHINFO_EXTENSION)) {
       case 'xlsx':
       case 'xls':
+        $entete = true;
         $data = $this->excelConverter->convert($file);
         break;
       case "csv":
+        $entete = true;
         $data = $this->converter->convert($file, ';');
+        break;
+      case "txt":
+        $entete = true;
+        $lines = $this->converter->getFromTxt($file, ';');
+        $data = [];
+        $enteteTmp = [];
+        if (count($cuttingRules) > 0) {
+          foreach ($cuttingRules as $rule) {
+            if ($rule instanceof MappingConfigurationCuttingRuleInterface) {
+             $enteteTmp[] = $rule->getLabel();
+            }
+          }
+        } else {
+          $enteteTmp[] = 'Header 0';
+        }
+        $data[] = $enteteTmp;
+        foreach ($lines as $line) {
+          $data[] = $this->cutValues($line, $cuttingRules);
+        }
         break;
       default:
         var_dump('L\'extention ' . pathinfo($file, PATHINFO_EXTENSION) . ' du fichier n\'est pas géré par ce module.');
         die;
+    }
+    return ['data' => $data, 'entete' => $entete];
+  }
+
+  private function cutValues(string $value, $cuttingRules) : array
+  {
+    $data = [];
+    if (count($cuttingRules) > 0) {
+      foreach ($cuttingRules as $rule) {
+        if ($rule instanceof MappingConfigurationCuttingRuleInterface) {
+          $data[] = trim(mb_substr($value, $rule->getOffset(), $rule->getLength()));
+        }
+      }
+    } else {
+      $data[] = $value;
     }
     return $data;
   }

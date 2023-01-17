@@ -8,6 +8,7 @@ use App\Entity\MappingConfigurationFile;
 use App\Entity\MappingConfigurationValue;
 use App\Entity\MappingConfigurationValueTransformation;
 use DateTime;
+use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceSaisieManuelleInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Exception;
 use Imanaging\CheckFormatBundle\Enum\TransformationEnum;
@@ -97,7 +98,14 @@ class MappingController extends AbstractController
         foreach ($fichiersClient as $fichier) {
           $fichiersClientFormatted[] = ['filename' => $fichier, 'basename' => basename($fichier)];
         }
-        $data = $this->mapping->getFirstLinesFromFile($fichiersClient[0], 10);
+        $mappingConfiguration = $this->em->getRepository(MappingConfigurationInterface::class)->findOneBy(['active' => true, 'type' => $mappingConfigurationType]);
+        if ($mappingConfiguration instanceof MappingConfiguration) {
+          $cuttingRules = $mappingConfiguration->getMappingConfigurationCuttingRules();
+        } else {
+          $cuttingRules = [];
+        }
+
+        $data = $this->mapping->getFirstLinesFromFile($fichiersClient[0], 10, $cuttingRules);
         $ligneEntete = $data['entete'];
         $lignes = $data['first_lines'];
 
@@ -218,6 +226,16 @@ class MappingController extends AbstractController
           }
         }
       }
+
+      if (is_dir($dir)){
+        if (file_exists($dir.'/'.$params['filename'])) {
+          try {
+            unlink($dir . '/' . $params['filename']);
+          } catch (Exception $e){
+            return new JsonResponse([], 500);
+          }
+        }
+      }
     }
     return new JsonResponse([], 500);
   }
@@ -226,15 +244,28 @@ class MappingController extends AbstractController
   {
     $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
     if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
-      $fichiersClients = array();
-      foreach (glob($this->projectDir . $mappingConfigurationType->getFilesDirectory() . $mappingConfigurationType->getFilename() . '*') as $path) {
-        $fichiersClients[] = basename($path);
+      $mappingConfiguration = $this->em->getRepository(MappingConfigurationInterface::class)->findOneBy(['active' => true, 'type' => $mappingConfigurationType]);
+      if ($mappingConfiguration instanceof MappingConfigurationInterface) {
+        $valuesSaisiesManuelles = $this->mapping->getValueAvancesSaisieManuelleConfigurationMappingImport($mappingConfiguration);
+        $fichiersClients = array();
+        foreach (glob($this->projectDir . $mappingConfigurationType->getFilesDirectory() . $mappingConfigurationType->getFilename() . '*') as $path) {
+          $fichiersClients[] = $this->em->getRepository(MappingConfigurationFileInterface::class)->findOneBy([
+            'filename' =>  basename($path),
+            'mappingConfiguration' => $mappingConfiguration
+          ]);
+        }
+        return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/controle.html.twig", [
+          'mapping_configuration_type' => $mappingConfigurationType,
+          'basePath' => 'base.html.twig',
+          "fichiers_clients" => $fichiersClients,
+          'advanced_values_saisie_manuelle' => $valuesSaisiesManuelles
+        ]));
+      } else {
+        return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/mapping_configuration_type_not_found.html.twig", [
+          'code' => $code,
+          'basePath' => 'base.html.twig',
+        ]));
       }
-      return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/controle.html.twig", [
-        'mapping_configuration_type' => $mappingConfigurationType,
-        'basePath' => 'base.html.twig',
-        "fichiers_clients" => $fichiersClients
-      ]));
     } else {
       return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/mapping_configuration_type_not_found.html.twig", [
         'code' => $code,
@@ -762,6 +793,20 @@ class MappingController extends AbstractController
         ]));
       }
     }
+    return new JsonResponse([], 500);
+  }
+
+  public function showRecapDecoupageChampsMappingConfigurationAction(Request $request) {
+    $params = $request->request->all();
+    if (isset($params['mapping_id'])) {
+      $configuration = $this->em->getRepository(MappingConfigurationInterface::class)->find($params['mapping_id']);
+      if ($configuration instanceof MappingConfigurationInterface) {
+        return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/mapping_configuration_show_cutting_rules.html.twig', [
+          'config' => $configuration
+        ]));
+      }
+    }
+    return new JsonResponse([], 500);
   }
 
   public function getMappingConfigurationValuesAction(Request $request)
@@ -924,5 +969,24 @@ class MappingController extends AbstractController
       return new JsonResponse($res['champs_a_mapper'], 200);
     }
     return new JsonResponse(['error' => true, 'error_message' => 'Une erreur est survenue lors de la récupération de la configuration (paramètre manquant)'], 500);
+  }
+
+  public function saveSaisiesManuellesConfigurationFileAction($id, Request $request) {
+    $mappingFile = $this->em->getRepository(MappingConfigurationFileInterface::class)->find($id);
+    if ($mappingFile instanceof MappingConfigurationFileInterface) {
+      $params = $request->request->all();
+      foreach ($params as $id => $value) {
+        $mappingValueAvance = $this->em->getRepository(MappingConfigurationValueAvanceSaisieManuelleInterface::class)->find($id);
+        if ($mappingValueAvance instanceof MappingConfigurationValueAvanceSaisieManuelleInterface) {
+          $mappingFile->setValueSaisieManuelle($mappingValueAvance->getId(), $value);
+        }
+      }
+      $this->em->persist($mappingFile);
+      $this->em->flush();
+
+      return $this->redirectToRoute('check_format_mapping_controle_page', ['code' => $mappingFile->getMappingConfiguration()->getType()->getCode()]);
+    } else {
+      throw new Exception('Mapping file introuvable');
+    }
   }
 }

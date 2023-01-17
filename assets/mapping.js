@@ -38,30 +38,39 @@ $("#btnGererChampsPossibles").click(function(){
   });
 });
 
-$('#btnModeRecapitulaif').click(function() {
-  $('#divRecapitulatif').removeClass('d-none');
+function initAllBtn(){
+  console.log('init btn');
+  $('#divRecapitulatif').addClass('d-none');
   $('#divModeAvance').addClass('d-none');
   $('#divMappingMode').addClass('d-none');
-  $('#btnModeRecapitulaif').addClass('btn-success btn-raised').removeClass('btn-outline-secondary');
+  $('#divModeDecoupageChamps').addClass('d-none');
+  $('#btnModeRecapitulaif').addClass('btn-outline-secondary').removeClass('btn-success btn-raised');
+  $('#btnModeDecoupageChamps').addClass('btn-outline-secondary').removeClass('btn-primary btn-raised');
   $('#btnModeMapping').addClass('btn-outline-secondary').removeClass('btn-warning btn-raised');
   $('#btnModeAvance').addClass('btn-outline-secondary').removeClass('btn-info btn-raised');
+}
+
+$('#btnModeRecapitulaif').click(function() {
+  initAllBtn();
+  $('#divRecapitulatif').removeClass('d-none');
+  $('#btnModeRecapitulaif').addClass('btn-success btn-raised').removeClass('btn-outline-secondary');
+});
+
+$('#btnModeDecoupageChamps').click(function() {
+  initAllBtn();
+  $('#divModeDecoupageChamps').removeClass('d-none');
+  $('#btnModeDecoupageChamps').removeClass('btn-outline-secondary').addClass('btn-primary btn-raised');
 });
 
 $('#btnModeMapping').click(function() {
-  $('#divRecapitulatif').addClass('d-none');
-  $('#divModeAvance').addClass('d-none');
+  initAllBtn();
   $('#divMappingMode').removeClass('d-none');
-  $('#btnModeRecapitulaif').addClass('btn-outline-secondary').removeClass('btn-raised btn-success');
   $('#btnModeMapping').removeClass('btn-outline-secondary').addClass('btn-warning btn-raised');
-  $('#btnModeAvance').addClass('btn-outline-secondary').removeClass('btn-info btn-raised');
 });
 
 $('#btnModeAvance').click(function() {
-  $('#divRecapitulatif').addClass('d-none');
-  $('#divMappingMode').addClass('d-none');
+  initAllBtn();
   $('#divModeAvance').removeClass('d-none');
-  $('#btnModeRecapitulaif').removeClass('btn-success btn-raised').addClass('btn-outline-secondary');
-  $('#btnModeMapping').addClass('btn-outline-secondary').removeClass('btn-warning btn-raised');
   $('#btnModeAvance').removeClass('btn-outline-secondary').addClass('btn-info btn-raised');
 });
 
@@ -143,8 +152,28 @@ function loadMappingConfigurations() {
   });
 }
 
+function loadModeDecoupageChamps() {
+  console.log("Load découpage champs")
+  var mappingConfiguration = $('#mapping').val();
+  if (mappingConfiguration !== null) {
+    $('#tableModeDecoupageChamp').html('on est la');
+    $.ajax({
+      url: $('#tableModeDecoupageChamp').data('url'),
+      type: 'POST',
+      data: {mapping_id: mappingConfiguration},
+      success: function (data) {
+        $('#tableModeDecoupageChamp').html(data);
+      },
+      error: function () {
+        showSweetAlert('top-end', 'error', 'Une erreur est survenue lors de la récupération de la configuration. Veuillez réessayer plus tard.', true, 3000);
+      }
+    });
+  } else {
+    $('#tableModeDecoupageChamp').html('Configuration introuvable');
+  }
+}
+
 function loadConfiguration() {
-  console.log("hebrhehbre");
   $('#mappingConfigurationLoad').removeClass('d-none');
   $('#affichageMappingGlobal').addClass('d-none');
   var mappingConfiguration = $('#mapping').val();
@@ -283,6 +312,7 @@ function updateRecapitulatif() {
   });
   $('#tableRecapitulatif').html(htmlRecapitulatif);
   updateObligatoiresAMapper();
+  loadModeDecoupageChamps();
 }
 
 $(document).on('click', '.btn-edit-translations', function(){

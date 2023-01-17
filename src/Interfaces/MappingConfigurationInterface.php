@@ -30,5 +30,7 @@ interface MappingConfigurationInterface
 
   public function setMappingConfigurationValues($mappingConfigurationValues);
 
+  public function getMappingConfigurationCuttingRules();
+
   public function getFormattedConfiguration() : array;
 }
