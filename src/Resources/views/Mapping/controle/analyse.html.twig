@@ -23,8 +23,7 @@
       },
       error: function(){
         $('#btnGroupIntegrationFichierSas').removeClass('d-none');
-        divResultat.html();
-        showSweetAlert('top-end', 'error', "Une erreur est survenue lors du contrôle du fichier. Veuillez réessayer plus tard.", true, 3000);
+        divResultat.html('<div class="alert alert-danger">Une erreur est survenue lors du contrôle du fichier. Veuillez réessayer plus tard.</div>');
       }
     });
   });
