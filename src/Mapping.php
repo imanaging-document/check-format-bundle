@@ -585,4 +585,18 @@ class Mapping
     }
     return $data;
   }
+
+  /**
+   * @param MappingConfigurationInterface $mappingConfiguration
+   * @return array|false
+   */
+  public function getFichiersLocauxByDateModification(MappingConfigurationInterface $mappingConfiguration)
+  {
+    $filesDirectory = $mappingConfiguration->getType()->getFilesDirectory() . $mappingConfiguration->getType()->getFilename() . '*';
+    // On vérifie qu'il n'y a pas de fichier en attente d'intégration déjà copié dans le répértoire local
+    $fichiersLocaux = glob($this->projectDir.$filesDirectory);
+    // On trie les fichiers par date de dépot
+    usort($fichiersLocaux, function( $a, $b ) { return filemtime($a) - filemtime($b); });
+    return $fichiersLocaux;
+  }
 }
