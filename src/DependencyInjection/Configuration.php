@@ -15,7 +15,7 @@ class Configuration implements ConfigurationInterface
     $rootNode = $treeBuilder->getRootNode();
     $rootNode
       ->children()
-        ->variableNode('bar')->defaultValue("")->info('Test')->end()
+        ->variableNode('project_dir')->defaultValue('%kernel.project_dir%')->end()
       ->end()
     ;
 

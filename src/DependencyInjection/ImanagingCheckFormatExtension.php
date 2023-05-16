@@ -23,6 +23,8 @@ class ImanagingCheckFormatExtension extends Extension
 
     $configuration = $this->getConfiguration($configs, $container);
     $config = $this->processConfiguration($configuration, $configs);
+    $definition = $container->getDefinition('imanaging_check_format.mapping');
+    $definition->setArgument(3, $config['project_dir']);
   }
 
   public function getAlias() : string
