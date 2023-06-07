@@ -29,7 +29,6 @@
       <tag name="container.service_subscriber"/>
       <argument type="service" id="doctrine.orm.default_entity_manager" />
       <argument type="service" id="imanaging_check_format.mapping" />
-      <argument>%kernel.project_dir%</argument>
       <argument type="service" id="twig" />
     </service>
   </services>

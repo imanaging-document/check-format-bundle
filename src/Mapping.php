@@ -77,6 +77,11 @@ class Mapping
     $this->twig = $twig;
   }
 
+  public function getProjectDir()
+  {
+    return $this->projectDir;
+  }
+
   /**
    * @param $mappingId
    * @return JsonResponse|Response

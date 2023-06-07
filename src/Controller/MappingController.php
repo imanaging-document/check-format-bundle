@@ -50,11 +50,11 @@ class MappingController extends AbstractController
    * @param Mapping $mapping
    * @param $projectDir
    */
-  public function __construct(EntityManagerInterface $em, Mapping $mapping, $projectDir, Environment $twig)
+  public function __construct(EntityManagerInterface $em, Mapping $mapping, Environment $twig)
   {
     $this->em = $em;
     $this->mapping = $mapping;
-    $this->projectDir = $projectDir;
+    $this->projectDir = $mapping->getProjectDir();
     $this->twig = $twig;
   }
 
