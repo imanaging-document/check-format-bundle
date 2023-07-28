@@ -101,11 +101,13 @@ class MappingController extends AbstractController
         $mappingConfiguration = $this->em->getRepository(MappingConfigurationInterface::class)->findOneBy(['active' => true, 'type' => $mappingConfigurationType]);
         if ($mappingConfiguration instanceof MappingConfiguration) {
           $cuttingRules = $mappingConfiguration->getMappingConfigurationCuttingRules();
+          $skippingRules = $mappingConfiguration->getMappingConfigurationSkippingRules();
         } else {
           $cuttingRules = [];
+          $skippingRules = [];
         }
 
-        $data = $this->mapping->getFirstLinesFromFile($fichiersClient[0], 10, $cuttingRules);
+        $data = $this->mapping->getFirstLinesFromFile($fichiersClient[0], 10, $cuttingRules, $skippingRules);
         $ligneEntete = $data['entete'];
         $lignes = $data['first_lines'];
 

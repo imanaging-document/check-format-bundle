@@ -72,6 +72,7 @@ class CheckFormatFile
     } else {
       $objData = null;
     }
+
     if (count($fields) == count($datas)) {
       $errorsList = array(
         'classic' => array(),
@@ -142,6 +143,9 @@ class CheckFormatFile
           } else {
             if ($returnDataObj) {
               $lib = str_replace(' ', '_', $fieldAdvanced->getCode());
+
+              $fieldConcat = $fieldAdvanced->getTranslatedValue($fieldConcat);
+              $fieldConcat = $fieldAdvanced->getTransformedValue($fieldConcat);
               $objData->{$lib} = $fieldConcat;
             }
           }

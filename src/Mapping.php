@@ -4,6 +4,7 @@ namespace Imanaging\CheckFormatBundle;
 
 use App\Entity\MappingConfiguration;
 use App\Entity\MappingConfigurationFile;
+use App\Entity\MappingConfigurationSkippingRule;
 use App\Entity\MappingConfigurationType;
 use App\Entity\MappingConfigurationValueAvanceAutoIncrement;
 use App\Entity\MappingConfigurationValueAvanceFileTransformation;
@@ -19,6 +20,7 @@ use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatFloat;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatInteger;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationCuttingRuleInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationFileInterface;
+use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationSkippingRuleInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationTypeInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceAutoIncrementInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceDateCustomInterface;
@@ -116,6 +118,9 @@ class Mapping
   /**
    * @param MappingConfigurationValueInterface $configurationValue
    * @return Response
+   * @throws LoaderError
+   * @throws RuntimeError
+   * @throws SyntaxError
    */
   public function showMappingConfigurationValuesAvancesDetail(MappingConfigurationValueInterface $configurationValue){
     $ligneEntete = [];
@@ -123,14 +128,16 @@ class Mapping
       ['active' => true, 'type' => $configurationValue->getMappingConfiguration()->getType()]);
     if ($mappingConfiguration instanceof MappingConfiguration) {
       $cuttingRules = $mappingConfiguration->getMappingConfigurationCuttingRules();
+      $skippingRules = $mappingConfiguration->getMappingConfigurationSkippingRules();
     } else {
       $cuttingRules = [];
+      $skippingRules = [];
     }
     $directory = $this->projectDir.$configurationValue->getMappingConfiguration()->getType()->getFilesDirectory() .
       $configurationValue->getMappingConfiguration()->getType()->getFilename() . '*';
     $fichiersClient = glob($directory);
     if (count($fichiersClient) == 1) {
-      $data = $this->getFirstLinesFromFile($fichiersClient[0], 1, $cuttingRules);
+      $data = $this->getFirstLinesFromFile($fichiersClient[0], 1, $cuttingRules, $skippingRules);
       $ligneEntete = $data['entete'];
     }
 
@@ -282,7 +289,8 @@ class Mapping
 
       if ($mappingConfigurationFile instanceof MappingConfigurationFileInterface) {
         // On parse le fichier CSV
-        $res =  $this->getDataFromFile($fichier, $mappingConfiguration->getMappingConfigurationCuttingRules());
+        $res =  $this->getDataFromFile($fichier, $mappingConfiguration->getMappingConfigurationCuttingRules(),
+          $mappingConfiguration->getMappingConfigurationSkippingRules());
         $lignes = $res['data'];
         $withEntete= $res['entete'];
         if ($withEntete){
@@ -377,6 +385,8 @@ class Mapping
               }
               array_push($fields['classic'], $fieldtemp);
             } else {
+              var_dump($value->getMappingCode());
+              die;
               return false;
             }
           } else {
@@ -497,10 +507,11 @@ class Mapping
    * @param $file
    * @param int $nbLines
    * @param array $cuttingRules
+   * @param array $skippingRules
    * @return array
    */
-  public function getFirstLinesFromFile($file, $nbLines = 15, $cuttingRules = []){
-    $res = $this->getDataFromFile($file, $cuttingRules);
+  public function getFirstLinesFromFile($file, $nbLines = 15, $cuttingRules = [], $skippingRules = []){
+    $res = $this->getDataFromFile($file, $cuttingRules, $skippingRules);
 
     $withEntete= $res['entete'];
     $data = $res['data'];
@@ -538,7 +549,7 @@ class Mapping
     return null;
   }
 
-  public function getDataFromFile($file, $cuttingRules = [])
+  public function getDataFromFile($file, $cuttingRules = [], $skippingRules = [])
   {
     switch (pathinfo($file, PATHINFO_EXTENSION)) {
       case 'xlsx':
@@ -566,7 +577,9 @@ class Mapping
         }
         $data[] = $enteteTmp;
         foreach ($lines as $line) {
-          $data[] = $this->cutValues($line, $cuttingRules);
+          if (!$this->skipValue($line, $skippingRules)) {
+            $data[] = $this->cutValues($line, $cuttingRules);
+          }
         }
         break;
       default:
@@ -603,5 +616,28 @@ class Mapping
     // On trie les fichiers par date de dépot
     usort($fichiersLocaux, function( $a, $b ) { return filemtime($a) - filemtime($b); });
     return $fichiersLocaux;
+  }
+
+  /**
+   * @throws Exception
+   */
+  private function skipValue(string $value, mixed $skippingRules): bool
+  {
+    if (count($skippingRules) > 0) {
+      foreach ($skippingRules as $skippingRule) {
+        if ($skippingRule instanceof MappingConfigurationSkippingRuleInterface) {
+          switch ($skippingRule->getType()) {
+            case MappingConfigurationSkippingRuleInterface::TYPE_FIRSTS_CHAR_VALUES:
+              if (in_array(substr($value, 0, $skippingRule->getDatas()['nb_chars']), $skippingRule->getDatas()['values'])){
+                return true;
+              }
+              break;
+            default:
+              throw new Exception('Type de skipping rules non géré : ' . $skippingRule->getType());
+          }
+        }
+      }
+    }
+    return false;
   }
 }
