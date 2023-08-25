@@ -89,6 +89,7 @@ class MappingController extends AbstractController
 
   public function mappingPageAction($code)
   {
+    ini_set('memory_limit', '512M');
     $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
     if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
       $directory = $this->projectDir . $mappingConfigurationType->getFilesDirectory() . $mappingConfigurationType->getFilename() . '*';
@@ -278,6 +279,7 @@ class MappingController extends AbstractController
 
   public function controlerFichierAction($code)
   {
+    ini_set('memory_limit', '512M');
     $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
     if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
       $mappingConfiguration = $this->getMappingConfigurationActive($mappingConfigurationType);
