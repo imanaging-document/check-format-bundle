@@ -524,7 +524,7 @@ class Mapping
       $nbLines = count($data) - $withEntete;
     }
     $firstLines = [];
-    for ($i = 1; $i <= $nbLines; $i++) {
+    for ($i = 1; $i < $nbLines; $i++) {
       array_push($firstLines, $data[$i]);
     }
 
