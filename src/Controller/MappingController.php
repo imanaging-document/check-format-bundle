@@ -8,6 +8,7 @@ use App\Entity\MappingConfigurationFile;
 use App\Entity\MappingConfigurationValue;
 use App\Entity\MappingConfigurationValueTransformation;
 use DateTime;
+use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceAutoIncrementInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceSaisieManuelleInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Exception;
@@ -408,10 +409,25 @@ class MappingController extends AbstractController
           $configuration->setType($mappingConfigurationType);
           $configuration->setLibelle($libelle);
           $configuration->setActive(true);
+
+          $champsPossibles = $this->em->getRepository(MappingChampPossibleInterface::class)->findBy(['mappingConfigurationType' => $mappingConfigurationType]);
+          $champsPossiblesCodes = [];
+          foreach ($champsPossibles as $champPossible) {
+            if ($champPossible instanceof MappingChampPossibleInterface) {
+              $champsPossiblesCodes[] = $champPossible->getData();
+            }
+          }
+
           if (isset($files['file_import'])) {
             // mode importation
             $data = Yaml::parseFile($files['file_import']->getPathname());
             foreach ($data['values'] as $_value) {
+              if (!array_key_exists($_value['mapping_code'], $champsPossiblesCodes)) {
+                return new JsonResponse([
+                  'error' => true,
+                  'error_message' => 'Une champs n\'existe pas, avez-vous ajouté les champs complémentaires ?'
+                ], 500);
+              }
               $className = $this->em->getRepository(MappingConfigurationValueInterface::class)->getClassName();
               $value = new $className();
               $value->setMappingConfiguration($configuration);
@@ -448,6 +464,10 @@ class MappingController extends AbstractController
                     $className = $this->em->getRepository(MappingConfigurationValueAvanceDateCustomInterface::class)->getClassName();
                   } elseif ($type->getCode() == 'multi_column_array') {
                     $className = $this->em->getRepository(MappingConfigurationValueAvanceMultiColumnArrayInterface::class)->getClassName();
+                  } elseif ($type->getCode() == 'auto_increment') {
+                    $className = $this->em->getRepository(MappingConfigurationValueAvanceAutoIncrementInterface::class)->getClassName();
+                  } elseif ($type->getCode() == 'saisie_manuelle') {
+                    $className = $this->em->getRepository(MappingConfigurationValueAvanceSaisieManuelleInterface::class)->getClassName();
                   } else {
                     $className = $this->em->getRepository(MappingConfigurationValueAvanceTextInterface::class)->getClassName();
                   }

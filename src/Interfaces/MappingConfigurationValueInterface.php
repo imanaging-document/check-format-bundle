@@ -20,11 +20,11 @@ interface MappingConfigurationValueInterface
 
   public function getFichierIndex();
 
-  public function setFichierIndex(int $fichierIndex);
+  public function setFichierIndex($fichierIndex);
 
   public function getFichierEntete();
 
-  public function setFichierEntete(string $fichierEntete);
+  public function setFichierEntete($fichierEntete);
 
   public function getMappingCode();
 
