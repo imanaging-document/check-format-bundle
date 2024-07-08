@@ -422,10 +422,10 @@ class MappingController extends AbstractController
             // mode importation
             $data = Yaml::parseFile($files['file_import']->getPathname());
             foreach ($data['values'] as $_value) {
-              if (!array_key_exists($_value['mapping_code'], $champsPossiblesCodes)) {
+              if ($_value['mapping_code'] != '' && !in_array($_value['mapping_code'], $champsPossiblesCodes)) {
                 return new JsonResponse([
                   'error' => true,
-                  'error_message' => 'Une champs n\'existe pas, avez-vous ajouté les champs complémentaires ?'
+                  'error_message' => 'Un champs n\'existe pas ('. $_value['mapping_code'] .'), avez-vous ajouté les champs complémentaires ?'
                 ], 500);
               }
               $className = $this->em->getRepository(MappingConfigurationValueInterface::class)->getClassName();
