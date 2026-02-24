@@ -20,10 +20,40 @@ class ExcelToArrayService
     $filename = basename($filePath);
     $config   = ['path' => $directoryPath];
     $excel    = new \Vtiful\Kernel\Excel($config);
-    return $excel->openFile($filename)
-      ->openSheet()
-      ->setGlobalType(\Vtiful\Kernel\Excel::TYPE_STRING)
-      ->getSheetData();
+
+    $maxRetries = 3;
+    $retryCount = 0;
+
+    while (true) {
+      try {
+        return $excel->openFile($filename)
+          ->openSheet()
+          ->setGlobalType(\Vtiful\Kernel\Excel::TYPE_STRING)
+          ->getSheetData();
+      } catch (\Exception $e) {
+        $retryCount++;
+        if ($retryCount >= $maxRetries) {
+          $perms = file_exists($filePath) ? substr(sprintf('%o', fileperms($filePath)), -4) : 'N/A';
+          $owner = file_exists($filePath) ? fileowner($filePath) : 'N/A';
+          $size = file_exists($filePath) ? filesize($filePath) : 'N/A';
+          $exists = file_exists($filePath) ? 'yes' : 'no';
+          
+          throw new \Exception(
+            sprintf(
+              "Failed to open file after %d attempts. Path: %s. Exists: %s. Perms: %s. Owner: %s. Size: %s. Original error: %s",
+              $maxRetries,
+              $filePath,
+              $exists,
+              $perms,
+              $owner,
+              $size,
+              $e->getMessage()
+            )
+          );
+        }
+        usleep(100000); // 100ms
+      }
+    }
   }
 
   public function invert($data, $filename)
