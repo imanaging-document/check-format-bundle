@@ -54,9 +54,19 @@
             {% endfor %}
           </select>
         </div>
-        <div class="form-group">
+        <div id="transformation-nb-caract-group" class="form-group">
           <label for="nb_caract">Nb caractères</label>
           <input type="number" class="form-control" name="nb_caract" id="nb_caract" />
+        </div>
+        <div id="transformation-replace-options" class="d-none">
+          <div class="form-group">
+            <label for="replace_search">Chercher</label>
+            <input type="text" class="form-control" name="replace_search" id="replace_search" />
+          </div>
+          <div class="form-group">
+            <label for="replace_value">Remplacer par</label>
+            <input type="text" class="form-control" name="replace_value" id="replace_value" />
+          </div>
         </div>
         <button type="button" id="btn-add-transformation" class="btn btn-outline-primary">Ajouter</button>
       </div>
@@ -69,10 +79,28 @@
     $("#transformations-card").addClass('d-none');
   });
 
+  function updateTransformationOptionFields() {
+    let transformation = $("#transformation").val();
+    if (transformation === 'replace') {
+      $("#transformation-nb-caract-group").addClass('d-none');
+      $("#transformation-replace-options").removeClass('d-none');
+      $("#nb_caract").val(0);
+    } else {
+      $("#transformation-nb-caract-group").removeClass('d-none');
+      $("#transformation-replace-options").addClass('d-none');
+    }
+  }
+
+  $("#transformation").change(updateTransformationOptionFields);
+  updateTransformationOptionFields();
+
   $("#btn-add-transformation").click(function(){
     let transformation = $("#transformation").val();
     let nbCaractere = $("#nb_caract").val();
     let data = {transformation: transformation, nb_caractere: nbCaractere};
+    if (transformation === 'replace') {
+      data.transformation_options = {search: $("#replace_search").val(), replace: $("#replace_value").val()};
+    }
     $.ajax({
       url: "{{ path('check_format_mapping_add_transformations', {'idValue': mapping_value.id}) }}",
       type: 'POST',

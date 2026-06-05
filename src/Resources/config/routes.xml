@@ -80,6 +80,22 @@
         <default key="_controller">imanaging_check_format.mapping_controller::saveMappingConfigurationAction</default>
     </route>
 
+    <route id="check_format_mapping_save_xml_source_configuration" path="/mapping/save-xml-source-configuration">
+        <default key="_controller">imanaging_check_format.mapping_controller::saveXmlSourceConfigurationAction</default>
+    </route>
+
+    <route id="check_format_mapping_xml_row_preview" path="/mapping/{code}/xml-row-preview">
+        <default key="_controller">imanaging_check_format.mapping_controller::getXmlRowPreviewAction</default>
+    </route>
+
+    <route id="check_format_mapping_get_xml_field_mappings" path="/mapping/get-xml-field-mappings">
+        <default key="_controller">imanaging_check_format.mapping_controller::getXmlFieldMappingsAction</default>
+    </route>
+
+    <route id="check_format_mapping_save_xml_field_mappings" path="/mapping/save-xml-field-mappings">
+        <default key="_controller">imanaging_check_format.mapping_controller::saveXmlFieldMappingsAction</default>
+    </route>
+
     <route id="check_format_mapping_show_recap_configuration" path="/mapping/show-recap">
         <default key="_controller">imanaging_check_format.mapping_controller::showRecapMappingConfigurationAction</default>
     </route>

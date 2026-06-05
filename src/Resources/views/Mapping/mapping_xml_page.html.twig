@@ -1,0 +1,315 @@
+{% extends basePath %}
+
+{% block others_js %}
+  {{ encore_entry_script_tags('js/check_format/mapping') }}
+{% endblock %}
+
+{% block others_stylesheets %}
+  {{ encore_entry_link_tags('css/imanaging_bootstrap_min') }}
+{% endblock %}
+
+{% block body %}
+  <style>
+    .xml-stepper .btn {
+      white-space: normal;
+    }
+
+    .xml-step-panel.d-none {
+      display: none;
+    }
+
+    .xml-field-mapping-table-wrapper {
+      max-height: 520px;
+      overflow: auto;
+    }
+
+    .xml-preview-suggestion {
+      cursor: pointer;
+    }
+
+    .xml-advanced-part-row,
+    .xml-rule-row {
+      border: 1px solid #dee2e6;
+      padding: .75rem;
+      margin-bottom: .5rem;
+      border-radius: .25rem;
+      background: #fff;
+    }
+  </style>
+
+  <div class="container container-full-width">
+    <h4 class="text-center display-4">{{ mapping_configuration_type.libelle }} - Mapping XML</h4>
+
+    <div class="xml-stepper btn-group w-100 mb-4" role="group">
+      <button type="button" class="btn btn-primary btn-raised xml-step-button" data-step="1">1. Fichier</button>
+      <button type="button" class="btn btn-outline-secondary xml-step-button" data-step="2">2. Noeud répétable</button>
+      <button type="button" class="btn btn-outline-secondary xml-step-button" data-step="3">3. Aperçu</button>
+      <button type="button" class="btn btn-outline-secondary xml-step-button" data-step="4">4. Champs</button>
+      <button type="button" class="btn btn-outline-secondary xml-step-button" data-step="5">5. Récap</button>
+    </div>
+
+    <div class="xml-step-panel" data-step="1">
+      <div class="card">
+        <h5 class="card-header">Fichier et configuration</h5>
+        <div class="card-body">
+          <h5>Fichiers en attente : {{ fichiers_en_attente|length }}</h5>
+          <ul>
+            {% for fichier in fichiers_en_attente %}
+              <li>{{ fichier.basename }} (<span class="delete-file" data-file-basename="{{ fichier.basename }}" data-url="{{ path('check_format_mapping_files_delete', {code: mapping_configuration_type.code}) }}">supprimer ce fichier</span>)</li>
+            {% endfor %}
+          </ul>
+
+          <hr>
+
+          <div id="mapping_configuration_loader">
+            <i class="fa fa-spin fa-spinner fa-lg"></i>
+            <span>Chargement des configurations en cours ...</span>
+          </div>
+          <div id="mapping_configuration" data-url="{{ path('check_format_mapping_select_configurations', {codeMappingConfiguration: mapping_configuration_type.code}) }}"></div>
+
+          <div class="text-right mt-3">
+            <button type="button" class="btn btn-primary btn-raised xml-next-step" data-next-step="2">Continuer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="xml-step-panel d-none" data-step="2">
+      <div class="card">
+        <h5 class="card-header">Noeud répétable</h5>
+        <div class="card-body">
+          {% if xml_overview.error %}
+            <div class="alert alert-danger">{{ xml_overview.error_message }}</div>
+          {% else %}
+            <p>Noeud racine : <b>{{ xml_overview.root_node }}</b></p>
+
+            {% if xml_overview.namespaces|length > 0 %}
+              <h6>Namespaces</h6>
+              <table class="table table-bordered table-sm">
+                <thead>
+                <tr>
+                  <th>Préfixe</th>
+                  <th>URI</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for prefix, uri in xml_overview.namespaces %}
+                  <tr>
+                    <td>{{ prefix == '' ? '(défaut)' : prefix }}</td>
+                    <td>{{ uri }}</td>
+                  </tr>
+                {% endfor %}
+                </tbody>
+              </table>
+            {% endif %}
+
+            <div id="xml-source-configuration"
+                 data-url="{{ path('check_format_mapping_save_xml_source_configuration') }}">
+              <div class="form-group">
+                <label for="xml_row_xpath">XPath du noeud répétable</label>
+                <input id="xml_row_xpath" name="xml_row_xpath" type="text" class="form-control" placeholder="/root/items/item">
+              </div>
+
+              {% if xml_overview.suggested_row_xpaths|length > 0 %}
+                <h6>Suggestions</h6>
+                <div class="mb-3">
+                  {% for suggestion in xml_overview.suggested_row_xpaths %}
+                    <button type="button"
+                            class="btn btn-outline-secondary btn-sm btn-use-xml-row-xpath mb-1"
+                            data-row-xpath="{{ suggestion.xpath }}">
+                      {{ suggestion.xpath }} ({{ suggestion.count }})
+                    </button>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <div class="alert alert-warning">Aucun noeud répétable évident n'a été détecté.</div>
+              {% endif %}
+
+              <button id="btn-save-xml-source-configuration" type="button" class="btn btn-primary btn-raised">
+                <i class="fa fa-save fa-fw"></i>Enregistrer le noeud répétable
+              </button>
+              <span id="xml-source-configuration-saved" class="text-success ml-2 d-none">Noeud enregistré.</span>
+            </div>
+          {% endif %}
+
+          <div class="d-flex justify-content-between mt-3">
+            <button type="button" class="btn btn-outline-secondary xml-next-step" data-next-step="1">Retour</button>
+            <button type="button" class="btn btn-primary btn-raised xml-next-step" data-next-step="3">Continuer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="xml-step-panel d-none" data-step="3">
+      <div class="card">
+        <h5 class="card-header">Aperçu des lignes XML</h5>
+        <div class="card-body">
+          <div id="xml-row-preview"
+               data-url="{{ path('check_format_mapping_xml_row_preview', {code: mapping_configuration_type.code}) }}">
+            <button id="btn-load-xml-row-preview" type="button" class="btn btn-primary btn-raised">
+              <i class="fa fa-search fa-fw"></i>Charger l'aperçu
+            </button>
+            <span id="xml-row-preview-loader" class="d-none ml-2"><i class="fa fa-spin fa-spinner"></i> Chargement...</span>
+            <div id="xml-row-preview-content" class="mt-3"></div>
+          </div>
+
+          <div class="d-flex justify-content-between mt-3">
+            <button type="button" class="btn btn-outline-secondary xml-next-step" data-next-step="2">Retour</button>
+            <button type="button" class="btn btn-primary btn-raised xml-next-step" data-next-step="4">Continuer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="xml-step-panel d-none" data-step="4">
+      <div class="card">
+        <h5 class="card-header">Mapping des champs XML</h5>
+        <div class="card-body">
+            <div id="xml-field-mapping"
+               data-load-url="{{ path('check_format_mapping_get_xml_field_mappings') }}"
+               data-save-url="{{ path('check_format_mapping_save_xml_field_mappings') }}"
+               data-transformations="{{ transformations|json_encode|e('html_attr') }}">
+            <div id="xml-field-mapping-data" class="d-none">
+              {% for champ in champs %}
+                <div class="xml-field-definition"
+                     data-index="{{ loop.index0 }}"
+                     data-code="{{ champ.data }}"
+                     data-label="{{ champ.libelle|e('html_attr') }}"
+                     data-type="{{ champ.type }}"
+                     data-required="{{ champ.obligatoire ? '1' : '0' }}"></div>
+              {% endfor %}
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <h5 id="xml-current-field-label" class="mb-1"></h5>
+                <div>
+                  <small><code id="xml-current-field-code"></code></small>
+                  <span id="xml-current-field-required" class="badge badge-danger d-none">obligatoire</span>
+                </div>
+              </div>
+              <div>
+                <span id="xml-field-progress" class="badge badge-info"></span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Type de mapping</label>
+              <div class="btn-group w-100" role="group">
+                <button type="button" class="btn btn-primary btn-raised xml-source-type-button" data-source-type="xpath">XPath XML</button>
+                <button type="button" class="btn btn-outline-secondary xml-source-type-button" data-source-type="fixed">Valeur fixe</button>
+                <button type="button" class="btn btn-outline-secondary xml-source-type-button" data-source-type="advanced">Champ avancé</button>
+              </div>
+            </div>
+
+            <div id="xml-source-type-xpath" class="xml-source-type-panel">
+              <div class="form-group">
+                <label for="xml-current-xpath">Champ XML</label>
+                <div class="input-group">
+                  <input id="xml-current-xpath" type="text" class="form-control xml-source-input" placeholder="ex: identifiant ou adresse/ville">
+                  <div class="input-group-append">
+                    <button type="button" class="btn btn-outline-secondary btn-open-xml-field-picker" data-target-input="#xml-current-xpath">
+                      Sélectionner
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="xml-source-type-fixed" class="xml-source-type-panel d-none">
+              <div class="form-group">
+                <label for="xml-current-fixed-value">Valeur fixe</label>
+                <input id="xml-current-fixed-value" type="text" class="form-control xml-source-input">
+              </div>
+            </div>
+
+            <div id="xml-source-type-advanced" class="xml-source-type-panel d-none">
+              <div id="xml-current-advanced-parts"></div>
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-xml-advanced-xpath-part">
+                <i class="fa fa-plus fa-fw"></i>Ajouter un sous-champ XML
+              </button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-xml-advanced-fixed-part">
+                <i class="fa fa-plus fa-fw"></i>Ajouter une valeur fixe
+              </button>
+            </div>
+
+            <div id="xml-current-field-option" class="mt-3"></div>
+
+            <hr>
+
+            <div class="row">
+              <div class="col-md-6">
+                <h6>Traductions</h6>
+                <div id="xml-current-translations"></div>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-xml-translation">
+                  <i class="fa fa-plus fa-fw"></i>Ajouter une traduction
+                </button>
+              </div>
+              <div class="col-md-6">
+                <h6>Transformations</h6>
+                <div id="xml-current-transformations"></div>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-add-xml-transformation">
+                  <i class="fa fa-plus fa-fw"></i>Ajouter une transformation
+                </button>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+              <button type="button" class="btn btn-outline-secondary" id="btn-previous-xml-business-field">Champ précédent</button>
+              <button type="button" class="btn btn-primary btn-raised" id="btn-next-xml-business-field">Champ suivant</button>
+            </div>
+
+            <hr>
+
+            <button id="btn-save-xml-field-mappings" type="button" class="btn btn-primary btn-raised mt-3">
+              <i class="fa fa-save fa-fw"></i>Enregistrer le mapping XML
+            </button>
+            <span id="xml-field-mapping-saved" class="text-success ml-2 d-none">Champs XML enregistrés.</span>
+          </div>
+
+          <div class="modal fade" id="xmlFieldPickerModal" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header modal-header-primary">
+                  <h5 class="modal-title">Sélectionner un champ XML</h5>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                </div>
+                <div class="modal-body">
+                  <div class="form-group">
+                    <label for="xml-field-picker-filter">Filtrer</label>
+                    <input id="xml-field-picker-filter" type="text" class="form-control" placeholder="XPath ou exemple">
+                  </div>
+                  <div id="xml-field-picker-list"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between mt-3">
+            <button type="button" class="btn btn-outline-secondary xml-next-step" data-next-step="3">Retour</button>
+            <button type="button" class="btn btn-primary btn-raised xml-next-step" data-next-step="5">Continuer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="xml-step-panel d-none" data-step="5">
+      <div class="card">
+        <h5 class="card-header">Récapitulatif</h5>
+        <div class="card-body">
+          <div id="xml-wizard-summary"></div>
+
+          <div class="d-flex justify-content-between mt-3">
+            <button type="button" class="btn btn-outline-secondary xml-next-step" data-next-step="4">Retour</button>
+            <a href="{{ path('check_format_mapping_controle_page', {code: mapping_configuration_type.code}) }}"
+               class="btn btn-success btn-raised">
+              Valider la configuration
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

@@ -12,10 +12,12 @@ class FieldCheckFormatTransformation
 {
   private $transformation;
   private $nbCaract;
+  private ?array $options;
 
-  public function __construct($transformation, $nbCaract) {
+  public function __construct($transformation, $nbCaract, ?array $options = null) {
     $this->transformation= $transformation;
     $this->nbCaract = $nbCaract;
+    $this->options = $options;
   }
 
   /**
@@ -50,6 +52,14 @@ class FieldCheckFormatTransformation
     $this->nbCaract = $nbCaract;
   }
 
+  public function getOptions(): ?array
+  {
+    return $this->options;
+  }
 
+  public function setOptions(?array $options): void
+  {
+    $this->options = $options;
+  }
 
 }

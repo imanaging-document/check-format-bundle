@@ -2,7 +2,10 @@
   <label for="mapping">Selection du mapping</label>
   <select name="mapping" id="mapping" class="form-control" data-url="{{ path('check_format_mapping_save_configuration') }}">
     {% for mapping_configuration in mapping_configurations %}
-      <option value="{{ mapping_configuration.id }}" {% if mapping_configuration.active %}selected{% endif %}>{{ mapping_configuration.libelle }}</option>
+      <option value="{{ mapping_configuration.id }}"
+              data-source-type="{{ mapping_configuration.sourceType }}"
+              data-source-options="{{ mapping_configuration.sourceOptions|json_encode|e('html_attr') }}"
+              {% if mapping_configuration.active %}selected{% endif %}>{{ mapping_configuration.libelle }}</option>
     {% endfor %}
   </select>
 </div>

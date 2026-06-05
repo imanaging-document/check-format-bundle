@@ -10,6 +10,7 @@ abstract class TransformationEnum
   const ADD_CHARACTER_SPACE_END = "add_character_space_end";
   const REMOVE_CHARACTER_ZERO_START = "remove_character_zero_start";
   const ADD_CHARACTER_ZERO_START_IF_NOT_EMPTY = "add_character_zero_start_if_not_empty";
+  const REPLACE = "replace";
   const TRUNCATE = "truncate";
 
   /** @var array user friendly named type */
@@ -20,6 +21,7 @@ abstract class TransformationEnum
     self::ADD_CHARACTER_SPACE_END => 'Ajouter caractère espace à la fin',
     self::REMOVE_CHARACTER_ZERO_START => 'Supprimer les caractères 0 au début',
     self::ADD_CHARACTER_ZERO_START_IF_NOT_EMPTY => 'Ajouter caractère 0 au début (si la valeur n\'est pas vide)',
+    self::REPLACE => 'Remplacer une valeur',
     self::TRUNCATE => 'Tronquer la valeur'
   ];
 
@@ -53,6 +55,7 @@ abstract class TransformationEnum
       self::ADD_CHARACTER_SPACE_END,
       self::REMOVE_CHARACTER_ZERO_START,
       self::ADD_CHARACTER_ZERO_START_IF_NOT_EMPTY,
+      self::REPLACE,
       self::TRUNCATE
     ];
   }

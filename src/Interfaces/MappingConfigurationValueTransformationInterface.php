@@ -22,6 +22,10 @@ interface MappingConfigurationValueTransformationInterface
 
   public function setNbCaract(string $nbCaract);
 
+  public function getTransformationOptions(): ?array;
+
+  public function setTransformationOptions(?array $transformationOptions): void;
+
   public function getMappingConfigurationValue();
 
   public function setMappingConfigurationValue($mappingConfigurationValue);

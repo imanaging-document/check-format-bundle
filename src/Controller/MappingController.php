@@ -109,6 +109,17 @@ class MappingController extends AbstractController
           $skippingRules = [];
         }
 
+        if ($this->mapping->isXmlFile($fichiersClient[0])) {
+          return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/mapping_xml_page.html.twig", [
+            'basePath' => 'base.html.twig',
+            'champs' => $this->mapping->getChampsPossiblesAIntegrer($code),
+            'fichiers_en_attente' => $fichiersClientFormatted,
+            'mapping_configuration_type' => $mappingConfigurationType,
+            'xml_overview' => $this->mapping->getXmlFileOverview($fichiersClient[0]),
+            'transformations' => TransformationEnum::getAvailableTransformationsWithLibelle(),
+          ]));
+        }
+
         $data = $this->mapping->getFirstLinesFromFile($fichiersClient[0], 10, $cuttingRules, $skippingRules);
         $ligneEntete = $data['entete'];
         $lignes = $data['first_lines'];
@@ -162,7 +173,8 @@ class MappingController extends AbstractController
 
           try {
             $now = new DateTime();
-            $newFileName = $mappingConfigurationType->getFilename().'_'.$now->format('YmdHis').'.'.$fichier->getClientOriginalExtension();
+            $extension = strtolower($fichier->getClientOriginalExtension());
+            $newFileName = $mappingConfigurationType->getFilename().'_'.$now->format('YmdHis').'.'.$extension;
 
             $className = $this->em->getRepository(MappingConfigurationFileInterface::class)->getClassName();
             $mappingFile = new $className();
@@ -235,6 +247,7 @@ class MappingController extends AbstractController
         if (file_exists($dir.'/'.$params['filename'])) {
           try {
             unlink($dir . '/' . $params['filename']);
+            return new JsonResponse();
           } catch (Exception $e){
             return new JsonResponse([], 500);
           }
@@ -253,11 +266,28 @@ class MappingController extends AbstractController
         $valuesSaisiesManuelles = $this->mapping->getValueAvancesSaisieManuelleConfigurationMappingImport($mappingConfiguration);
         $fichiersClients = array();
         foreach (glob($this->projectDir . $mappingConfigurationType->getFilesDirectory() . $mappingConfigurationType->getFilename() . '*') as $path) {
-          $fichiersClients[] = $this->em->getRepository(MappingConfigurationFileInterface::class)->findOneBy([
+          $mappingConfigurationFile = $this->em->getRepository(MappingConfigurationFileInterface::class)->findOneBy([
             'filename' =>  basename($path),
             'mappingConfiguration' => $mappingConfiguration
           ]);
+
+          if (!($mappingConfigurationFile instanceof MappingConfigurationFileInterface)) {
+            $className = $this->em->getRepository(MappingConfigurationFileInterface::class)->getClassName();
+            $mappingConfigurationFile = new $className();
+            if ($mappingConfigurationFile instanceof MappingConfigurationFileInterface) {
+              $mappingConfigurationFile->setMappingConfiguration($mappingConfiguration);
+              $mappingConfigurationFile->setDateImport((new DateTime())->setTimestamp(filemtime($path)));
+              $mappingConfigurationFile->setInitialFilename(basename($path));
+              $mappingConfigurationFile->setFilename(basename($path));
+              $this->em->persist($mappingConfigurationFile);
+            }
+          }
+
+          if ($mappingConfigurationFile instanceof MappingConfigurationFileInterface) {
+            $fichiersClients[] = $mappingConfigurationFile;
+          }
         }
+        $this->em->flush();
         return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/controle.html.twig", [
           'mapping_configuration_type' => $mappingConfigurationType,
           'basePath' => 'base.html.twig',
@@ -444,6 +474,9 @@ class MappingController extends AbstractController
                 $transformation->setMappingConfigurationValue($value);
                 $transformation->setNbCaract($_transformation['nb_caract']);
                 $transformation->setTransformation($_transformation['transformation']);
+                if (isset($_transformation['transformation_options']) && is_array($_transformation['transformation_options'])) {
+                  $transformation->setTransformationOptions($_transformation['transformation_options']);
+                }
                 $this->em->persist($transformation);
               }
               foreach ($_value['translations'] as $_translation) {
@@ -807,6 +840,301 @@ class MappingController extends AbstractController
     return new JsonResponse(['error' => true, 'error_message' => 'Une erreur est survenue lors de l\'enregistrement de la configuration (paramètre manquant)'], 500);
   }
 
+  public function saveXmlSourceConfigurationAction(Request $request)
+  {
+    $params = $request->request->all();
+    if (isset($params['mapping_id']) && isset($params['row_xpath'])) {
+      $configuration = $this->em->getRepository(MappingConfigurationInterface::class)->find($params['mapping_id']);
+      if ($configuration instanceof MappingConfigurationInterface) {
+        $rowXpath = trim((string) $params['row_xpath']);
+        if ($rowXpath === '') {
+          return new JsonResponse(['error' => true, 'error_message' => 'Le XPath du noeud répétable est obligatoire.'], 400);
+        }
+
+        if (!$this->mapping->setMappingConfigurationActive($configuration)) {
+          return new JsonResponse(['error' => true, 'error_message' => 'Une erreur est survenue lors de l\'enregistrement de la configuration active'], 500);
+        }
+
+        $sourceOptions = $configuration->getSourceOptions();
+        if (!is_array($sourceOptions)) {
+          $sourceOptions = [];
+        }
+        $sourceOptions['row_xpath'] = $rowXpath;
+
+        $configuration->setSourceType(MappingConfigurationInterface::SOURCE_TYPE_XML);
+        $configuration->setSourceOptions($sourceOptions);
+        $this->em->persist($configuration);
+        $this->em->flush();
+
+        return new JsonResponse([
+          'source_type' => $configuration->getSourceType(),
+          'source_options' => $configuration->getSourceOptions(),
+        ]);
+      }
+      return new JsonResponse(['error' => true, 'error_message' => 'Une erreur est survenue lors de l\'enregistrement de la configuration XML (ID non trouvé)'], 500);
+    }
+    return new JsonResponse(['error' => true, 'error_message' => 'Une erreur est survenue lors de l\'enregistrement de la configuration XML (paramètre manquant)'], 500);
+  }
+
+  public function getXmlRowPreviewAction($code, Request $request)
+  {
+    $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
+    if (!($mappingConfigurationType instanceof MappingConfigurationTypeInterface)) {
+      return new JsonResponse(['error' => true, 'error_message' => 'Type de configuration introuvable : ' . $code], 500);
+    }
+
+    $params = $request->request->all();
+    $rowXpath = isset($params['row_xpath']) ? trim((string) $params['row_xpath']) : '';
+    if ($rowXpath === '') {
+      return new JsonResponse(['error' => true, 'error_message' => 'Le XPath du noeud répétable est obligatoire.'], 400);
+    }
+
+    $directory = $this->projectDir . $mappingConfigurationType->getFilesDirectory() . $mappingConfigurationType->getFilename() . '*';
+    $fichiersClient = glob($directory);
+    if (count($fichiersClient) !== 1 || !$this->mapping->isXmlFile($fichiersClient[0])) {
+      return new JsonResponse(['error' => true, 'error_message' => 'Aucun fichier XML unique en attente de mapping.'], 500);
+    }
+
+    $preview = $this->mapping->getXmlRowsPreview($fichiersClient[0], $rowXpath);
+    return new JsonResponse($preview, $preview['error'] ? 400 : 200);
+  }
+
+  public function getXmlFieldMappingsAction(Request $request)
+  {
+    $params = $request->request->all();
+    if (isset($params['mapping_id'])) {
+      $configuration = $this->em->getRepository(MappingConfigurationInterface::class)->find($params['mapping_id']);
+      if ($configuration instanceof MappingConfigurationInterface) {
+        if (!$this->mapping->setMappingConfigurationActive($configuration)) {
+          return new JsonResponse(['error' => true, 'error_message' => 'Une erreur est survenue lors de l\'enregistrement de la configuration active'], 500);
+        }
+
+        $sourceOptions = $configuration->getSourceOptions();
+        if (is_array($sourceOptions) && isset($sourceOptions['field_mappings']) && is_array($sourceOptions['field_mappings'])) {
+          return new JsonResponse(array_values($sourceOptions['field_mappings']));
+        }
+
+        $values = $this->em->getRepository(MappingConfigurationValueInterface::class)->findBy(['mappingConfiguration' => $configuration]);
+        $valuesArray = [];
+        foreach ($values as $value) {
+          if ($value instanceof MappingConfigurationValueInterface && !is_null($value->getFichierIndex())) {
+            $valuesArray[] = [
+              'id' => $value->getId(),
+              'mapping_code' => $value->getMappingCode(),
+              'relative_xpath' => $value->getFichierEntete(),
+              'source_config' => [
+                'type' => 'xpath',
+                'sources' => [
+                  ['xpath' => $value->getFichierEntete()],
+                ],
+              ],
+              'mapping_type' => $value->getMappingType(),
+              'mapping_translations' => $value->getMappingCongurationValueTranslationsFormatted(),
+              'mapping_transformations' => $value->getMappingCongurationValueTransformationsFormatted(),
+            ];
+          }
+        }
+        return new JsonResponse($valuesArray);
+      }
+      return new JsonResponse(['error' => true, 'error_message' => 'Une erreur est survenue lors de la récupération de la configuration XML (ID non trouvé)'], 500);
+    }
+    return new JsonResponse(['error' => true, 'error_message' => 'Une erreur est survenue lors de la récupération de la configuration XML (paramètre manquant)'], 500);
+  }
+
+  public function saveXmlFieldMappingsAction(Request $request)
+  {
+    $params = $request->request->all();
+    if (isset($params['mapping_id'])) {
+      $configuration = $this->em->getRepository(MappingConfigurationInterface::class)->find($params['mapping_id']);
+      if ($configuration instanceof MappingConfigurationInterface) {
+        if (!$this->mapping->setMappingConfigurationActive($configuration)) {
+          return new JsonResponse(['error' => true, 'error_message' => 'Une erreur est survenue lors de l\'enregistrement de la configuration active'], 500);
+        }
+
+        $sourceOptions = $configuration->getSourceOptions();
+        if (!is_array($sourceOptions) || !isset($sourceOptions['row_xpath']) || trim((string) $sourceOptions['row_xpath']) === '') {
+          return new JsonResponse(['error' => true, 'error_message' => 'Veuillez enregistrer le XPath du noeud répétable avant de mapper les champs XML.'], 400);
+        }
+
+        $mappings = isset($params['mappings']) && is_array($params['mappings']) ? $params['mappings'] : [];
+        $fieldMappings = [];
+        foreach ($mappings as $mapping) {
+          $mappingCode = isset($mapping['mapping_code']) ? trim((string) $mapping['mapping_code']) : '';
+          $sourceConfig = $this->normalizeXmlFieldSourceConfig($mapping);
+          if ($mappingCode === '' || is_null($sourceConfig)) {
+            continue;
+          }
+
+          $fieldMappings[$mappingCode] = [
+            'mapping_code' => $mappingCode,
+            'mapping_type' => isset($mapping['mapping_type']) && $mapping['mapping_type'] !== '' ? $mapping['mapping_type'] : null,
+            'source_config' => $sourceConfig,
+            'mapping_translations' => $this->normalizeXmlFieldTranslations($mapping['mapping_translations'] ?? []),
+            'mapping_transformations' => $this->normalizeXmlFieldTransformations($mapping['mapping_transformations'] ?? []),
+          ];
+        }
+
+        $configuration->setSourceType(MappingConfigurationInterface::SOURCE_TYPE_XML);
+        $sourceOptions['field_mappings'] = $fieldMappings;
+        $configuration->setSourceOptions($sourceOptions);
+        $this->em->persist($configuration);
+        $this->em->flush();
+
+        return new JsonResponse();
+      }
+      return new JsonResponse(['error' => true, 'error_message' => 'Une erreur est survenue lors de l\'enregistrement des champs XML (ID non trouvé)'], 500);
+    }
+    return new JsonResponse(['error' => true, 'error_message' => 'Une erreur est survenue lors de l\'enregistrement des champs XML (paramètre manquant)'], 500);
+  }
+
+  private function normalizeXmlFieldSourceConfig(array $mapping): ?array
+  {
+    if (isset($mapping['source_config']) && is_array($mapping['source_config'])) {
+      $sourceConfig = $mapping['source_config'];
+    } else {
+      $relativeXpath = isset($mapping['relative_xpath']) ? trim((string) $mapping['relative_xpath']) : '';
+      $sourceConfig = [
+        'type' => 'xpath',
+        'sources' => [
+          ['xpath' => $relativeXpath],
+        ],
+      ];
+    }
+
+    $type = isset($sourceConfig['type']) ? trim((string) $sourceConfig['type']) : 'xpath';
+    if (!in_array($type, ['xpath', 'fixed', 'concat', 'advanced'])) {
+      return null;
+    }
+
+    if ($type === 'fixed') {
+      $value = isset($sourceConfig['value']) ? trim((string) $sourceConfig['value']) : '';
+      if ($value === '') {
+        return null;
+      }
+      return [
+        'type' => 'fixed',
+        'value' => $value,
+      ];
+    }
+
+    if ($type === 'advanced') {
+      $parts = [];
+      if (isset($sourceConfig['parts']) && is_array($sourceConfig['parts'])) {
+        foreach ($sourceConfig['parts'] as $part) {
+          if (!is_array($part)) {
+            continue;
+          }
+          $partType = isset($part['type']) ? trim((string) $part['type']) : 'xpath';
+          if ($partType === 'fixed') {
+            $value = isset($part['value']) ? (string) $part['value'] : '';
+            if ($value !== '') {
+              $parts[] = ['type' => 'fixed', 'value' => $value];
+            }
+          } else {
+            $xpath = isset($part['xpath']) ? trim((string) $part['xpath']) : '';
+            if ($xpath !== '') {
+              $parts[] = ['type' => 'xpath', 'xpath' => $xpath];
+            }
+          }
+        }
+      }
+
+      if (count($parts) === 0) {
+        return null;
+      }
+
+      return [
+        'type' => 'advanced',
+        'parts' => $parts,
+      ];
+    }
+
+    $sources = [];
+    if (isset($sourceConfig['sources']) && is_array($sourceConfig['sources'])) {
+      foreach ($sourceConfig['sources'] as $source) {
+        if (is_array($source) && isset($source['xpath'])) {
+          $xpath = trim((string) $source['xpath']);
+          if ($xpath !== '') {
+            $sources[] = ['xpath' => $xpath];
+          }
+        }
+      }
+    }
+
+    if (count($sources) === 0) {
+      return null;
+    }
+
+    if ($type === 'xpath') {
+      return [
+        'type' => 'xpath',
+        'sources' => [$sources[0]],
+      ];
+    }
+
+    return [
+      'type' => 'concat',
+      'separator' => isset($sourceConfig['separator']) ? (string) $sourceConfig['separator'] : '',
+      'sources' => $sources,
+    ];
+  }
+
+  private function normalizeXmlFieldTranslations($translations): array
+  {
+    if (!is_array($translations)) {
+      return [];
+    }
+
+    $normalized = [];
+    foreach ($translations as $translation) {
+      if (!is_array($translation) || !isset($translation['value'])) {
+        continue;
+      }
+      $value = (string) $translation['value'];
+      if ($value === '') {
+        continue;
+      }
+      $normalized[] = [
+        'value' => $value,
+        'translation' => isset($translation['translation']) && $translation['translation'] !== ''
+          ? (string) $translation['translation']
+          : null,
+      ];
+    }
+
+    return $normalized;
+  }
+
+  private function normalizeXmlFieldTransformations($transformations): array
+  {
+    if (!is_array($transformations)) {
+      return [];
+    }
+
+    $availableTransformations = TransformationEnum::getAvailableTransformations();
+    $normalized = [];
+    foreach ($transformations as $transformation) {
+      if (!is_array($transformation) || !isset($transformation['transformation'])) {
+        continue;
+      }
+
+      $transformationCode = (string) $transformation['transformation'];
+      if (!in_array($transformationCode, $availableTransformations)) {
+        continue;
+      }
+
+      $normalized[] = [
+        'transformation' => $transformationCode,
+        'nb_caract' => isset($transformation['nb_caract']) ? (int) $transformation['nb_caract'] : 0,
+        'transformation_options' => isset($transformation['transformation_options']) && is_array($transformation['transformation_options'])
+          ? $transformation['transformation_options']
+          : null,
+      ];
+    }
+
+    return $normalized;
+  }
+
   public function showRecapMappingConfigurationAction(Request $request) {
     $params = $request->request->all();
     if (isset($params['mapping_id'])) {
@@ -943,6 +1271,9 @@ class MappingController extends AbstractController
         $transformationValue->setMappingConfigurationValue($mappingValue);
         $transformationValue->setTransformation($params['transformation']);
         $transformationValue->setNbCaract($params['nb_caractere']);
+        if (isset($params['transformation_options']) && is_array($params['transformation_options'])) {
+          $transformationValue->setTransformationOptions($params['transformation_options']);
+        }
         $this->em->persist($transformationValue);
         $this->em->flush();
         return new JsonResponse(['id' => $transformationValue->getId()]);

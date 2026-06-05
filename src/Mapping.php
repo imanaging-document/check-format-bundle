@@ -289,8 +289,7 @@ class Mapping
 
       if ($mappingConfigurationFile instanceof MappingConfigurationFileInterface) {
         // On parse le fichier CSV
-        $res =  $this->getDataFromFile($fichier, $mappingConfiguration->getMappingConfigurationCuttingRules(),
-          $mappingConfiguration->getMappingConfigurationSkippingRules());
+        $res = $this->getDataFromMappingConfigurationFile($fichier, $mappingConfiguration);
         $lignes = $res['data'];
         $withEntete= $res['entete'];
         if ($withEntete){
@@ -327,8 +326,37 @@ class Mapping
       'advanced' => []
     ];
 
+    $isXmlSource = $configuration->getSourceType() === MappingConfigurationInterface::SOURCE_TYPE_XML;
+    if ($isXmlSource) {
+      $sourceOptions = $configuration->getSourceOptions() ?? [];
+      $fieldMappings = $sourceOptions['field_mappings'] ?? [];
+      foreach ($fieldMappings as $fieldMapping) {
+        if (!is_array($fieldMapping) || empty($fieldMapping['mapping_code'])) {
+          continue;
+        }
+
+        $field = $this->buildClassicFieldCheckFormat(
+          $fieldMapping['mapping_code'],
+          $fieldMapping['mapping_type'] ?? null,
+          $this->formatXmlSourceConfigLabel($fieldMapping['source_config'] ?? [])
+        );
+
+        if ($field === false) {
+          return false;
+        }
+
+        if ($field instanceof FieldCheckFormat) {
+          $this->addXmlFieldTranslationsAndTransformations($field, $fieldMapping);
+          $fields['classic'][] = $field;
+        }
+      }
+    }
+
     foreach ($configuration->getMappingConfigurationValues() as $value) {
       if ($value instanceof MappingConfigurationValueInterface) {
+        if ($isXmlSource && !is_null($value->getFichierIndex())) {
+          continue;
+        }
         if (!is_null($value->getFichierIndex())) {
           if (!is_null($value->getMappingCode())) {
             $champ = $this->searchChampInPossible($value->getMappingCode());
@@ -378,7 +406,8 @@ class Mapping
                   $fieldtemp->addTransformation(
                     new FieldCheckFormatTransformation(
                       $transformation->getTransformation(),
-                      $transformation->getNbCaract()
+                      $transformation->getNbCaract(),
+                      $transformation->getTransformationOptions()
                     )
                   );
                 }
@@ -427,7 +456,8 @@ class Mapping
                   $fieldtemp->addTransformation(
                     new FieldCheckFormatTransformation(
                       $transformation->getTransformation(),
-                      $transformation->getNbCaract()
+                      $transformation->getNbCaract(),
+                      method_exists($transformation, 'getTransformationOptions') ? $transformation->getTransformationOptions() : null
                     )
                   );
                 }
@@ -472,7 +502,8 @@ class Mapping
               $fieldAdvancedTemp->addTransformation(
                 new FieldCheckFormatTransformation(
                   $transformation->getTransformation(),
-                  $transformation->getNbCaract()
+                  $transformation->getNbCaract(),
+                  $transformation->getTransformationOptions()
                 )
               );
             }
@@ -535,6 +566,144 @@ class Mapping
     ];
   }
 
+  public function isXmlFile(string $file): bool
+  {
+    return strtolower(pathinfo($file, PATHINFO_EXTENSION)) === 'xml';
+  }
+
+  public function getXmlFileOverview(string $file): array
+  {
+    $document = new \DOMDocument();
+    $document->preserveWhiteSpace = false;
+
+    $previousUseInternalErrors = libxml_use_internal_errors(true);
+    $loaded = $document->load($file);
+    $errors = libxml_get_errors();
+    libxml_clear_errors();
+    libxml_use_internal_errors($previousUseInternalErrors);
+
+    if (!$loaded) {
+      $messages = [];
+      foreach ($errors as $error) {
+        $messages[] = trim($error->message);
+      }
+
+      return [
+        'error' => true,
+        'error_message' => count($messages) > 0 ? implode(' ', $messages) : 'Le fichier XML est invalide.',
+        'root_node' => null,
+        'namespaces' => [],
+        'suggested_row_xpaths' => [],
+      ];
+    }
+
+    $root = $document->documentElement;
+    if (!($root instanceof \DOMElement)) {
+      return [
+        'error' => true,
+        'error_message' => 'Le fichier XML ne contient pas de noeud racine.',
+        'root_node' => null,
+        'namespaces' => [],
+        'suggested_row_xpaths' => [],
+      ];
+    }
+
+    return [
+      'error' => false,
+      'error_message' => '',
+      'root_node' => $root->nodeName,
+      'namespaces' => $this->getXmlRootNamespaces($root),
+      'suggested_row_xpaths' => $this->getSuggestedXmlRowXpaths($root),
+    ];
+  }
+
+  public function getXmlRowsPreview(string $file, string $rowXpath, int $limit = 5): array
+  {
+    $rowXpath = trim($rowXpath);
+    if ($rowXpath === '') {
+      return [
+        'error' => true,
+        'error_message' => 'Le XPath du noeud répétable est obligatoire.',
+        'row_count' => 0,
+        'rows' => [],
+        'suggested_field_xpaths' => [],
+      ];
+    }
+
+    $document = new \DOMDocument();
+    $document->preserveWhiteSpace = false;
+
+    $previousUseInternalErrors = libxml_use_internal_errors(true);
+    $loaded = $document->load($file);
+    $errors = libxml_get_errors();
+    libxml_clear_errors();
+    libxml_use_internal_errors($previousUseInternalErrors);
+
+    if (!$loaded) {
+      $messages = [];
+      foreach ($errors as $error) {
+        $messages[] = trim($error->message);
+      }
+
+      return [
+        'error' => true,
+        'error_message' => count($messages) > 0 ? implode(' ', $messages) : 'Le fichier XML est invalide.',
+        'row_count' => 0,
+        'rows' => [],
+        'suggested_field_xpaths' => [],
+      ];
+    }
+
+    $root = $document->documentElement;
+    if (!($root instanceof \DOMElement)) {
+      return [
+        'error' => true,
+        'error_message' => 'Le fichier XML ne contient pas de noeud racine.',
+        'row_count' => 0,
+        'rows' => [],
+        'suggested_field_xpaths' => [],
+      ];
+    }
+
+    $rows = $this->getXmlElementsByPath($root, $rowXpath);
+    if (count($rows) === 0) {
+      return [
+        'error' => true,
+        'error_message' => 'Aucun noeud ne correspond au XPath : ' . $rowXpath,
+        'row_count' => 0,
+        'rows' => [],
+        'suggested_field_xpaths' => [],
+      ];
+    }
+
+    $previewRows = [];
+    $suggestedFieldXPaths = [];
+    foreach (array_slice($rows, 0, $limit) as $row) {
+      if ($row instanceof \DOMElement) {
+        $values = [];
+        $this->collectXmlRelativeValues($row, '', $values);
+        $this->collectXmlAncestorRelativeValues($row, $values);
+        $previewRows[] = $values;
+        foreach ($values as $path => $value) {
+          if (!isset($suggestedFieldXPaths[$path])) {
+            $suggestedFieldXPaths[$path] = [
+              'xpath' => $path,
+              'sample' => $value,
+            ];
+          }
+        }
+      }
+    }
+
+    return [
+      'error' => false,
+      'error_message' => '',
+      'row_count' => count($rows),
+      'rows' => $previewRows,
+      'suggested_field_xpaths' => array_values($suggestedFieldXPaths),
+    ];
+  }
+
   /**
    * @param $code
    * @return mixed|null
@@ -549,9 +718,273 @@ class Mapping
     return null;
   }
 
+  private function buildClassicFieldCheckFormat(string $mappingCode, ?string $mappingType, string $sourceLabel)
+  {
+    $champ = $this->searchChampInPossible($mappingCode);
+    if (is_null($champ)) {
+      return false;
+    }
+
+    $code = $champ['data'];
+    $libelle = $champ['libelle'] . ' (' . $sourceLabel . ' )';
+    $nullable = $champ['nullable'];
+    $valeursPossibles = $champ['valeurs_possibles'];
+    switch ($champ['type']) {
+      case 'string':
+        return new FieldCheckFormat('string', $code, $libelle, $nullable, $valeursPossibles);
+      case 'date':
+        return new FieldCheckFormatDate($code, $libelle, $nullable, $valeursPossibles, $mappingType);
+      case 'boolean':
+        return new FieldCheckFormatBoolean($code, $libelle, $nullable, $valeursPossibles);
+      case 'integer':
+        return new FieldCheckFormatInteger($code, $libelle, $nullable, $valeursPossibles);
+      case 'float':
+        return new FieldCheckFormatFloat($code, $libelle, $nullable, $valeursPossibles);
+      case 'array':
+        return new FieldCheckFormatArray($code, $libelle, $nullable, $valeursPossibles, $mappingType);
+      default:
+        return false;
+    }
+  }
+
+  private function addXmlFieldTranslationsAndTransformations(FieldCheckFormat $field, array $fieldMapping): void
+  {
+    $translations = $fieldMapping['mapping_translations'] ?? [];
+    if (is_array($translations)) {
+      foreach ($translations as $translation) {
+        if (is_array($translation) && isset($translation['value'])) {
+          $field->addTranslation(new FieldCheckFormatTranslation(
+            (string) $translation['value'],
+            isset($translation['translation']) && $translation['translation'] !== ''
+              ? (string) $translation['translation']
+              : null
+          ));
+        }
+      }
+    }
+
+    $transformations = $fieldMapping['mapping_transformations'] ?? [];
+    if (is_array($transformations)) {
+      foreach ($transformations as $transformation) {
+        if (is_array($transformation) && isset($transformation['transformation'])) {
+          $field->addTransformation(new FieldCheckFormatTransformation(
+            (string) $transformation['transformation'],
+            isset($transformation['nb_caract']) ? (int) $transformation['nb_caract'] : 0,
+            isset($transformation['transformation_options']) && is_array($transformation['transformation_options'])
+              ? $transformation['transformation_options']
+              : null
+          ));
+        }
+      }
+    }
+  }
+
+  private function formatXmlSourceConfigLabel(array $sourceConfig): string
+  {
+    $type = $sourceConfig['type'] ?? 'xpath';
+    if ($type === 'fixed') {
+      return 'valeur fixe';
+    }
+    if ($type === 'advanced') {
+      $parts = $sourceConfig['parts'] ?? [];
+      $labels = [];
+      foreach ($parts as $part) {
+        if (!is_array($part)) {
+          continue;
+        }
+        if (($part['type'] ?? 'xpath') === 'fixed') {
+          $labels[] = '"' . ($part['value'] ?? '') . '"';
+        } elseif (!empty($part['xpath'])) {
+          $labels[] = $part['xpath'];
+        }
+      }
+
+      return count($labels) > 0 ? implode(' + ', $labels) : 'champ avancé XML';
+    }
+
+    $sources = $sourceConfig['sources'] ?? [];
+    $labels = [];
+    foreach ($sources as $source) {
+      if (is_array($source) && !empty($source['xpath'])) {
+        $labels[] = $source['xpath'];
+      }
+    }
+
+    if (count($labels) === 0) {
+      return 'XML';
+    }
+
+    return implode($type === 'concat' ? ' + ' : ', ', $labels);
+  }
+
+  public function getDataFromMappingConfigurationFile(string $file, MappingConfigurationInterface $mappingConfiguration): array
+  {
+    if ($mappingConfiguration->getSourceType() === MappingConfigurationInterface::SOURCE_TYPE_XML
+      || strtolower(pathinfo($file, PATHINFO_EXTENSION)) === 'xml') {
+      return $this->getDataFromXmlFile($file, $mappingConfiguration);
+    }
+
+    return $this->getDataFromFile(
+      $file,
+      $mappingConfiguration->getMappingConfigurationCuttingRules(),
+      $mappingConfiguration->getMappingConfigurationSkippingRules()
+    );
+  }
+
+  public function getDataFromXmlFile(string $file, MappingConfigurationInterface $mappingConfiguration): array
+  {
+    $sourceOptions = $mappingConfiguration->getSourceOptions() ?? [];
+    $rowXpath = $sourceOptions['row_xpath'] ?? null;
+    $fieldMappings = $sourceOptions['field_mappings'] ?? [];
+    if (empty($rowXpath)) {
+      throw new Exception('Le noeud répétable XML n\'est pas configuré.');
+    }
+    if (count($fieldMappings) === 0) {
+      throw new Exception('Aucun champ XML n\'est configuré pour ce mapping.');
+    }
+
+    $document = new \DOMDocument();
+    $document->preserveWhiteSpace = false;
+    $document->load($file);
+    if (!($document->documentElement instanceof \DOMElement)) {
+      throw new Exception('Le fichier XML ne contient pas de racine valide.');
+    }
+
+    $rows = $this->getXmlElementsByPath($document->documentElement, $rowXpath);
+    $data = [];
+    foreach ($rows as $row) {
+      if (!($row instanceof \DOMElement)) {
+        continue;
+      }
+
+      $line = [];
+      foreach ($fieldMappings as $fieldMapping) {
+        $line[] = $this->getXmlMappedFieldValue($row, is_array($fieldMapping) ? ($fieldMapping['source_config'] ?? []) : []);
+      }
+      $data[] = $line;
+    }
+
+    return ['data' => $data, 'entete' => false];
+  }
+
+  private function getXmlMappedFieldValue(\DOMElement $row, array $sourceConfig): string
+  {
+    $type = $sourceConfig['type'] ?? 'xpath';
+    if ($type === 'fixed') {
+      return trim((string) ($sourceConfig['value'] ?? ''));
+    }
+
+    if ($type === 'advanced') {
+      $values = [];
+      foreach (($sourceConfig['parts'] ?? []) as $part) {
+        if (!is_array($part)) {
+          continue;
+        }
+        if (($part['type'] ?? 'xpath') === 'fixed') {
+          $values[] = (string) ($part['value'] ?? '');
+        } elseif (!empty($part['xpath'])) {
+          $values[] = $this->getXmlRelativeValue($row, $part['xpath']);
+        }
+      }
+
+      return trim(implode('', $values));
+    }
+
+    $sources = $sourceConfig['sources'] ?? [];
+    if ($type === 'concat') {
+      $separator = (string) ($sourceConfig['separator'] ?? '');
+      $values = [];
+      foreach ($sources as $source) {
+        if (is_array($source) && !empty($source['xpath'])) {
+          $values[] = $this->getXmlRelativeValue($row, $source['xpath']);
+        }
+      }
+
+      return trim(implode($separator, $values));
+    }
+
+    $source = $sources[0] ?? [];
+    if (is_array($source) && !empty($source['xpath'])) {
+      return $this->getXmlRelativeValue($row, $source['xpath']);
+    }
+
+    return '';
+  }
+
+  private function getXmlRelativeValue(\DOMElement $context, string $path): string
+  {
+    $path = trim($path);
+    if ($path === '') {
+      return '';
+    }
+    if ($path === '.') {
+      return trim($context->textContent);
+    }
+
+    $currentElements = [$context];
+    $segments = array_values(array_filter(explode('/', $path), fn($segment) => $segment !== ''));
+    foreach ($segments as $segment) {
+      $segment = trim($segment);
+      if ($segment === '.') {
+        continue;
+      }
+
+      if ($segment === '..') {
+        $parents = [];
+        foreach ($currentElements as $element) {
+          if ($element instanceof \DOMElement && $element->parentNode instanceof \DOMElement) {
+            $parents[] = $element->parentNode;
+          }
+        }
+        $currentElements = $parents;
+        continue;
+      }
+
+      if (str_starts_with($segment, '@')) {
+        $attributeName = substr($segment, 1);
+        foreach ($currentElements as $element) {
+          if ($element instanceof \DOMElement && $element->hasAttribute($attributeName)) {
+            return trim($element->getAttribute($attributeName));
+          }
+        }
+
+        return '';
+      }
+
+      $segmentName = $this->normalizeXmlPathSegment($segment);
+      $nextElements = [];
+      foreach ($currentElements as $element) {
+        if ($element instanceof \DOMElement) {
+          foreach ($element->childNodes as $childNode) {
+            if ($childNode instanceof \DOMElement && $this->normalizeXmlNodeName($childNode) === $segmentName) {
+              $nextElements[] = $childNode;
+            }
+          }
+        }
+      }
+
+      $currentElements = $nextElements;
+      if (count($currentElements) === 0) {
+        return '';
+      }
+    }
+
+    $values = [];
+    foreach ($currentElements as $element) {
+      if ($element instanceof \DOMElement) {
+        $value = trim($element->textContent);
+        if ($value !== '') {
+          $values[] = $value;
+        }
+      }
+    }
+
+    return implode(', ', $values);
+  }
+
   public function getDataFromFile($file, $cuttingRules = [], $skippingRules = [])
   {
-    switch (pathinfo($file, PATHINFO_EXTENSION)) {
+    switch (strtolower(pathinfo($file, PATHINFO_EXTENSION))) {
       case 'xlsx':
       case 'xls':
         $entete = true;
@@ -582,11 +1015,174 @@ class Mapping
           }
         }
         break;
+      case "xml":
+        throw new Exception('Le fichier XML doit être configuré depuis la vue de mapping XML.');
       default:
-        var_dump('L\'extention ' . pathinfo($file, PATHINFO_EXTENSION) . ' du fichier n\'est pas géré par ce module.');
-        die;
+        throw new Exception('L\'extension ' . pathinfo($file, PATHINFO_EXTENSION) . ' du fichier n\'est pas gérée par ce module.');
     }
     return ['data' => $data, 'entete' => $entete];
+  }
+
+  private function getXmlRootNamespaces(\DOMElement $root): array
+  {
+    $namespaces = [];
+    foreach ($root->attributes as $attribute) {
+      if ($attribute instanceof \DOMAttr && str_starts_with($attribute->nodeName, 'xmlns')) {
+        $prefix = $attribute->prefix === 'xmlns' ? $attribute->localName : '';
+        $namespaces[$prefix] = $attribute->nodeValue;
+      }
+    }
+
+    return $namespaces;
+  }
+
+  private function getXmlElementsByPath(\DOMElement $root, string $path): array
+  {
+    $segments = array_values(array_filter(explode('/', trim($path, '/')), fn($segment) => $segment !== ''));
+    if (count($segments) === 0) {
+      return [];
+    }
+
+    $rootName = $this->normalizeXmlNodeName($root);
+    if ($this->normalizeXmlPathSegment($segments[0]) === $rootName) {
+      array_shift($segments);
+    }
+
+    $currentElements = [$root];
+    foreach ($segments as $segment) {
+      $segmentName = $this->normalizeXmlPathSegment($segment);
+      $nextElements = [];
+      foreach ($currentElements as $element) {
+        if ($element instanceof \DOMElement) {
+          foreach ($element->childNodes as $childNode) {
+            if ($childNode instanceof \DOMElement && $this->normalizeXmlNodeName($childNode) === $segmentName) {
+              $nextElements[] = $childNode;
+            }
+          }
+        }
+      }
+      $currentElements = $nextElements;
+      if (count($currentElements) === 0) {
+        break;
+      }
+    }
+
+    return $currentElements;
+  }
+
+  private function collectXmlRelativeValues(\DOMElement $element, string $parentPath, array &$values): void
+  {
+    foreach ($element->attributes as $attribute) {
+      if ($attribute instanceof \DOMAttr) {
+        $path = $parentPath === '' ? '@' . $attribute->nodeName : $parentPath . '/@' . $attribute->nodeName;
+        $values[$path] = trim($attribute->nodeValue);
+      }
+    }
+
+    $elementChildren = [];
+    foreach ($element->childNodes as $childNode) {
+      if ($childNode instanceof \DOMElement) {
+        $elementChildren[] = $childNode;
+      }
+    }
+
+    if (count($elementChildren) === 0) {
+      $value = trim($element->textContent);
+      if ($parentPath !== '' && $value !== '') {
+        $values[$parentPath] = $value;
+      }
+      return;
+    }
+
+    foreach ($elementChildren as $childElement) {
+      $childPath = $parentPath === ''
+        ? $childElement->nodeName
+        : $parentPath . '/' . $childElement->nodeName;
+      $this->collectXmlRelativeValues($childElement, $childPath, $values);
+    }
+  }
+
+  private function collectXmlAncestorRelativeValues(\DOMElement $element, array &$values): void
+  {
+    $currentBranch = $element;
+    $ancestor = $element->parentNode;
+    $depth = 1;
+
+    while ($ancestor instanceof \DOMElement && $ancestor->parentNode instanceof \DOMElement) {
+      $prefix = str_repeat('../', $depth);
+      $this->collectXmlRelativeValuesExceptChild($ancestor, rtrim($prefix, '/'), $values, $currentBranch);
+      $currentBranch = $ancestor;
+      $ancestor = $ancestor->parentNode;
+      $depth++;
+    }
+  }
+
+  private function collectXmlRelativeValuesExceptChild(\DOMElement $element, string $parentPath, array &$values, \DOMElement $excludedChild): void
+  {
+    foreach ($element->attributes as $attribute) {
+      if ($attribute instanceof \DOMAttr) {
+        $values[$parentPath . '/@' . $attribute->nodeName] = trim($attribute->nodeValue);
+      }
+    }
+
+    foreach ($element->childNodes as $childNode) {
+      if ($childNode instanceof \DOMElement && $childNode !== $excludedChild) {
+        $childPath = $parentPath . '/' . $childNode->nodeName;
+        $this->collectXmlRelativeValues($childNode, $childPath, $values);
+      }
+    }
+  }
+
+  private function normalizeXmlNodeName(\DOMElement $element): string
+  {
+    return $element->prefix ? $element->prefix . ':' . $element->localName : $element->localName;
+  }
+
+  private function normalizeXmlPathSegment(string $segment): string
+  {
+    $segment = trim($segment);
+    if (str_contains($segment, ':')) {
+      return $segment;
+    }
+    return $segment;
+  }
+
+  private function getSuggestedXmlRowXpaths(\DOMElement $root): array
+  {
+    $counts = [];
+    $this->collectXmlElementPathCounts($root, '', $counts);
+    arsort($counts);
+
+    $suggestions = [];
+    foreach ($counts as $path => $count) {
+      if ($count > 1) {
+        $suggestions[] = [
+          'xpath' => $path,
+          'count' => $count,
+        ];
+      }
+
+      if (count($suggestions) >= 10) {
+        break;
+      }
+    }
+
+    return $suggestions;
+  }
+
+  private function collectXmlElementPathCounts(\DOMElement $element, string $parentPath, array &$counts): void
+  {
+    $path = $parentPath . '/' . $element->nodeName;
+    if (!array_key_exists($path, $counts)) {
+      $counts[$path] = 0;
+    }
+    $counts[$path]++;
+
+    foreach ($element->childNodes as $childNode) {
+      if ($childNode instanceof \DOMElement) {
+        $this->collectXmlElementPathCounts($childNode, $path, $counts);
+      }
+    }
   }
 
   private function cutValues(string $value, $cuttingRules) : array

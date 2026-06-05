@@ -109,6 +109,14 @@ class BaseFieldCheckFormat
               $transformedValue = substr($transformedValue, 1);
             }
             break;
+          case TransformationEnum::REPLACE:
+            $options = $transformation->getOptions() ?? [];
+            $search = isset($options['search']) ? (string) $options['search'] : '';
+            $replace = isset($options['replace']) ? (string) $options['replace'] : '';
+            if ($search !== '') {
+              $transformedValue = str_replace($search, $replace, $transformedValue);
+            }
+            break;
           case TransformationEnum::TRUNCATE:
             $transformedValue = substr($transformedValue, 0, $transformation->getNbCaract());
             break;

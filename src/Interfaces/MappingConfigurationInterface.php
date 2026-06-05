@@ -10,6 +10,9 @@ namespace Imanaging\CheckFormatBundle\Interfaces;
 
 interface MappingConfigurationInterface
 {
+  public const SOURCE_TYPE_FLAT = 'flat';
+  public const SOURCE_TYPE_XML = 'xml';
+
   public function getId();
 
   public function setId(int $id);
@@ -31,6 +34,14 @@ interface MappingConfigurationInterface
   public function setMappingConfigurationValues($mappingConfigurationValues);
 
   public function getMappingConfigurationCuttingRules();
+
+  public function getSourceType(): ?string;
+
+  public function setSourceType(?string $sourceType): void;
+
+  public function getSourceOptions(): ?array;
+
+  public function setSourceOptions(?array $sourceOptions): void;
 
   public function getFormattedConfiguration() : array;
 }
