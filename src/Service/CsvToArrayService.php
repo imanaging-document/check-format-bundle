@@ -23,7 +23,7 @@ class CsvToArrayService
 
     if (($handle = fopen($filename, 'r')) !== false) {
       $row = null;
-      while (($row = fgetcsv($handle, 100000, $delimiter)) !== FALSE)
+      while (($row = fgetcsv($handle, 100000, $delimiter, '"', '')) !== FALSE)
       {
          $data[] = $row;
       }
