@@ -16,7 +16,6 @@
     "require": {
         "php": "^8.1",
         "viest/php-ext-xlswriter-ide-helper": "dev-master",
-        "symfony/templating": "^5.2 | ^6",
         "twig/twig": "^3.3"
     },
     "autoload": {
