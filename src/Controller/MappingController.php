@@ -8,6 +8,8 @@ use App\Entity\MappingConfigurationFile;
 use App\Entity\MappingConfigurationValue;
 use App\Entity\MappingConfigurationValueTransformation;
 use DateTime;
+use Imanaging\CheckFormatBundle\Service\DecimalToInteger;
+use Imanaging\CheckFormatBundle\Exception\TransformationException;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceAutoIncrementInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceSaisieManuelleInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -451,6 +453,28 @@ class MappingController extends AbstractController
           if (isset($files['file_import'])) {
             // mode importation
             $data = Yaml::parseFile($files['file_import']->getPathname());
+            try {
+              // Restore XML source options too: field transformations live in this JSON.
+              if (($data['source_type'] ?? null) === MappingConfigurationInterface::SOURCE_TYPE_XML) {
+                $sourceOptions = $data['source_options'] ?? [];
+                foreach ($sourceOptions['field_mappings'] ?? [] as $key => $fieldMapping) {
+                  $sourceOptions['field_mappings'][$key]['mapping_transformations'] = $this->normalizeXmlFieldTransformations($fieldMapping['mapping_transformations'] ?? []);
+                }
+                $configuration->setSourceType(MappingConfigurationInterface::SOURCE_TYPE_XML);
+                $configuration->setSourceOptions($sourceOptions);
+              }
+              foreach ($data['values'] as &$importedValue) {
+                foreach ($importedValue['transformations'] as &$importedTransformation) {
+                  if (($importedTransformation['transformation'] ?? '') === TransformationEnum::DECIMAL_TO_INTEGER) {
+                    $importedTransformation['transformation_options'] = DecimalToInteger::normalizeOptions($importedTransformation['transformation_options'] ?? null);
+                  }
+                }
+                unset($importedTransformation);
+              }
+              unset($importedValue);
+            } catch (TransformationException $exception) {
+              return new JsonResponse(['error' => true, 'error_message' => $exception->getMessage()], 400);
+            }
             foreach ($data['values'] as $_value) {
               if ($_value['mapping_code'] != '' && !in_array($_value['mapping_code'], $champsPossiblesCodes)) {
                 return new JsonResponse([
@@ -965,12 +989,17 @@ class MappingController extends AbstractController
             continue;
           }
 
+          try {
+            $transformations = $this->normalizeXmlFieldTransformations($mapping['mapping_transformations'] ?? []);
+          } catch (TransformationException $exception) {
+            return new JsonResponse(['error' => true, 'error_message' => $mappingCode . ' : ' . $exception->getMessage()], 400);
+          }
           $fieldMappings[$mappingCode] = [
             'mapping_code' => $mappingCode,
             'mapping_type' => isset($mapping['mapping_type']) && $mapping['mapping_type'] !== '' ? $mapping['mapping_type'] : null,
             'source_config' => $sourceConfig,
             'mapping_translations' => $this->normalizeXmlFieldTranslations($mapping['mapping_translations'] ?? []),
-            'mapping_transformations' => $this->normalizeXmlFieldTransformations($mapping['mapping_transformations'] ?? []),
+            'mapping_transformations' => $transformations,
           ];
         }
 
@@ -1123,12 +1152,15 @@ class MappingController extends AbstractController
         continue;
       }
 
+      $options = isset($transformation['transformation_options']) && is_array($transformation['transformation_options'])
+        ? $transformation['transformation_options'] : null;
+      if ($transformationCode === TransformationEnum::DECIMAL_TO_INTEGER) {
+        $options = DecimalToInteger::normalizeOptions($options);
+      }
       $normalized[] = [
         'transformation' => $transformationCode,
         'nb_caract' => isset($transformation['nb_caract']) ? (int) $transformation['nb_caract'] : 0,
-        'transformation_options' => isset($transformation['transformation_options']) && is_array($transformation['transformation_options'])
-          ? $transformation['transformation_options']
-          : null,
+        'transformation_options' => $options,
       ];
     }
 
@@ -1263,6 +1295,14 @@ class MappingController extends AbstractController
   public function addTransformationAction(Request $request, $idValue)
   {
     $params = $request->request->all();
+    $options = isset($params['transformation_options']) && is_array($params['transformation_options']) ? $params['transformation_options'] : null;
+    if (($params['transformation'] ?? '') === TransformationEnum::DECIMAL_TO_INTEGER) {
+      try {
+        $options = DecimalToInteger::normalizeOptions($options);
+      } catch (TransformationException $exception) {
+        return new JsonResponse(['error_message' => $exception->getMessage()], 400);
+      }
+    }
     $mappingValue = $this->em->getRepository(MappingConfigurationValueInterface::class)->find($idValue);
     if ($mappingValue instanceof MappingConfigurationValueInterface){
       $className = $this->em->getRepository(MappingConfigurationValueTransformationInterface::class)->getClassName();
@@ -1271,12 +1311,12 @@ class MappingController extends AbstractController
         $transformationValue->setMappingConfigurationValue($mappingValue);
         $transformationValue->setTransformation($params['transformation']);
         $transformationValue->setNbCaract($params['nb_caractere']);
-        if (isset($params['transformation_options']) && is_array($params['transformation_options'])) {
-          $transformationValue->setTransformationOptions($params['transformation_options']);
+        if ($options !== null) {
+          $transformationValue->setTransformationOptions($options);
         }
         $this->em->persist($transformationValue);
         $this->em->flush();
-        return new JsonResponse(['id' => $transformationValue->getId()]);
+        return new JsonResponse(['id' => $transformationValue->getId(), 'options' => $options]);
       }
     }
     return new JsonResponse([], 500);

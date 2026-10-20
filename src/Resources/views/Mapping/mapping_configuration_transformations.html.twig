@@ -9,15 +9,24 @@
       <thead>
       <tr>
         <th>Transformation</th>
-        <th>Nb caractères</th>
+        <th>Paramètres</th>
         <th>Action</th>
       </tr>
       </thead>
       <tbody id="tbody-transformations">
       {% for transformation in mapping_value.mappingConfigurationValueTransformations %}
         <tr>
-          <td>{{ transformation.transformation }}</td>
-          <td>{{ transformation.nbCaract }}</td>
+          <td>{{ transformations[transformation.transformation]|default(transformation.transformation) }}</td>
+          <td>
+            {% if transformation.transformation == 'decimal_to_integer' %}
+              {% set options = transformation.transformationOptions|default({}) %}
+              Décimal : {{ options.decimal_separator|default(',') }} ;
+              milliers : {{ options.thousands_separator is defined ? (options.thousands_separator == '' ? 'aucun' : (options.thousands_separator == ' ' ? 'espace' : options.thousands_separator)) : '.' }} ;
+              décimales : {{ options.decimal_places is defined ? options.decimal_places : 2 }}
+            {% else %}
+              {{ transformation.nbCaract }}
+            {% endif %}
+          </td>
           <td>
             <i class="fa fa-trash text-warning remove-transformation pointer" data-transformation-id="{{ transformation.id }}"></i>
           </td>
@@ -68,6 +77,21 @@
             <input type="text" class="form-control" name="replace_value" id="replace_value" />
           </div>
         </div>
+        <div id="transformation-decimal-options" class="d-none">
+          <div class="form-group">
+            <label for="decimal_separator">Séparateur décimal</label>
+            <select class="form-control" id="decimal_separator"><option value=",">Virgule</option><option value=".">Point</option></select>
+          </div>
+          <div class="form-group">
+            <label for="thousands_separator">Séparateur de milliers</label>
+            <select class="form-control" id="thousands_separator"><option value="">Aucun</option><option value="." selected>Point</option><option value=",">Virgule</option><option value=" ">Espace</option></select>
+          </div>
+          <div class="form-group">
+            <label for="decimal_places">Nombre de décimales</label>
+            <input type="number" min="0" step="1" class="form-control" id="decimal_places" value="2">
+          </div>
+          <p class="text-muted">Avec 2 décimales : 281,5 → 28150. Aucun arrondi. Les deux séparateurs doivent être différents.</p>
+        </div>
         <button type="button" id="btn-add-transformation" class="btn btn-outline-primary">Ajouter</button>
       </div>
     </div>
@@ -81,13 +105,11 @@
 
   function updateTransformationOptionFields() {
     let transformation = $("#transformation").val();
-    if (transformation === 'replace') {
-      $("#transformation-nb-caract-group").addClass('d-none');
-      $("#transformation-replace-options").removeClass('d-none');
+    $("#transformation-nb-caract-group").toggleClass('d-none', transformation === 'replace' || transformation === 'decimal_to_integer');
+    $("#transformation-replace-options").toggleClass('d-none', transformation !== 'replace');
+    $("#transformation-decimal-options").toggleClass('d-none', transformation !== 'decimal_to_integer');
+    if (transformation === 'replace' || transformation === 'decimal_to_integer') {
       $("#nb_caract").val(0);
-    } else {
-      $("#transformation-nb-caract-group").removeClass('d-none');
-      $("#transformation-replace-options").addClass('d-none');
     }
   }
 
@@ -101,23 +123,35 @@
     if (transformation === 'replace') {
       data.transformation_options = {search: $("#replace_search").val(), replace: $("#replace_value").val()};
     }
+    if (transformation === 'decimal_to_integer') {
+      data.transformation_options = {
+        decimal_separator: $("#decimal_separator").val(),
+        thousands_separator: $("#thousands_separator").val(),
+        decimal_places: $("#decimal_places").val()
+      };
+    }
     $.ajax({
       url: "{{ path('check_format_mapping_add_transformations', {'idValue': mapping_value.id}) }}",
       type: 'POST',
       data: data,
       success: function(data){
         let newTr = '<tr>' +
-            '<td>'+transformation+'</td>' +
-            '<td>'+nbCaractere+'</td>' +
+            '<td>'+$("#transformation option:selected").text()+'</td>' +
+            '<td></td>' +
             '<td>' +
             '<i class="fa fa-trash text-warning remove-transformation pointer" data-transformation-id="'+data.id+'"></i>' +
             '</td>' +
             '</tr>';
-        $("#tbody-transformations").append(newTr);
+        let parameters = transformation === 'decimal_to_integer'
+          ? 'Décimal : ' + data.options.decimal_separator + ' ; milliers : ' + (data.options.thousands_separator === '' ? 'aucun' : (data.options.thousands_separator === ' ' ? 'espace' : data.options.thousands_separator)) + ' ; décimales : ' + data.options.decimal_places
+          : nbCaractere;
+        let row = $(newTr);
+        row.find('td').eq(1).text(parameters);
+        $("#tbody-transformations").append(row);
         $("#addTransformationModal").modal('hide');
       },
-      error: function(){
-        alert("Une erreur est survenue lors de la suppression");
+      error: function(xhr){
+        alert(xhr.responseJSON && xhr.responseJSON.error_message ? xhr.responseJSON.error_message : "Une erreur est survenue lors de l'ajout");
       }
     });
   });

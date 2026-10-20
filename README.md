@@ -144,3 +144,32 @@ $.ajax({
   }
 });
 ```
+
+## Convertir un nombre décimal en entier
+
+La transformation `decimal_to_integer` est disponible dans les mappings XML et CSV.
+Elle retourne une **chaîne** représentant un entier, sans conversion flottante :
+`000.000.281,57` devient `28157`, `-000.004.128,56` devient `-412856`.
+Le type du champ de destination reste indépendant de cette transformation.
+
+Options enregistrées dans `transformation_options` :
+
+```json
+{"decimal_separator": ",", "thousands_separator": ".", "decimal_places": 2}
+```
+
+- `decimal_separator` : `,` ou `.` (défaut : `,`).
+- `thousands_separator` : `.`, `,`, espace ou chaîne vide (défaut : `.`).
+  Le séparateur décimal et celui de milliers doivent être différents.
+  Avec l'espace, les espaces insécables et fines insécables sont aussi acceptées.
+- `decimal_places` : entier positif ou nul (défaut : `2`). Avec `2`,
+  `281,5` devient `28150` et `281` devient `28100`.
+
+Les signes initiaux sont acceptés, les zéros inutiles supprimés et `-0,00`
+devient `0`. Les valeurs vides et nulles restent soumises aux règles de champ
+obligatoire. Les séparateurs de milliers doivent grouper trois chiffres.
+Une valeur invalide ou comportant trop de décimales produit une erreur de
+contrôle du champ et de la ligne, sans arrondi ni troncature.
+
+Les réglages sont conservés lors de l'export et du réimport des configurations.
+Aucune migration de base de données n'est nécessaire.

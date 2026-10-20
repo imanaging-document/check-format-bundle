@@ -19,6 +19,7 @@ use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedSaisieManuelle;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedString;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedMultiColumnArray;
 use stdClass;
+use Imanaging\CheckFormatBundle\Exception\TransformationException;
 
 class CheckFormatFile
 {
@@ -82,72 +83,75 @@ class CheckFormatFile
       foreach ($fieldsAdvanced as $fieldAdvanced) {
         $fieldConcat = '';
         if ($fieldAdvanced instanceof FieldCheckFormatAdvanced) {
-          foreach ($fieldAdvanced->getFields() as $field) {
-            if ($field instanceof FieldCheckFormatAdvancedConst) {
-              $fieldConcat .= $field->getConst();
-            } elseif ($field instanceof FieldCheckFormatAdvancedDateCustom) {
-              $date = new DateTime($field->getModifier());
-              $dateFormatted = $date->format($field->getFormat());
-              $translatedValue = $fieldAdvanced->getTranslatedValue($dateFormatted);
-              $transformedValue = $fieldAdvanced->getTransformedValue($translatedValue);
-              $fieldConcat .= $transformedValue;
-            } elseif ($field instanceof FieldCheckFormatAdvancedMultiColumnArray) {
-              $fieldConcat = [];
-              $nbCols = 0;
-              foreach ($field->getColumns() as $column) {
-                $explodes = $field->getExplodedValues($datas[$column->value]);
-                if ($nbCols > 0) {
-                  if (count($explodes) <> $nbCols) {
-                    // TODO ERROR
-                  } else {
-                    $nbCols == count($explodes);
+          try {
+            foreach ($fieldAdvanced->getFields() as $field) {
+              if ($field instanceof FieldCheckFormatAdvancedConst) {
+                $fieldConcat .= $field->getConst();
+              } elseif ($field instanceof FieldCheckFormatAdvancedDateCustom) {
+                $date = new DateTime($field->getModifier());
+                $dateFormatted = $date->format($field->getFormat());
+                $translatedValue = $fieldAdvanced->getTranslatedValue($dateFormatted);
+                $transformedValue = $fieldAdvanced->getTransformedValue($translatedValue);
+                $fieldConcat .= $transformedValue;
+              } elseif ($field instanceof FieldCheckFormatAdvancedMultiColumnArray) {
+                $fieldConcat = [];
+                $nbCols = 0;
+                foreach ($field->getColumns() as $column) {
+                  $explodes = $field->getExplodedValues($datas[$column->value]);
+                  if ($nbCols > 0) {
+                    if (count($explodes) <> $nbCols) {
+                      // TODO ERROR
+                    } else {
+                      $nbCols == count($explodes);
+                    }
+                  }
+                  foreach ($explodes as $key => $explode) {
+                    if (!array_key_exists($key, $fieldConcat)){
+                      $fieldConcat[$key] = [];
+                    }
+                    $fieldConcat[$key][$column->code] = $explode;
                   }
                 }
-                foreach ($explodes as $key => $explode) {
-                  if (!array_key_exists($key, $fieldConcat)){
-                    $fieldConcat[$key] = [];
-                  }
-                  $fieldConcat[$key][$column->code] = $explode;
-                }
-              }
-            }elseif ($field instanceof FieldCheckFormatAdvancedString) {
-              $translatedValue = $field->getTranslatedValue($datas[$field->getIndexFichier()]);
-              $transformedValue = $field->getTransformedValue($translatedValue);
-              $libelleNullable = ($field->isNullable()) ? "OUI" : "NON";
-              $libelleTranslated = (!is_null($transformedValue)) ? $transformedValue : "valeur NULL";
-              $libelleTranslatedValue = ($transformedValue !== $datas[$field->getIndexFichier()]) ? (' "( Traduction : "' . $libelleTranslated . '" )') : "";
-              if (!$field->validFormat($transformedValue)) {
-                array_push($errorsList['advanced'], array('field' => $fieldAdvanced->getLibelle() . " -> " . $field->getLibelle(), 'error_message' => 'la valeur "' . $datas[$field->getIndexFichier()] . '"' . $libelleTranslatedValue  . ' ne respecte pas le format "' . $field->getType() . '" (Nullable : ' . $libelleNullable . ') '));
-              } else {
-                // on vérifie les valeurs possibles
-                if (!$field->validValuesPossibles($transformedValue)) {
-                  array_push($errorsList['advanced'], array('field' => $fieldAdvanced->getLibelle() . " -> " . $field->getLibelle(), 'error_message' => 'la valeur "' . $datas[$field->getIndexFichier()] . '"' . $libelleTranslatedValue  . ' ne respecte pas la liste des valeurs possibles (' . $field->getValeursPossiblesString() . ').'));
+              }elseif ($field instanceof FieldCheckFormatAdvancedString) {
+                $translatedValue = $field->getTranslatedValue($datas[$field->getIndexFichier()]);
+                $transformedValue = $field->getTransformedValue($translatedValue);
+                $libelleNullable = ($field->isNullable()) ? "OUI" : "NON";
+                $libelleTranslated = (!is_null($transformedValue)) ? $transformedValue : "valeur NULL";
+                $libelleTranslatedValue = ($transformedValue !== $datas[$field->getIndexFichier()]) ? (' "( Traduction : "' . $libelleTranslated . '" )') : "";
+                if (!$field->validFormat($transformedValue)) {
+                  array_push($errorsList['advanced'], array('field' => $fieldAdvanced->getLibelle() . " -> " . $field->getLibelle(), 'error_message' => 'la valeur "' . $datas[$field->getIndexFichier()] . '"' . $libelleTranslatedValue  . ' ne respecte pas le format "' . $field->getType() . '" (Nullable : ' . $libelleNullable . ') '));
                 } else {
-                  $fieldConcat .= $field->getValue($transformedValue);
+                  // on vérifie les valeurs possibles
+                  if (!$field->validValuesPossibles($transformedValue)) {
+                    array_push($errorsList['advanced'], array('field' => $fieldAdvanced->getLibelle() . " -> " . $field->getLibelle(), 'error_message' => 'la valeur "' . $datas[$field->getIndexFichier()] . '"' . $libelleTranslatedValue  . ' ne respecte pas la liste des valeurs possibles (' . $field->getValeursPossiblesString() . ').'));
+                  } else {
+                    $fieldConcat .= $field->getValue($transformedValue);
+                  }
                 }
+              } elseif ($field instanceof FieldCheckFormatAdvancedSaisieManuelle) {
+                $fieldConcat .= $valuesSaisiesManuelles[$field->getIdValueAvance()];
+              } elseif ($field instanceof FieldCheckFormatAdvancedAutoIncrement) {
+                $fieldConcat .= $index;
+              } else {
+                return array(
+                  'error' => true,
+                  'errors_list' => array('classic' => array(array()), 'advanced' => array('field' => null, 'error_message' => 'Ce format d\'objet n\'est pas géré.'))
+                );
               }
-            } elseif ($field instanceof FieldCheckFormatAdvancedSaisieManuelle) {
-              $fieldConcat .= $valuesSaisiesManuelles[$field->getIdValueAvance()];
-            } elseif ($field instanceof FieldCheckFormatAdvancedAutoIncrement) {
-              $fieldConcat .= $index;
-            } else {
-              return array(
-                'error' => true,
-                'errors_list' => array('classic' => array(array()), 'advanced' => array('field' => null, 'error_message' => 'Ce format d\'objet n\'est pas géré.'))
-              );
             }
-          }
 
-          if (!$fieldAdvanced->validValuesPossibles($fieldConcat)) {
-            array_push($errorsList['advanced'], array('field' => $fieldAdvanced->getLibelle(), 'error_message' => 'la valeur "' . $fieldConcat  . '" ne respecte pas la liste des valeurs possibles (' . $fieldAdvanced->getValeursPossiblesString() . ').'));
-          } else {
-            if ($returnDataObj) {
-              $lib = str_replace(' ', '_', $fieldAdvanced->getCode());
-
+            if (!$fieldAdvanced->validValuesPossibles($fieldConcat)) {
+              array_push($errorsList['advanced'], array('field' => $fieldAdvanced->getLibelle(), 'error_message' => 'la valeur "' . $fieldConcat  . '" ne respecte pas la liste des valeurs possibles (' . $fieldAdvanced->getValeursPossiblesString() . ').'));
+            } else {
               $fieldConcat = $fieldAdvanced->getTranslatedValue($fieldConcat);
               $fieldConcat = $fieldAdvanced->getTransformedValue($fieldConcat);
-              $objData->{$lib} = $fieldConcat;
+              if ($returnDataObj) {
+                $lib = str_replace(' ', '_', $fieldAdvanced->getCode());
+                $objData->{$lib} = $fieldConcat;
+              }
             }
+          } catch (TransformationException $exception) {
+            $errorsList['advanced'][] = ['field' => $fieldAdvanced->getLibelle(), 'error_message' => $exception->getMessage()];
           }
         }
       }
@@ -156,7 +160,12 @@ class CheckFormatFile
         $fieldTemp = $fields[$i];
         if ($fieldTemp instanceof FieldCheckFormat) {
           $translatedValue = $fieldTemp->getTranslatedValue($datas[$i]);
-          $transformedValue = $fieldTemp->getTransformedValue($translatedValue);
+          try {
+            $transformedValue = $fieldTemp->getTransformedValue($translatedValue);
+          } catch (TransformationException $exception) {
+            $errorsList['classic'][] = ['field' => $fieldTemp->getLibelle(), 'error_message' => $exception->getMessage()];
+            continue;
+          }
           $libelleNullable = ($fieldTemp->isNullable()) ? "OUI" : "NON";
           $libelleTranslated = (!is_null($transformedValue)) ? $transformedValue : "valeur NULL";
           $libelleTranslatedValue = ($transformedValue !== $datas[$i]) ? ' "( Traduction : "' . $libelleTranslated . '" )' : "";

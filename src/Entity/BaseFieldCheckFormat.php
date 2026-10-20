@@ -10,6 +10,7 @@ namespace Imanaging\CheckFormatBundle\Entity;
 
 
 use Imanaging\CheckFormatBundle\Enum\TransformationEnum;
+use Imanaging\CheckFormatBundle\Service\DecimalToInteger;
 
 class BaseFieldCheckFormat
 {
@@ -117,6 +118,9 @@ class BaseFieldCheckFormat
               $transformedValue = str_replace($search, $replace, $transformedValue);
             }
             break;
+          case TransformationEnum::DECIMAL_TO_INTEGER:
+            $transformedValue = DecimalToInteger::convert($transformedValue, $transformation->getOptions());
+            break;
           case TransformationEnum::TRUNCATE:
             $transformedValue = substr($transformedValue, 0, $transformation->getNbCaract());
             break;
@@ -131,7 +135,7 @@ class BaseFieldCheckFormat
    * @return mixed
    */
   public function getValue($value) {
-    return $this->encodeToUtf8($value);
+    return $value === null ? null : $this->encodeToUtf8($value);
   }
 
   /**

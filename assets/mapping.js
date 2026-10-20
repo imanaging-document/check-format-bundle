@@ -668,6 +668,10 @@ function renderXmlCurrentTransformations(transformations) {
       html += '<div class="col-md-3"><label>Chercher</label><input type="text" class="form-control xml-transformation-search xml-source-input" value="' + escapeHtml(transformationOptions.search || '') + '"></div>';
       html += '<div class="col-md-3"><label>Remplacer par</label><input type="text" class="form-control xml-transformation-replace xml-source-input" value="' + escapeHtml(transformationOptions.replace || '') + '"></div>';
       html += '<div class="col-md-1 d-none"><input type="number" class="form-control xml-transformation-nb-caract xml-source-input" value="0"></div>';
+    } else if (transformation.transformation === 'decimal_to_integer') {
+      var decimalOptions = transformation.transformation_options || {};
+      html += '<div class="col-md-7">' + renderDecimalToIntegerOptions(decimalOptions) + '</div>';
+      html += '<input type="hidden" class="xml-transformation-nb-caract" value="0">';
     } else {
       html += '<div class="col-md-4"><label>Nombre de caractères</label><input type="number" class="form-control xml-transformation-nb-caract xml-source-input" value="' + escapeHtml(transformation.nb_caract || 0) + '"></div>';
       html += '<div class="col-md-2"></div>';
@@ -676,6 +680,23 @@ function renderXmlCurrentTransformations(transformations) {
     html += '</div></div>';
   });
   $('#xml-current-transformations').html(html);
+}
+
+function renderDecimalToIntegerOptions(options) {
+  var decimal = options.decimal_separator === undefined ? ',' : options.decimal_separator;
+  var thousands = options.thousands_separator === undefined ? '.' : options.thousands_separator;
+  var places = options.decimal_places === undefined ? 2 : options.decimal_places;
+  var html = '<div class="form-row"><div class="col-md-4"><label>Séparateur décimal</label><select class="form-control xml-decimal-separator xml-source-input">';
+  [[',', 'Virgule'], ['.', 'Point']].forEach(function(option) {
+    html += '<option value="' + option[0] + '"' + (decimal === option[0] ? ' selected' : '') + '>' + option[1] + '</option>';
+  });
+  html += '</select></div><div class="col-md-4"><label>Séparateur de milliers</label><select class="form-control xml-thousands-separator xml-source-input">';
+  [['', 'Aucun'], ['.', 'Point'], [',', 'Virgule'], [' ', 'Espace']].forEach(function(option) {
+    html += '<option value="' + option[0] + '"' + (thousands === option[0] ? ' selected' : '') + '>' + option[1] + '</option>';
+  });
+  html += '</select></div><div class="col-md-4"><label>Nombre de décimales</label><input type="number" min="0" step="1" class="form-control xml-decimal-places xml-source-input" value="' + escapeHtml(places) + '"></div></div>';
+  html += '<small class="form-text text-muted">Avec 2 décimales : 281,5 → 28150. Aucun arrondi. Les deux séparateurs doivent être différents.</small>';
+  return html;
 }
 
 function getXmlTransformationOptions() {
@@ -749,6 +770,17 @@ function persistCurrentXmlBusinessField() {
         search: $(this).find('.xml-transformation-search').val(),
         replace: $(this).find('.xml-transformation-replace').val()
       };
+    }
+    if (transformationCode === 'decimal_to_integer') {
+      transformation.transformation_options = {
+        decimal_separator: $(this).find('.xml-decimal-separator').val() || ',',
+        thousands_separator: $(this).find('.xml-thousands-separator').val() || '',
+        decimal_places: $(this).find('.xml-decimal-places').val()
+      };
+      // A newly selected transformation has no option inputs until it is rendered.
+      if ($(this).find('.xml-decimal-separator').length === 0) {
+        transformation.transformation_options = {decimal_separator: ',', thousands_separator: '.', decimal_places: 2};
+      }
     }
     transformations.push(transformation);
   });
