@@ -23,6 +23,8 @@
               Décimal : {{ options.decimal_separator|default(',') }} ;
               milliers : {{ options.thousands_separator is defined ? (options.thousands_separator == '' ? 'aucun' : (options.thousands_separator == ' ' ? 'espace' : options.thousands_separator)) : '.' }} ;
               décimales : {{ options.decimal_places is defined ? options.decimal_places : 2 }}
+            {% elseif transformation.transformation == 'invert_sign' %}
+              Aucun paramètre
             {% else %}
               {{ transformation.nbCaract }}
             {% endif %}
@@ -92,6 +94,7 @@
           </div>
           <p class="text-muted">Avec 2 décimales : 281,5 → 28150. Aucun arrondi. Les deux séparateurs doivent être différents.</p>
         </div>
+        <p id="transformation-invert-sign-help" class="text-muted d-none">Inverse les montants positifs et négatifs ; zéro reste zéro. À placer après la conversion en entier si elle est utilisée.</p>
         <button type="button" id="btn-add-transformation" class="btn btn-outline-primary">Ajouter</button>
       </div>
     </div>
@@ -105,10 +108,11 @@
 
   function updateTransformationOptionFields() {
     let transformation = $("#transformation").val();
-    $("#transformation-nb-caract-group").toggleClass('d-none', transformation === 'replace' || transformation === 'decimal_to_integer');
+    $("#transformation-nb-caract-group").toggleClass('d-none', transformation === 'replace' || transformation === 'decimal_to_integer' || transformation === 'invert_sign');
     $("#transformation-replace-options").toggleClass('d-none', transformation !== 'replace');
     $("#transformation-decimal-options").toggleClass('d-none', transformation !== 'decimal_to_integer');
-    if (transformation === 'replace' || transformation === 'decimal_to_integer') {
+    $("#transformation-invert-sign-help").toggleClass('d-none', transformation !== 'invert_sign');
+    if (transformation === 'replace' || transformation === 'decimal_to_integer' || transformation === 'invert_sign') {
       $("#nb_caract").val(0);
     }
   }
@@ -144,7 +148,7 @@
             '</tr>';
         let parameters = transformation === 'decimal_to_integer'
           ? 'Décimal : ' + data.options.decimal_separator + ' ; milliers : ' + (data.options.thousands_separator === '' ? 'aucun' : (data.options.thousands_separator === ' ' ? 'espace' : data.options.thousands_separator)) + ' ; décimales : ' + data.options.decimal_places
-          : nbCaractere;
+          : (transformation === 'invert_sign' ? 'Aucun paramètre' : nbCaractere);
         let row = $(newTr);
         row.find('td').eq(1).text(parameters);
         $("#tbody-transformations").append(row);

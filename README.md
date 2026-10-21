@@ -173,3 +173,20 @@ contrôle du champ et de la ligne, sans arrondi ni troncature.
 
 Les réglages sont conservés lors de l'export et du réimport des configurations.
 Aucune migration de base de données n'est nécessaire.
+
+
+## Inverser le signe
+
+La transformation `invert_sign` est disponible en XML et CSV, sans paramètre.
+Elle inverse le signe du nombre en conservant ses chiffres et ses séparateurs,
+sans conversion flottante : `28157` devient `-28157`, `-412856` devient `412856`
+et `+28157` devient `-28157`. Zéro reste `0` ; les valeurs vides et nulles restent
+vides ou nulles. Une valeur non numérique produit une erreur de contrôle.
+
+Pour les soldes formatés du client, ajouter les transformations dans cet ordre :
+
+1. **Convertir un nombre décimal en entier** (virgule, point, 2 décimales).
+2. **Inverser le signe**.
+
+Ainsi `000.000.281,57` devient `-28157` et `-000.004.128,56` devient `412856`.
+L'inversion s'applique uniquement aux champs des mappings où elle est ajoutée.

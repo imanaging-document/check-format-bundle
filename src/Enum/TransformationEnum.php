@@ -11,6 +11,7 @@ abstract class TransformationEnum
   const REMOVE_CHARACTER_ZERO_START = "remove_character_zero_start";
   const ADD_CHARACTER_ZERO_START_IF_NOT_EMPTY = "add_character_zero_start_if_not_empty";
   const REPLACE = "replace";
+  const INVERT_SIGN = "invert_sign";
   const DECIMAL_TO_INTEGER = "decimal_to_integer";
   const TRUNCATE = "truncate";
 
@@ -23,6 +24,7 @@ abstract class TransformationEnum
     self::REMOVE_CHARACTER_ZERO_START => 'Supprimer les caractères 0 au début',
     self::ADD_CHARACTER_ZERO_START_IF_NOT_EMPTY => 'Ajouter caractère 0 au début (si la valeur n\'est pas vide)',
     self::REPLACE => 'Remplacer une valeur',
+    self::INVERT_SIGN => 'Inverser le signe',
     self::DECIMAL_TO_INTEGER => 'Convertir un nombre décimal en entier',
     self::TRUNCATE => 'Tronquer la valeur'
   ];
@@ -59,7 +61,8 @@ abstract class TransformationEnum
       self::ADD_CHARACTER_ZERO_START_IF_NOT_EMPTY,
       self::REPLACE,
       self::TRUNCATE,
-      self::DECIMAL_TO_INTEGER
+      self::DECIMAL_TO_INTEGER,
+      self::INVERT_SIGN
     ];
   }
 

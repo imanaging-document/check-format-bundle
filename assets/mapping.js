@@ -668,6 +668,9 @@ function renderXmlCurrentTransformations(transformations) {
       html += '<div class="col-md-3"><label>Chercher</label><input type="text" class="form-control xml-transformation-search xml-source-input" value="' + escapeHtml(transformationOptions.search || '') + '"></div>';
       html += '<div class="col-md-3"><label>Remplacer par</label><input type="text" class="form-control xml-transformation-replace xml-source-input" value="' + escapeHtml(transformationOptions.replace || '') + '"></div>';
       html += '<div class="col-md-1 d-none"><input type="number" class="form-control xml-transformation-nb-caract xml-source-input" value="0"></div>';
+    } else if (transformation.transformation === 'invert_sign') {
+      html += '<div class="col-md-6"><small class="form-text text-muted">Inverse les montants positifs et négatifs ; zéro reste zéro. À placer après la conversion en entier si elle est utilisée.</small></div>';
+      html += '<input type="hidden" class="xml-transformation-nb-caract" value="0">';
     } else if (transformation.transformation === 'decimal_to_integer') {
       var decimalOptions = transformation.transformation_options || {};
       html += '<div class="col-md-7">' + renderDecimalToIntegerOptions(decimalOptions) + '</div>';

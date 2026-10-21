@@ -11,6 +11,7 @@ namespace Imanaging\CheckFormatBundle\Entity;
 
 use Imanaging\CheckFormatBundle\Enum\TransformationEnum;
 use Imanaging\CheckFormatBundle\Service\DecimalToInteger;
+use Imanaging\CheckFormatBundle\Service\SignInverter;
 
 class BaseFieldCheckFormat
 {
@@ -117,6 +118,9 @@ class BaseFieldCheckFormat
             if ($search !== '') {
               $transformedValue = str_replace($search, $replace, $transformedValue);
             }
+            break;
+          case TransformationEnum::INVERT_SIGN:
+            $transformedValue = SignInverter::convert($transformedValue);
             break;
           case TransformationEnum::DECIMAL_TO_INTEGER:
             $transformedValue = DecimalToInteger::convert($transformedValue, $transformation->getOptions());
