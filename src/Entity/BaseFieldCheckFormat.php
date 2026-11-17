@@ -128,6 +128,10 @@ class BaseFieldCheckFormat
           case TransformationEnum::TRUNCATE:
             $transformedValue = substr($transformedValue, 0, $transformation->getNbCaract());
             break;
+          case TransformationEnum::KEEP_LAST_CHARACTERS:
+            $length = max(0, (int) $transformation->getNbCaract());
+            $transformedValue = $length === 0 ? '' : mb_substr($transformedValue, -$length, null, 'UTF-8');
+            break;
         }
       }
     }

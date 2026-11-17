@@ -14,6 +14,7 @@ abstract class TransformationEnum
   const INVERT_SIGN = "invert_sign";
   const DECIMAL_TO_INTEGER = "decimal_to_integer";
   const TRUNCATE = "truncate";
+  const KEEP_LAST_CHARACTERS = "keep_last_characters";
 
   /** @var array user friendly named type */
   protected static $transformationName = [
@@ -26,7 +27,8 @@ abstract class TransformationEnum
     self::REPLACE => 'Remplacer une valeur',
     self::INVERT_SIGN => 'Inverser le signe',
     self::DECIMAL_TO_INTEGER => 'Convertir un nombre décimal en entier',
-    self::TRUNCATE => 'Tronquer la valeur'
+    self::TRUNCATE => 'Tronquer la valeur',
+    self::KEEP_LAST_CHARACTERS => 'Conserver les derniers caractères'
   ];
 
   /**
@@ -61,6 +63,7 @@ abstract class TransformationEnum
       self::ADD_CHARACTER_ZERO_START_IF_NOT_EMPTY,
       self::REPLACE,
       self::TRUNCATE,
+      self::KEEP_LAST_CHARACTERS,
       self::DECIMAL_TO_INTEGER,
       self::INVERT_SIGN
     ];
