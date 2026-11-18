@@ -1,6 +1,6 @@
 <style>
 #champsPossiblesTables > tbody > tr:hover{
-  background-color: aquamarine;
+  background-color: #eef5fd;
 }
 
 .noselect {
@@ -14,16 +14,13 @@
 }
 </style>
 
-<div class="text-right">
-  <button id="btn-close-champs-possibles" class="btn btn-raised btn-danger"><i class="fa fa-times fa-fw"></i>Fermer la gestion des champs possibles</button>
-</div>
-
 <div class="card">
-  <h5 class="card-header text-info">{{ mapping_configuration_type.libelle }} - Gestion des champs possibles</h5>
+  <h5 class="card-header text-info">{{ mapping_configuration_type.libelle }} - Gestion des champs possibles <button id="btn-close-champs-possibles" type="button" class="btn check-format-close"><i class="fa fa-times fa-fw"></i>Fermer</button></h5>
 
   <div class="card-body">
     <p><i class="fa fa-info-circle fa-fw"></i>Double-cliquez dans une cellule de type "Oui / Non" pour en inverser la valeur.</p>
 
+    <div class="check-format-table-scroll">
     <table id="champsPossiblesTables" class="table table-bordered table-striped text-center">
       <thead>
         <tr>
@@ -86,6 +83,7 @@
       {% endfor %}
       </tbody>
     </table>
+    </div>
   </div>
 </div>
 
@@ -106,7 +104,7 @@
       data: data,
       success: function(data){
         $("#divModalEditChampPossible").html(data);
-        $("#modalEditChampPossible").modal();
+        $("#modalEditChampPossible").modal('show');
       },
       error: function(){
         alert("Une erreur est survenue :(");

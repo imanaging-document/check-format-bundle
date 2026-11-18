@@ -1,3 +1,4 @@
+const $ = globalThis.jQuery;
 $('#btn-upload-file').on('click', function() {
   let btn = $(this);
   let loader = $('#loader-upload');

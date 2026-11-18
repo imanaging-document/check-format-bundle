@@ -632,6 +632,13 @@ class MappingController extends AbstractController
     $params = $request->request->all();
     $configuration = $this->em->getRepository(MappingConfigurationInterface::class)->find($id);
     if ($configuration instanceof MappingConfigurationInterface){
+      $available = $this->mapping->getChampsAMapper($configuration->getId(), false);
+      if ($available['error']) {
+        return new JsonResponse(['error_message' => $available['error_message']], 500);
+      }
+      if (!isset($params['type']) || !is_string($params['type']) || !isset($available['champs_a_mapper'][$params['type']])) {
+        return new JsonResponse(['error_message' => 'Ce champ est déjà associé ou n’est pas disponible.'], 409);
+      }
       $className = $this->em->getRepository(MappingConfigurationValueInterface::class)->getClassName();
       $configurationValue = new $className();
       if ($configurationValue instanceof MappingConfigurationValueInterface){
@@ -639,7 +646,7 @@ class MappingController extends AbstractController
         $configurationValue->setMappingConfiguration($configuration);
         $this->em->persist($configurationValue);
         $this->em->flush();
-        return $this->mapping->showMappingConfigurationValuesAvances($params['mapping_id']);
+        return $this->mapping->showMappingConfigurationValuesAvances($configuration->getId());
       } else {
         return new JsonResponse(['error_message' => 'Impossible de créer la valeur.'], 500);
       }
@@ -760,11 +767,29 @@ class MappingController extends AbstractController
     $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
     if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
       $params = $request->request->all();
+      $configuration = $this->em->getRepository(MappingConfigurationInterface::class)->find($params['mapping_id'] ?? null);
+      if (!$configuration instanceof MappingConfigurationInterface || $configuration->getType()->getId() !== $mappingConfigurationType->getId()) {
+        return new JsonResponse(['error_message' => 'Configuration introuvable.'], 400);
+      }
+      $advancedValues = $this->em->getRepository(MappingConfigurationValueInterface::class)->findBy([
+        'mappingConfiguration' => $configuration,
+        'fichierIndex' => null,
+      ]);
+      $advancedCodes = [];
+      foreach ($advancedValues as $value) {
+        if ($value instanceof MappingConfigurationValueInterface && $value->getMappingCode() !== null) {
+          $advancedCodes[$value->getMappingCode()] = true;
+        }
+      }
+      $champs = array_filter(
+        $this->mapping->getChampsPossiblesAIntegrer($mappingConfigurationType->getCode()),
+        static fn(array $champ): bool => !isset($advancedCodes[$champ['data']])
+      );
       return new Response($this->twig->render(
         '@ImanagingCheckFormat/Mapping/partials/mapping_fichier_select_champs.html.twig',
         [
           'mapping_configuration_type' => $mappingConfigurationType,
-          'champs' => $this->mapping->getChampsPossiblesAIntegrer($mappingConfigurationType->getCode()),
+          'champs' => $champs,
           'lib_colonne' => $params['lib_colonne']
         ]
       ));
@@ -799,6 +824,28 @@ class MappingController extends AbstractController
     if (isset($params['mapping_id']) && isset($params['mapping'])) {
       $configuration = $this->em->getRepository(MappingConfigurationInterface::class)->find($params['mapping_id']);
       if ($configuration instanceof MappingConfigurationInterface) {
+        $advancedValues = $this->em->getRepository(MappingConfigurationValueInterface::class)->findBy([
+          'mappingConfiguration' => $configuration,
+          'fichierIndex' => null,
+        ]);
+        $advancedCodes = [];
+        foreach ($advancedValues as $value) {
+          if ($value instanceof MappingConfigurationValueInterface && $value->getMappingCode() !== null) {
+            $advancedCodes[$value->getMappingCode()] = true;
+          }
+        }
+        foreach ($params['mapping'] as $mapping) {
+          $code = $mapping['mapping_code'] ?? null;
+          if ($code !== null && isset($advancedCodes[$code])) {
+            $existing = $this->em->getRepository(MappingConfigurationValueInterface::class)->findOneBy([
+              'mappingConfiguration' => $configuration,
+              'fichierIndex' => $mapping['index'],
+            ]);
+            if (!$existing instanceof MappingConfigurationValueInterface || $existing->getMappingCode() !== $code) {
+              return new JsonResponse(['error_message' => 'Ce champ est déjà utilisé en mode avancé.'], 409);
+            }
+          }
+        }
         if ($this->mapping->setMappingConfigurationActive($configuration)) {
           $mappings = $params['mapping'];
           // on supprime les valeurs déjà en BDD

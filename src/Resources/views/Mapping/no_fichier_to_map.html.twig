@@ -5,55 +5,58 @@
 {% endblock %}
 
 {% block body %}
-  <div class="container">
-    <h4 class="text-center display-4">{{ mapping_configuration_type.libelle }} - Mapping</h4>
+  {% include '@ImanagingCheckFormat/Mapping/partials/styles.html.twig' %}
+  <div class="container container-full-width check-format-page check-format-main check-format-upload">
+    <header class="check-format-heading">
+      <p class="check-format-heading__eyebrow">Import de données</p>
+      <h1>{{ mapping_configuration_type.libelle }}</h1>
+      <p>Sélectionnez un fichier pour préparer son mapping et lancer son contrôle.</p>
+    </header>
 
-    <button class="btn btn-primary" onclick="history.back()"><i class="fa fa-backward fa-fw"></i>Retour</button>
+    <button type="button" class="btn check-format-upload__back" onclick="history.back()"><i class="fa fa-arrow-left fa-fw" aria-hidden="true"></i>Retour</button>
 
-    <div class="card">
-      <div class="card-header bg-primary text-white">
-        <h4>Soumettre un nouveau fichier</h4>
-      </div>
-      <div class="card-body">
-        <h5>Aucun fichier à mapper n'a été trouvé dans le dossier prévu à cet effet :</h5>
-        <p><i>{{ mapping_configuration_type.filesDirectory }}</i></p>
-        <p>Veuillez télécharger un fichier avant de configurer un mapping.</p>
-
-        <hr>
-
-        <div class="form-group">
-          <label for="fichier">Sélectionnez le fichier à mapper</label>
-          <input type="file" class="form-control-file" id="fichier" accept=".csv,.txt,.xls,.xlsx,.xml,text/csv,text/xml,application/xml">
-        </div>
-
-        <form id="custom-form">
-          {% block custom_form %}
-          {% endblock %}
-        </form>
-
-        <div class="text-center mt-2 mb-2">
-          <button id="btn-upload-file" class="btn btn-primary btn-raised" data-url="{{ path('check_format_mapping_files_upload', {code: mapping_configuration_type.code}) }}">Envoyer le fichier</button>
-          <div id="loader-upload" class="d-none">
-            <i class="fa fa-spin fa-spinner fa-fw"></i>Veuillez patienter pendant l'envoi du fichier
+    <div class="check-format-upload__layout">
+      <section class="card">
+        <h2 class="card-header">Importer un fichier</h2>
+        <div class="card-body">
+          <p class="check-format-upload__intro">Choisissez le fichier à importer pour configurer les correspondances avec vos données.</p>
+          <div class="check-format-upload__picker">
+            <span class="check-format-upload__icon" aria-hidden="true"><i class="fa fa-file"></i></span>
+            <div class="check-format-upload__field">
+              <label for="fichier">Fichier à importer</label>
+              <p id="check-format-file-help">Formats acceptés : CSV, TXT, XLS, XLSX et XML.</p>
+              <input type="file" class="form-control" id="fichier" accept=".csv,.txt,.xls,.xlsx,.xml,text/csv,text/xml,application/xml" aria-describedby="check-format-file-help">
+            </div>
           </div>
-        </div>
 
-        <div id="error-message" class="alert alert-danger d-none">
-        </div>
-      </div>
-    </div>
+          <form id="custom-form">
+            {% block custom_form %}
+            {% endblock %}
+          </form>
 
-    <div class="card mt-5">
-      <div class="card-header bg-warning text-dark">
-        <h4>Données obligatoires du fichier</h4>
-      </div>
-      <div class="card-body">
-        <ul>
-          {% for champ in champs_obligatoires %}
-            <li>{{ champ.libelle }}</li>
-          {% endfor %}
-        </ul>
-      </div>
+          <div class="check-format-upload__actions">
+            <button type="button" id="btn-upload-file" class="btn check-format-upload__primary" data-url="{{ path('check_format_mapping_files_upload', {code: mapping_configuration_type.code}) }}"><i class="fa fa-upload fa-fw" aria-hidden="true"></i>Envoyer le fichier</button>
+            <div id="loader-upload" class="d-none check-format-upload__loading" role="status"><i class="fa fa-spin fa-spinner fa-fw" aria-hidden="true"></i>Envoi du fichier en cours…</div>
+          </div>
+          <div id="error-message" class="alert alert-danger d-none" role="alert"></div>
+        </div>
+      </section>
+
+      <section class="card check-format-upload__requirements">
+        <h2 class="card-header">Données obligatoires</h2>
+        <div class="card-body">
+          <p>Ces champs devront être associés lors de l’étape de mapping.</p>
+          {% if champs_obligatoires is not empty %}
+            <ul class="check-format-upload__fields">
+              {% for champ in champs_obligatoires %}
+                <li><i class="fa fa-check-circle" aria-hidden="true"></i><span>{{ champ.libelle }}</span></li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="check-format-upload__empty">Aucun champ obligatoire configuré.</p>
+          {% endif %}
+        </div>
+      </section>
     </div>
   </div>
 {% endblock %}

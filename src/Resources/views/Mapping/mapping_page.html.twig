@@ -9,6 +9,7 @@
 {% endblock %}
 
 {% block body %}
+  {% include '@ImanagingCheckFormat/Mapping/partials/styles.html.twig' %}
 <style>
   .delete-file{
     cursor: pointer;
@@ -39,20 +40,30 @@
   }
 </style>
 
-<div class="container container-full-width">
-  <h4 class="text-center display-4">{{ mapping_configuration_type.libelle }} - Mapping</h4>
-  <h2 class="text-center text-info">Page de gestion des configurations de mapping</h2>
+<div class="container container-full-width check-format-page check-format-main">
+  <header class="check-format-heading">
+    <p class="check-format-heading__eyebrow">Import de données</p>
+    <h1>{{ mapping_configuration_type.libelle }}</h1>
+    <p>Configurez les correspondances avant de contrôler et d’intégrer votre fichier.</p>
+  </header>
   <div class="card">
     <h5 class="card-header">
       Fichiers en attente d'intégration
     </h5>
     <div class="card-body">
-      <h5>Nombre de fichiers : {{ fichiers_en_attente|length }}</h5>
-      <ul>
-        {% for fichier in fichiers_en_attente %}
-          <li>{{ fichier.basename }} (<span class="delete-file" data-file-basename="{{ fichier.basename }}" data-url="{{ path('check_format_mapping_files_delete', {code: mapping_configuration_type.code}) }}">supprimer ce fichier</span>)</li>
-        {% endfor %}
-      </ul>
+      <p class="check-format-file-count">{{ fichiers_en_attente|length }} fichier{{ fichiers_en_attente|length > 1 ? 's' : '' }} en attente</p>
+      {% if fichiers_en_attente|length > 0 %}
+        <ul class="check-format-file-list">
+          {% for fichier in fichiers_en_attente %}
+            <li>
+              <span class="check-format-file-name"><i class="fa fa-file fa-fw" aria-hidden="true"></i>{{ fichier.basename }}</span>
+              <button type="button" class="delete-file check-format-file-remove" data-file-basename="{{ fichier.basename }}" data-url="{{ path('check_format_mapping_files_delete', {code: mapping_configuration_type.code}) }}" aria-label="Supprimer le fichier {{ fichier.basename }}"><i class="fa fa-trash fa-fw" aria-hidden="true"></i>Supprimer</button>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="check-format-empty">Aucun fichier en attente d’intégration.</p>
+      {% endif %}
     </div>
   </div>
 
@@ -81,22 +92,20 @@
       <div id="affichageMappingGlobal">
         <div id="divObligatoiresAMapper" data-url="{{ path('check_format_mapping_get_champs_obligatoires_a_mapper') }}">
         </div>
-        <div class="text-center">
+        <div class="text-center mb-4">
           <button id="btnGererChampsPossibles" class="btn btn-primary btn-raised" data-url="{{ path('check_format_mapping_champs_possibles_gerer', {code: mapping_configuration_type.code}) }}"><i class="fa fa-pencil fa-fw"></i>Gérer les champs possibles</button>
         </div>
 
-        <hr>
-
-        <div class="d-flex justify-content-space-around text-center mb-4">
-            <button id="btnModeRecapitulaif" class="btn btn-raised btn-success">Mode récapitulatif</button>
-            <button id="btnModeDecoupageChamps" class="btn btn-outline-secondary">Mode découpage champs</button>
-            <button id="btnModeMapping" class="btn btn-outline-secondary">Mode mapping</button>
-            <button id="btnModeAvance" class="btn btn-outline-secondary">Mode avancé</button>
+        <div class="check-format-modes mb-4" role="group" aria-label="Modes de configuration">
+            <button type="button" id="btnModeRecapitulaif" aria-pressed="true" class="btn btn-raised btn-success">Mode récapitulatif</button>
+            <button type="button" id="btnModeDecoupageChamps" aria-pressed="false" class="btn btn-outline-secondary">Mode découpage champs</button>
+            <button type="button" id="btnModeMapping" aria-pressed="false" class="btn btn-outline-secondary">Mode mapping</button>
+            <button type="button" id="btnModeAvance" aria-pressed="false" class="btn btn-outline-secondary">Mode avancé</button>
         </div>
 
         <div id="divRecapitulatif">
-          <h3 class="text-success text-center mb-3">Mode récapitulatif</h3>
-          <table class="table table-bordered table-striped text-center">
+          <h3 class="check-format-section-title">Mode récapitulatif</h3>
+          <div class="check-format-table-scroll"><table class="table table-bordered table-striped text-center">
             <thead>
             <tr>
               <th>Type</th>
@@ -109,12 +118,12 @@
             <tbody id="tableRecapitulatif" data-url="{{ path('check_format_mapping_show_recap_configuration') }}">
               <tr><th colspan="4">Chargement en cours ...</th></tr>
             </tbody>
-          </table>
+          </table></div>
         </div>
 
         <div id="divModeDecoupageChamps" class="d-none">
-          <h3 class="text-success text-center mb-3">Mode découpage champs</h3>
-          <table class="table table-bordered table-striped text-center">
+          <h3 class="check-format-section-title">Mode découpage champs</h3>
+          <div class="check-format-table-scroll"><table class="table table-bordered table-striped text-center">
             <thead>
             <tr>
               <th>Type</th>
@@ -126,13 +135,14 @@
             <tbody id="tableModeDecoupageChamp" data-url="{{ path('check_format_mapping_show_decoupage_champs_configuration') }}">
               <tr><th colspan="5">Chargement en cours ...</th></tr>
             </tbody>
-          </table>
+          </table></div>
         </div>
 
         <div id="divMappingMode" class="d-none">
-          <h3 class="text-warning text-center mb-3">Mode mapping</h3>
-          <div style="overflow-x: auto;white-space: nowrap;">
-            <table class="table table-bordered">
+          <h3 class="check-format-section-title">Mode mapping</h3>
+          <p class="check-format-mapping-help">Cliquez sur un champ associé pour modifier sa correspondance.</p>
+          <div class="check-format-table-scroll">
+            <table class="table table-bordered check-format-mapping-table">
               <thead>
               <tr>
                 {% for donnee in ligne_entete %}
@@ -162,8 +172,7 @@
           <h3><i class="fa fa-spin fa-spinner"></i><span> Configuration en cours de chargement ...</span></h3>
         </div>
 
-        <hr>
-        <div class="text-center">
+        <div class="text-center mt-4">
           <a id="btnValidMappingAndRunIntegration" href="{{ path('check_format_mapping_controle_page', {code: mapping_configuration_type.code}) }}"
              class="btn btn-success btn-raised disabled">
             Valider la configuration

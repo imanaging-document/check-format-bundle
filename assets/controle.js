@@ -1,3 +1,4 @@
+const $ = globalThis.jQuery;
 $('#btn_controle_fichier').click(function() {
   var div_controle = $('#div_controle');
   div_controle.addClass('d-none');

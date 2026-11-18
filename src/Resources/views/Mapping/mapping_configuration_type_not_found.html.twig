@@ -1,7 +1,8 @@
 {% extends basePath %}
 
 {% block body %}
-  <div class="container">
+  {% include '@ImanagingCheckFormat/Mapping/partials/styles.html.twig' %}
+  <div class="container check-format-page">
     <div class="card">
       <h4 class="text-danger">Type de configuration de mapping introuvable : {{ code }}</h4>
     </div>

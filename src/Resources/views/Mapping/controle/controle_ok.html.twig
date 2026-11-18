@@ -1,12 +1,11 @@
-<h3 class="text-dark">Résultat du contrôle</h3>
+<section class="check-format-control__result" aria-labelledby="check-format-result-title">
+  <h3 id="check-format-result-title" class="check-format-control__section-title">Résultat du contrôle</h3>
+  <p>Nombre de lignes dans le fichier : <strong>{{ resultat.nb_lines }}</strong></p>
+  <p class="check-format-control__status check-format-control__status--success"><i class="fa fa-check-circle fa-fw" aria-hidden="true"></i>La structure du fichier semble cohérente avec le format attendu.</p>
+</section>
 
-<p>Nombre de lignes dans le fichier : <b>{{ resultat.nb_lines }}</b></p>
-<i class="fa fa-check-circle fa-fw text-success"></i><i>La structure du fichier semble cohérente avec le format attendu.</i>
-
-<hr>
 {% if mapping_configuration_type.routeAnalyseFichierBeforeIntegration is not null %}
-  {% include "@ImanagingCheckFormat/Mapping/controle/analyse.html.twig" %}
+  {% include '@ImanagingCheckFormat/Mapping/controle/analyse.html.twig' %}
 {% else %}
-  {% include "@ImanagingCheckFormat/Mapping/controle/integration.html.twig" %}
+  {% include '@ImanagingCheckFormat/Mapping/controle/integration.html.twig' %}
 {% endif %}
-

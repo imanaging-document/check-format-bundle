@@ -1,9 +1,5 @@
-<div class="text-right">
-  <button id="btn-close-translations" class="btn btn-raised btn-danger"><i class="fa fa-times fa-fw"></i>Fermer la gestion des traductions</button>
-</div>
-
 <div class="card">
-  <h5 class="card-header text-info">Gestion des traductions pour le champ : {{ mapping_value.mappingCode }}</h5>
+  <h5 class="card-header text-info">Gestion des traductions pour le champ : {{ mapping_value.mappingCode }} <button id="btn-close-translations" type="button" class="btn check-format-close"><i class="fa fa-times fa-fw"></i>Fermer</button></h5>
   <div class="card-body">
     <table class="table table-bordered table-striped text-center">
       <thead>
@@ -25,7 +21,7 @@
             {% endif %}
           </td>
           <td>
-            <i class="fa fa-trash text-warning remove-translation pointer" data-translation-id="{{ translation.id }}"></i>
+            <button type="button" class="check-format-icon-delete remove-translation" data-translation-id="{{ translation.id }}" aria-label="Supprimer cette traduction" title="Supprimer cette traduction"><i class="fa fa-trash" aria-hidden="true"></i></button>
           </td>
         </tr>
       {% endfor %}
@@ -41,7 +37,7 @@
 </div>
 
 <!-- Modal -->
-<div class="modal fade" id="addTranslationModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<div class="modal fade check-format-modal" id="addTranslationModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
@@ -84,6 +80,13 @@
 </div>
 
 <script>
+  function updateTranslationsCount() {
+    const count = $("#tbody-translations > tr").length;
+    $(".btn-edit-translations").filter(function() {
+      return String($(this).data('mapping-id')) === String({{ mapping_value.id|json_encode|raw }});
+    }).find('small').text(count + ' traductions');
+  }
+
   $("#btn-close-translations").click(function(){
     $("#translations-card").addClass('d-none');
   });
@@ -105,10 +108,11 @@
             '<td>'+valueFichier+'</td>' +
             '<td>'+translation+'</td>' +
             '<td>' +
-            '<i class="fa fa-trash text-warning remove-translation pointer" data-translation-id="'+data.id+'"></i>' +
+            '<button type="button" class="check-format-icon-delete remove-translation" data-translation-id="'+data.id+'" aria-label="Supprimer cette traduction" title="Supprimer cette traduction"><i class="fa fa-trash" aria-hidden="true"></i></button>' +
             '</td>' +
             '</tr>';
         $("#tbody-translations").append(newTr);
+        updateTranslationsCount();
         $("#addTranslationModal").modal('hide');
       },
       error: function(){
@@ -128,7 +132,7 @@
     }
   });
 
-  $(document).on('click', '.remove-translation', function(){
+  $(document).off('click.checkFormatTranslations', '.remove-translation').on('click.checkFormatTranslations', '.remove-translation', function(){
     let thisElement = $(this);
     let translationId = $(this).data('translation-id');
     let data = {translation_id : translationId};
@@ -138,6 +142,7 @@
       data: data,
       success: function(){
         thisElement.closest('tr').remove();
+        updateTranslationsCount();
       },
       error: function(){
         alert("Une erreur est survenue lors de la suppression");

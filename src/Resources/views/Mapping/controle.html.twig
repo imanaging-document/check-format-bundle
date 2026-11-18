@@ -9,57 +9,65 @@
 {% endblock %}
 
 {% block body %}
-  <div class="container">
-  <h4 class="text-center display-4">{{ mapping_configuration_type.libelle }} - Mapping</h4>
+  {% include '@ImanagingCheckFormat/Mapping/partials/styles.html.twig' %}
+  <div class="container container-full-width check-format-page check-format-main check-format-control">
+    <header class="check-format-heading">
+      <p class="check-format-heading__eyebrow">Import de données</p>
+      <h1>{{ mapping_configuration_type.libelle }}</h1>
+      <p>Contrôlez votre fichier avant de lancer son intégration.</p>
+    </header>
 
-  <h2 class="text-center text-info">Page de contrôle du fichier</h2>
+    <a href="{{ path('check_format_mapping_page', {code: mapping_configuration_type.code}) }}" class="btn check-format-control__back">
+      <i class="fa fa-arrow-left fa-fw" aria-hidden="true"></i>Revenir au mapping
+    </a>
 
-  <a href="{{ path('check_format_mapping_page', {code: mapping_configuration_type.code}) }}" class="btn btn-primary mb-2">Revenir au mapping</a>
-  <div class="card">
-    <h3 class="card-header">Contrôle du fichier</h3>
-    <div class="card-body">
-      {% if fichiers_clients|length > 0 %}
-        Fichier(s) en attente d'intégration :
-
-          {% for fichier in fichiers_clients %}
-            {% if fichier is not null %}
-              <div>
-                <span><i class="fa fa-arrow-circle-o-right text-info fa-fw fa-lg"></i><span class="text-info">{{ fichier.filename }}</span> ( Nom initial : <b>{{ fichier.initialFilename }}</b>)</span>
-                {% if advanced_values_saisie_manuelle|length > 0 %}
-                  <form action="{{ path('check_format_mapping_configuration_file_save_saisies_manuelles', {'id' : fichier.id}) }}" method="post">
-                    {% for value in advanced_values_saisie_manuelle %}
-                      <div class="form-group mt-2">
-                        <label for="{{ value.id }}">Donnée à saisir : {{ value.mappingConfigurationValue.mappingCode }}</label>
-                        <input type="text" id="{{ value.id }}" name="{{ value.id }}" value="{{ fichier.getValueSaisieManuelle(value.id) }}" class="form-control">
-                      </div>
-                    {% endfor %}
-                    <div class="form-group">
-                      <button type="submit" class="btn btn-primary">Enregistrer</button>
+    <section class="card">
+      <h2 class="card-header">Contrôle du fichier</h2>
+      <div class="card-body">
+        {% if fichiers_clients|length > 0 %}
+          <h3 class="check-format-control__section-title">Fichiers en attente d’intégration</h3>
+          <div class="check-format-control__files">
+            {% for fichier in fichiers_clients %}
+              {% if fichier is not null %}
+                <div class="check-format-control__file">
+                  <div class="check-format-control__file-heading">
+                    <i class="fa fa-file fa-fw" aria-hidden="true"></i>
+                    <div>
+                      <div class="check-format-control__filename">{{ fichier.filename }}</div>
+                      <div class="check-format-control__original">Nom initial : {{ fichier.initialFilename }}</div>
                     </div>
-                  </form>
-                {% endif %}
-                <hr>
-              </div>
+                  </div>
+                  {% if advanced_values_saisie_manuelle|length > 0 %}
+                    <form class="check-format-control__manual" action="{{ path('check_format_mapping_configuration_file_save_saisies_manuelles', {'id' : fichier.id}) }}" method="post">
+                      {% for value in advanced_values_saisie_manuelle %}
+                        <div class="form-group">
+                          <label for="{{ value.id }}">Donnée à saisir : {{ value.mappingConfigurationValue.mappingCode }}</label>
+                          <input type="text" id="{{ value.id }}" name="{{ value.id }}" value="{{ fichier.getValueSaisieManuelle(value.id) }}" class="form-control">
+                        </div>
+                      {% endfor %}
+                      <button type="submit" class="btn check-format-control__secondary">Enregistrer</button>
+                    </form>
+                  {% endif %}
+                </div>
               {% endif %}
-          {% endfor %}
-        <div id="spinner_integration" class="d-none">
-          <i class="fa fa-lg fa-spinner fa-spin"></i> <i>Contrôle en cours</i>
-        </div>
-        <div id="div_controle">
-          <p>Procédez au contrôle du fichier :</p>
-          <div class="btn-group">
-            <button id="btn_controle_fichier" class="btn btn-dark" data-url="{{ path('check_format_mapping_controler_fichier', {code: mapping_configuration_type.code}) }}">
-              Contrôlez le fichier <i class="fa fa-check text-success"></i>
+            {% endfor %}
+          </div>
+
+          <div id="spinner_integration" class="d-none check-format-control__progress" role="status">
+            <i class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></i> Contrôle en cours…
+          </div>
+          <div id="div_controle" class="check-format-control__step">
+            <h3 class="check-format-control__section-title">Vérifier la structure</h3>
+            <p>Lancez le contrôle pour vérifier que le fichier correspond à la configuration de mapping.</p>
+            <button id="btn_controle_fichier" type="button" class="btn check-format-control__primary" data-url="{{ path('check_format_mapping_controler_fichier', {code: mapping_configuration_type.code}) }}">
+              <i class="fa fa-check-circle fa-fw" aria-hidden="true"></i>Contrôler le fichier
             </button>
           </div>
-        </div>
-
-        <hr>
-        <div id="div_resultat_import">
-        </div>
-      {% else %}
-        <p><i class="fa fa-info-circle fa-fw"></i>Aucun fichier n'est en attente d'intégration. Veuillez retourner à l'étape de mapping pour soumettre un nouveau fichier.</p>
-      {% endif %}
-    </div>
+          <div id="div_resultat_import" class="check-format-control__results" aria-live="polite"></div>
+        {% else %}
+          <p class="check-format-empty"><i class="fa fa-info-circle fa-fw" aria-hidden="true"></i>Aucun fichier n'est en attente d'intégration. Retournez au mapping pour soumettre un fichier.</p>
+        {% endif %}
+      </div>
+    </section>
   </div>
 {% endblock %}

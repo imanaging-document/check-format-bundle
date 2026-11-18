@@ -1,5 +1,5 @@
 <div class="form-group">
-  <label for="mapping">Selection du mapping</label>
+  <label for="mapping">Configuration active</label>
   <select name="mapping" id="mapping" class="form-control" data-url="{{ path('check_format_mapping_save_configuration') }}">
     {% for mapping_configuration in mapping_configurations %}
       <option value="{{ mapping_configuration.id }}"
@@ -10,19 +10,19 @@
   </select>
 </div>
 
-<div class="btn-group text-center w-100">
+<div class="check-format-configuration-actions">
   <button id="btn_add_mapping_configuration" class="btn btn-info btn-raised" data-toggle="modal" data-target="#addConfigurationModal">
     <i class="fa fa-plus-circle fa-fw"></i>Ajouter une nouvelle configuration
   </button>
   <button id="btn_remove_mapping_configuration" class="btn btn-danger btn-raised" data-url="{{ path('check_format_mapping_remove_configuration') }}">
-    <i class="fa fa-trash-o fa-fw"></i>Supprimer la configuration actuelle
+    <i class="fa fa-trash fa-fw"></i>Supprimer la configuration actuelle
   </button>
   <button id="btn_export_mapping_configuration" class="btn btn-primary btn-raised" data-url="{{ path('check_format_mapping_export_configuration') }}">
     <i class="fa fa-download fa-fw"></i>Exporter la configuration actuelle
   </button>
 </div>
 
-<div class="modal fade" id="addConfigurationModal" tabindex="-1" role="dialog" aria-labelledby="addConfigurationModalLabel" aria-hidden="true">
+<div class="modal fade check-format-modal" id="addConfigurationModal" tabindex="-1" role="dialog" aria-labelledby="addConfigurationModalLabel" aria-hidden="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header bg-primary text-white">

@@ -1,0 +1,131 @@
+{# Scoped styles for the mapping screens and their dynamically loaded dialogs. #}
+<style>
+  .check-format-page { padding-bottom: 3rem; }
+  .check-format-page .card { border: 1px solid #dce4ee; border-radius: .75rem; background: #fff; box-shadow: 0 4px 18px rgba(30, 48, 75, .06); }
+  .check-format-page .card-header { padding: 1rem 1.25rem; border-bottom: 1px solid #e7edf4; border-radius: .75rem .75rem 0 0; background: #f8fafc; color: #263a55; font-size: 1.05rem; font-weight: 600; }
+  .check-format-page .card-body { padding: 1.25rem; }
+  .check-format-page #translations-card, .check-format-page #transformations-card, .check-format-page #gerer-champs-possibles-card { scroll-margin-top: 1rem; }
+  .check-format-page #translations-card .card-header, .check-format-page #transformations-card .card-header, .check-format-page #gerer-champs-possibles-card .card-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .75rem 1rem; }
+  .check-format-page .check-format-close { margin-left: auto; padding: .4rem .75rem; border: 1px solid #d9e2ed; background: #fff; color: #475569; font-size: .85rem; }
+  .check-format-page .check-format-close:hover { border-color: #a9b9cc; background: #eef3f8; color: #263a55; }
+  .check-format-page .btn, .check-format-modal .btn { border-radius: .5rem; font-weight: 500; }
+  .check-format-page .btn-outline-primary, .check-format-modal .btn-outline-primary { color: #0d6efd; border-color: #0d6efd; }
+  .check-format-page .btn-outline-primary:hover, .check-format-modal .btn-outline-primary:hover { color: #fff; background: #0d6efd; border-color: #0d6efd; }
+  .check-format-page .btn-outline-info, .check-format-modal .btn-outline-info { color: #087990; border-color: #087990; }
+  .check-format-page .btn-outline-info:hover, .check-format-modal .btn-outline-info:hover { color: #fff; background: #087990; border-color: #087990; }
+  .check-format-modal .modal-header .close { margin-left: auto; padding: .25rem .5rem; border: 0; border-radius: .375rem; background: transparent; color: inherit; font-size: 1.5rem; line-height: 1; opacity: .65; }
+  .check-format-modal .modal-header .close:hover { opacity: 1; }
+  .check-format-modal .modal-header .close:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+  .check-format-modal .modal-body .form-group { margin-bottom: 1rem; }
+  .check-format-modal .modal-body .form-group label { margin-bottom: .4rem; }
+  .check-format-modal .modal-body > .btn { margin-top: 1rem; }
+
+  /* Mapping overview */
+  .check-format-main { color: #24344b; }
+  .check-format-main .check-format-heading { padding: .4rem 0 .4rem 1rem; margin: .75rem 0 1.5rem; border-left: 4px solid #3979cb; }
+  .check-format-main .check-format-heading h1 { margin: .25rem 0 .4rem; color: #172b46; font-size: clamp(1.55rem, 2.5vw, 2rem); line-height: 1.25; font-weight: 700; }
+  .check-format-main .check-format-heading p { margin: 0; color: #64748b; font-size: .95rem; }
+  .check-format-main .check-format-heading .check-format-heading__eyebrow { color: #2861a2; font-size: .75rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+  .check-format-main .card-body { padding: 1.5rem; }
+  .check-format-main .card-header { font-size: 1rem; background: #f1f6fc; border-bottom-color: #dce9f7; }
+  .check-format-main .check-format-file-count { margin: 0 0 .75rem; color: #52647a; font-size: .875rem; font-weight: 600; }
+  .check-format-main .check-format-file-list { display: grid; gap: .5rem; padding: 0; margin: 0; list-style: none; }
+  .check-format-main .check-format-file-list li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem 1rem; border: 1px solid #dbe8f5; border-radius: .5rem; background: #f6faff; }
+  .check-format-main .check-format-file-name { display: flex; align-items: center; gap: .6rem; min-width: 0; overflow-wrap: anywhere; font-size: .9rem; }
+  .check-format-main .check-format-file-name i { color: #3379bf; }
+  .check-format-main .check-format-file-remove { flex-shrink: 0; padding: .35rem .5rem; border: 0; border-radius: .375rem; background: transparent; color: #a63838; font-size: .85rem; }
+  .check-format-main .check-format-file-remove:hover { color: #812a2a; background: #fff0f0; }
+  .check-format-main .check-format-empty { margin: 0; color: #64748b; font-size: .9rem; }
+  .check-format-main #mapping_configuration .form-group { margin-bottom: 1rem; }
+  .check-format-main #mapping_configuration label { display: block; margin-bottom: .45rem; color: #40536d; font-size: .875rem; font-weight: 600; }
+  .check-format-main .check-format-configuration-actions { display: flex; flex-wrap: wrap; gap: .65rem; }
+  .check-format-main .check-format-configuration-actions .btn { padding: .55rem .85rem; border: 1px solid #ccd8e6; border-radius: .5rem; background: #fff; color: #344a65; font-size: .875rem; }
+  .check-format-main .check-format-configuration-actions .btn:hover { border-color: #94a9c1; background: #f1f5fa; }
+  .check-format-main .check-format-configuration-actions #btn_add_mapping_configuration { border-color: #2b69b0; background: #2b69b0; color: #fff; }
+  .check-format-main .check-format-configuration-actions #btn_add_mapping_configuration:hover { border-color: #215894; background: #215894; }
+  .check-format-main .check-format-configuration-actions #btn_remove_mapping_configuration { border-color: #e8c9ca; color: #a63838; }
+  .check-format-main .check-format-configuration-actions #btn_remove_mapping_configuration:hover { border-color: #d9a5a7; background: #fff4f4; }
+  .check-format-main #btnGererChampsPossibles { padding: .55rem .85rem; border: 1px solid #ccd8e6; background: #fff; color: #344a65; font-size: .875rem; }
+  .check-format-main #btnGererChampsPossibles:hover { background: #f1f5fa; border-color: #94a9c1; }
+  .check-format-main .check-format-modes { display: flex; flex-wrap: wrap; gap: .5rem; padding: .35rem; border: 1px solid #e0e8f1; border-radius: .65rem; background: #f4f7fb; }
+  .check-format-main .check-format-modes .btn { flex: 1 1 auto; padding: .55rem .75rem; border: 1px solid transparent; background: transparent; color: #52647a; font-size: .875rem; }
+  .check-format-main .check-format-modes .btn:hover { background: #e8eff8; color: #244365; }
+  .check-format-main .check-format-modes .btn[aria-pressed="true"] { border-color: #a9cbed; background: #e4f0fd; color: #174e89; box-shadow: 0 1px 4px rgba(30, 71, 122, .1); }
+  .check-format-main .check-format-section-title { margin: 0 0 1rem; color: #263a55; font-size: 1.05rem; font-weight: 650; }
+  .check-format-main .check-format-table-scroll { max-width: 100%; overflow-x: auto; }
+  .check-format-main .check-format-mapping-help { margin: 0 0 .85rem; color: #64748b; font-size: .875rem; }
+  .check-format-main .check-format-mapping-table { white-space: nowrap; }
+  .check-format-main .check-format-mapping-table #tr_mapping .mapping_data_value { color: #245785; background: #eaf4ff; }
+  .check-format-main .check-format-mapping-table #tr_mapping .mapping_data_value:empty { color: #806422; background: #fff8e7; }
+  .check-format-main .check-format-mapping-table #tr_mapping .mapping_data_value:empty::after { content: 'À associer'; font-weight: 500; }
+  .check-format-main .check-format-mapping-table #tr_mapping .mapping_data_value:hover { background: #d7eafb; }
+  .check-format-main .check-format-mapping-table #tr_mapping .mapping_data_value:empty:hover { background: #fff0cd; }
+  .check-format-main .table th { background: #f8fafc; color: #40536d; font-size: .85rem; }
+  .check-format-main .table td, .check-format-main .table th { vertical-align: middle; }
+  .check-format-main .btn-edit-translations, .check-format-main .btn-edit-transformations { padding: .4rem .7rem; border: 1px solid #bed6ee; background: #eaf4ff; color: #1e5c98; }
+  .check-format-main .btn-edit-translations:hover, .check-format-main .btn-edit-transformations:hover { background: #e4effb; color: #193f65; }
+  .check-format-main #btnValidMappingAndRunIntegration { border-color: #2769ae; background: #2769ae; color: #fff; }
+  .check-format-main #btnValidMappingAndRunIntegration:hover:not(.disabled) { border-color: #1d548f; background: #1d548f; }
+  .check-format-page .check-format-icon-delete { width: 2.25rem; height: 2.25rem; border: 1px solid #ead3d3; border-radius: .45rem; background: #fff; color: #a63838; }
+  .check-format-page .check-format-icon-delete:hover { background: #fff1f1; color: #812a2a; }
+  .check-format-page :is(button, a):focus-visible { outline: 3px solid #8eb9eb; outline-offset: 2px; }
+  /* File upload */
+  .check-format-upload .check-format-upload__back { margin-bottom: 1rem; padding: .55rem .85rem; border: 1px solid #ccd8e6; background: #fff; color: #344a65; font-size: .875rem; }
+  .check-format-upload .check-format-upload__back:hover { border-color: #94a9c1; background: #f1f5fa; color: #243e5e; }
+  .check-format-upload .check-format-upload__layout { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr); align-items: start; gap: 1.25rem; }
+  .check-format-upload .check-format-upload__intro, .check-format-upload .check-format-upload__requirements p { margin: 0 0 1.25rem; color: #64748b; font-size: .9rem; line-height: 1.55; }
+  .check-format-upload .check-format-upload__picker { display: flex; align-items: flex-start; gap: 1rem; padding: 1.25rem; border: 1px solid #dbe8f5; border-radius: .65rem; background: #f6faff; }
+  .check-format-upload .check-format-upload__icon { display: grid; flex: 0 0 42px; place-items: center; width: 42px; height: 42px; border-radius: .6rem; background: #e5f0fd; color: #2869ad; }
+  .check-format-upload .check-format-upload__field { flex: 1; min-width: 0; }
+  .check-format-upload .check-format-upload__field label { display: block; margin-bottom: .25rem; color: #263a55; font-weight: 600; }
+  .check-format-upload .check-format-upload__field p { margin: 0 0 .85rem; color: #64748b; font-size: .8rem; }
+  .check-format-upload .check-format-upload__field input { width: 100%; background: #fff; font-size: .875rem; }
+  .check-format-upload #custom-form:not(:empty) { margin-top: 1rem; }
+  .check-format-upload .check-format-upload__actions { margin-top: 1.25rem; }
+  .check-format-upload .check-format-upload__primary { padding: .6rem .95rem; border: 1px solid #2769ae; background: #2769ae; color: #fff; }
+  .check-format-upload .check-format-upload__primary:hover { border-color: #1d548f; background: #1d548f; color: #fff; }
+  .check-format-upload .check-format-upload__loading { color: #526782; }
+  .check-format-upload #error-message:not(.d-none) { margin: 1rem 0 0; }
+  .check-format-upload .check-format-upload__fields { display: grid; gap: .75rem; padding: 0; margin: 0; list-style: none; }
+  .check-format-upload .check-format-upload__fields li { display: flex; align-items: flex-start; gap: .65rem; color: #40536d; font-size: .9rem; overflow-wrap: anywhere; }
+  .check-format-upload .check-format-upload__fields i { margin-top: .2rem; color: #3b85c7; }
+  .check-format-upload .check-format-upload__requirements .check-format-upload__empty { margin: 0; }
+  @media (max-width: 767px) {
+    .check-format-upload .check-format-upload__layout { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 575px) {
+    .check-format-upload .check-format-upload__picker { padding: 1rem; }
+    .check-format-upload .check-format-upload__icon { display: none; }
+  }
+  /* File control */
+  .check-format-control .check-format-control__back { margin-bottom: 1rem; padding: .55rem .85rem; border: 1px solid #ccd8e6; background: #fff; color: #344a65; font-size: .875rem; }
+  .check-format-control .check-format-control__back:hover { border-color: #94a9c1; background: #f1f5fa; color: #243e5e; }
+  .check-format-control .check-format-control__section-title { margin: 0 0 .75rem; color: #263a55; font-size: 1rem; font-weight: 650; }
+  .check-format-control .check-format-control__files { display: grid; gap: .75rem; }
+  .check-format-control .check-format-control__file { padding: 1rem; border: 1px solid #dbe8f5; border-radius: .5rem; background: #f6faff; }
+  .check-format-control .check-format-control__file-heading { display: flex; align-items: flex-start; gap: .65rem; }
+  .check-format-control .check-format-control__file-heading > i { margin-top: .15rem; color: #3379bf; }
+  .check-format-control .check-format-control__filename { overflow-wrap: anywhere; color: #243c5b; font-weight: 600; }
+  .check-format-control .check-format-control__original { margin-top: .2rem; color: #64748b; font-size: .875rem; overflow-wrap: anywhere; }
+  .check-format-control .check-format-control__manual { margin-top: 1rem; }
+  .check-format-control .check-format-control__manual .form-group { margin-bottom: .85rem; }
+  .check-format-control .check-format-control__manual label { display: block; margin-bottom: .4rem; color: #40536d; font-size: .875rem; font-weight: 600; }
+  .check-format-control .check-format-control__step, .check-format-control .check-format-control__result { margin-top: 1.5rem; }
+  .check-format-control .check-format-control__step p, .check-format-control .check-format-control__result p { color: #52647a; }
+  .check-format-control .check-format-control__primary { padding: .6rem .95rem; border: 1px solid #2769ae; background: #2769ae; color: #fff; }
+  .check-format-control .check-format-control__primary:hover { border-color: #1d548f; background: #1d548f; color: #fff; }
+  .check-format-control .check-format-control__secondary { padding: .5rem .85rem; border: 1px solid #ccd8e6; background: #fff; color: #344a65; }
+  .check-format-control .check-format-control__secondary:hover { border-color: #94a9c1; background: #f1f5fa; color: #243e5e; }
+  .check-format-control .check-format-control__progress { margin-top: 1.25rem; color: #526782; }
+  .check-format-control .check-format-control__status { padding: .85rem 1rem; border: 1px solid; border-radius: .5rem; font-weight: 500; }
+  .check-format-control .check-format-control__result .check-format-control__status--success { border-color: #bde1ca; background: #f0faf3; color: #22683a; }
+  .check-format-control .check-format-control__result .check-format-control__status--error { border-color: #edc5c8; background: #fff4f4; color: #9c3037; }
+  .check-format-control .check-format-control__details-title { margin: 1.25rem 0 .5rem; color: #40536d; font-size: .9rem; font-weight: 600; }
+  .check-format-control .check-format-control__errors { padding-left: 1.25rem; color: #52647a; }
+  @media (max-width: 575px) {
+    .check-format-main .card-body { padding: 1rem; }
+    .check-format-main .check-format-file-list li { align-items: flex-start; flex-wrap: wrap; }
+    .check-format-main .check-format-modes .btn { flex-basis: calc(50% - .5rem); }
+    .check-format-main .check-format-configuration-actions .btn { width: 100%; text-align: left; }
+  }
+</style>

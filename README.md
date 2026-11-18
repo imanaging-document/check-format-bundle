@@ -15,6 +15,15 @@ Install the bundle with:
 $ composer require imanaging-document/check-format-bundle
 ```
 
+Intégration des pages de mapping
+----------------------------------
+
+Les pages de mapping utilisent le jQuery global (`window.jQuery`) et le plugin
+modal Bootstrap fournis par l’application hôte (Bootstrap 4 ou 5). Charger ces
+dépendances avant les entrées JavaScript du bundle et recompiler les assets de
+l’application après toute mise à jour du bundle. Le bundle ne charge pas une
+seconde copie de Bootstrap afin d’éviter des fonds de modale en double.
+
 Configuration
 ----------------------------------
 

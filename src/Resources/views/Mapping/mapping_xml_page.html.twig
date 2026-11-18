@@ -9,6 +9,7 @@
 {% endblock %}
 
 {% block body %}
+  {% include '@ImanagingCheckFormat/Mapping/partials/styles.html.twig' %}
   <style>
     .xml-stepper .btn {
       white-space: normal;
@@ -37,7 +38,7 @@
     }
   </style>
 
-  <div class="container container-full-width">
+  <div class="container container-full-width check-format-page">
     <h4 class="text-center display-4">{{ mapping_configuration_type.libelle }} - Mapping XML</h4>
 
     <div class="xml-stepper btn-group w-100 mb-4" role="group">
@@ -267,7 +268,7 @@
             <span id="xml-field-mapping-saved" class="text-success ml-2 d-none">Champs XML enregistrés.</span>
           </div>
 
-          <div class="modal fade" id="xmlFieldPickerModal" tabindex="-1" role="dialog">
+          <div class="modal fade check-format-modal" id="xmlFieldPickerModal" tabindex="-1" role="dialog">
             <div class="modal-dialog modal-lg" role="document">
               <div class="modal-content">
                 <div class="modal-header modal-header-primary">

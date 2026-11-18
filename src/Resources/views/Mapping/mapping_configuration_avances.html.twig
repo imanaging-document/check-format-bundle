@@ -25,15 +25,18 @@
     </table>
 
     <div class="d-flex justify-content-center flex-1">
-      <button id="btnAddValeur" class="btn btn-outline-info" data-toggle="modal" data-target="#addValeurAvanceModal">Ajouter une valeur</button>
+      <button id="btnAddValeur" class="btn btn-outline-info" data-toggle="modal" data-target="#addValeurAvanceModal"{% if champs_possibles is empty %} disabled{% endif %}>Ajouter une valeur</button>
     </div>
+    {% if champs_possibles is empty %}
+      <p class="text-muted text-center mt-2">Tous les champs disponibles sont déjà associés.</p>
+    {% endif %}
   </div>
   <div id="divConfigurationAvances" class=" flex-1" style="margin-left: 20px;">
   </div>
 </div>
 
 <!-- Modal -->
-<div class="modal fade" id="addValeurAvanceModal" tabindex="-1" role="dialog" aria-labelledby="addValeurAvanceModal" aria-hidden="true">
+<div class="modal fade check-format-modal" id="addValeurAvanceModal" tabindex="-1" role="dialog" aria-labelledby="addValeurAvanceModal" aria-hidden="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
@@ -69,13 +72,13 @@
       type: 'POST',
       data: data,
       success: function(data){
-        $('#divModeAvance').html(data);
-        $('#addValeurAvanceModal').modal('hide');
-        $('.modal-backdrop').hide();
-
+        $('#addValeurAvanceModal').one('hidden.bs.modal', function(){
+          $('#divModeAvance').html(data);
+          $(document).trigger('check-format:advanced-changed');
+        }).modal('hide');
       },
-      error: function(){
-        alert('Une erreur est survenue lors de l\'ajout.')
+      error: function(xhr){
+        alert(xhr.responseJSON && xhr.responseJSON.error_message ? xhr.responseJSON.error_message : 'Une erreur est survenue lors de l\'ajout.');
       }
     });
   });
@@ -90,8 +93,7 @@
       data: data,
       success: function(data){
         $('#divModeAvance').html(data);
-        $('#addValeurAvanceModal').modal('hide');
-        $('.modal-backdrop').hide();
+        $(document).trigger('check-format:advanced-changed');
       },
       error: function(){
         alert('Une erreur est survenue lors de la suppression.')

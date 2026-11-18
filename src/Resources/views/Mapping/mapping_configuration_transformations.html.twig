@@ -1,9 +1,5 @@
-<div class="text-right">
-  <button id="btn-close-transformations" class="btn btn-raised btn-danger"><i class="fa fa-times fa-fw"></i>Fermer la gestion des transformations</button>
-</div>
-
 <div class="card">
-  <h5 class="card-header text-info">Gestion des transformations pour le champ : {{ mapping_value.mappingCode }}</h5>
+  <h5 class="card-header text-info">Gestion des transformations pour le champ : {{ mapping_value.mappingCode }} <button id="btn-close-transformations" type="button" class="btn check-format-close"><i class="fa fa-times fa-fw"></i>Fermer</button></h5>
   <div class="card-body">
     <table class="table table-bordered table-striped text-center">
       <thead>
@@ -30,7 +26,7 @@
             {% endif %}
           </td>
           <td>
-            <i class="fa fa-trash text-warning remove-transformation pointer" data-transformation-id="{{ transformation.id }}"></i>
+            <button type="button" class="check-format-icon-delete remove-transformation" data-transformation-id="{{ transformation.id }}" aria-label="Supprimer cette transformation" title="Supprimer cette transformation"><i class="fa fa-trash" aria-hidden="true"></i></button>
           </td>
         </tr>
       {% endfor %}
@@ -47,7 +43,7 @@
 </div>
 
 <!-- Modal -->
-<div class="modal fade" id="addTransformationModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<div class="modal fade check-format-modal" id="addTransformationModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
@@ -102,6 +98,13 @@
 </div>
 
 <script>
+  function updateTransformationsCount() {
+    const count = $("#tbody-transformations > tr").length;
+    $(".btn-edit-transformations").filter(function() {
+      return String($(this).data('mapping-id')) === String({{ mapping_value.id|json_encode|raw }});
+    }).find('small').text(count + ' transformations');
+  }
+
   $("#btn-close-transformations").click(function(){
     $("#transformations-card").addClass('d-none');
   });
@@ -143,7 +146,7 @@
             '<td>'+$("#transformation option:selected").text()+'</td>' +
             '<td></td>' +
             '<td>' +
-            '<i class="fa fa-trash text-warning remove-transformation pointer" data-transformation-id="'+data.id+'"></i>' +
+            '<button type="button" class="check-format-icon-delete remove-transformation" data-transformation-id="'+data.id+'" aria-label="Supprimer cette transformation" title="Supprimer cette transformation"><i class="fa fa-trash" aria-hidden="true"></i></button>' +
             '</td>' +
             '</tr>';
         let parameters = transformation === 'decimal_to_integer'
@@ -152,6 +155,7 @@
         let row = $(newTr);
         row.find('td').eq(1).text(parameters);
         $("#tbody-transformations").append(row);
+        updateTransformationsCount();
         $("#addTransformationModal").modal('hide');
       },
       error: function(xhr){
@@ -160,7 +164,7 @@
     });
   });
 
-  $(document).on('click', '.remove-transformation', function(){
+  $(document).off('click.checkFormatTransformations', '.remove-transformation').on('click.checkFormatTransformations', '.remove-transformation', function(){
     let thisElement = $(this);
     let transformationId = $(this).data('transformation-id');
     let data = {transformation_id: transformationId};
@@ -170,6 +174,7 @@
       data: data,
       success: function(){
         thisElement.closest('tr').remove();
+        updateTransformationsCount();
       },
       error: function(){
         alert("Une erreur est survenue lors de la suppression");

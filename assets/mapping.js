@@ -1,4 +1,14 @@
-require('bootstrap');
+// Use the host application's jQuery and Bootstrap; loading another copy creates duplicate backdrops.
+const $ = globalThis.jQuery;
+
+// Bootstrap 5 no longer handles Bootstrap 4's modal data attributes.
+$(document).on('click.checkFormatModal', '[data-toggle="modal"], [data-dismiss="modal"]', function (event) {
+  if (!$.fn.modal || !$.fn.modal.Constructor || !/^5\./.test($.fn.modal.Constructor.VERSION)) return;
+  const target = $(this).is('[data-dismiss="modal"]') ? $(this).closest('.modal') : $($(this).attr('data-target'));
+  if (!target.length) return;
+  event.preventDefault();
+  target.modal($(this).is('[data-dismiss="modal"]') ? 'hide' : 'show');
+});
 
 $( document ).ready( function () {
   if ($('#mapping_configuration').length > 0) {
@@ -41,6 +51,7 @@ $("#btnGererChampsPossibles").click(function(){
 });
 
 function initAllBtn(){
+  $('.check-format-modes button').attr('aria-pressed', 'false');
   console.log('init btn');
   $('#divRecapitulatif').addClass('d-none');
   $('#divModeAvance').addClass('d-none');
@@ -54,24 +65,29 @@ function initAllBtn(){
 
 $('#btnModeRecapitulaif').click(function() {
   initAllBtn();
+  $(this).attr('aria-pressed', 'true');
   $('#divRecapitulatif').removeClass('d-none');
   $('#btnModeRecapitulaif').addClass('btn-success btn-raised').removeClass('btn-outline-secondary');
 });
 
 $('#btnModeDecoupageChamps').click(function() {
   initAllBtn();
+  $(this).attr('aria-pressed', 'true');
   $('#divModeDecoupageChamps').removeClass('d-none');
   $('#btnModeDecoupageChamps').removeClass('btn-outline-secondary').addClass('btn-primary btn-raised');
 });
 
 $('#btnModeMapping').click(function() {
   initAllBtn();
+  $(this).attr('aria-pressed', 'true');
   $('#divMappingMode').removeClass('d-none');
   $('#btnModeMapping').removeClass('btn-outline-secondary').addClass('btn-warning btn-raised');
 });
 
 $('#btnModeAvance').click(function() {
+  loadAdvancedConfiguration();
   initAllBtn();
+  $(this).attr('aria-pressed', 'true');
   $('#divModeAvance').removeClass('d-none');
   $('#btnModeAvance').removeClass('btn-outline-secondary').addClass('btn-info btn-raised');
 });
@@ -80,7 +96,7 @@ var mappingId = "";
 
 $('.mapping_data_value').click(function() {
   if (!requestPending) {
-    let data = {lib_colonne: $(this).data('lib-colonne')};
+    let data = {lib_colonne: $(this).data('lib-colonne'), mapping_id: $('#mapping').val()};
     requestPending = true;
     $.ajax({
       url: $('#tr_mapping').data('url-select-champs'),
@@ -88,7 +104,7 @@ $('.mapping_data_value').click(function() {
       data: data,
       success: function (data) {
         $("#divModalSelectChamps").html(data);
-        $("#modalSelectChamps").modal();
+        $("#modalSelectChamps").modal('show');
         requestPending = false;
       },
       error: function () {
@@ -99,11 +115,36 @@ $('.mapping_data_value').click(function() {
   }
 });
 
+let pendingMappingSaves = 0;
+let advancedConfigurationRequest = 0;
+
+function loadAdvancedConfiguration() {
+  const panel = $('#divModeAvance');
+  const mappingConfiguration = $('#mapping').val();
+  if (!mappingConfiguration) return;
+
+  const requestId = ++advancedConfigurationRequest;
+  panel.html('<span>Chargement de la configuration avancée…</span>');
+  $.ajax({
+    url: panel.data('url'),
+    type: 'POST',
+    data: {mapping_id: mappingConfiguration},
+    success: function (data) {
+      if (requestId === advancedConfigurationRequest && $('#mapping').val() === mappingConfiguration) panel.html(data);
+    },
+    error: function () {
+      if (requestId === advancedConfigurationRequest) {
+        panel.html('<span class="text-danger">Impossible de charger la configuration avancée.</span>');
+      }
+    }
+  });
+}
+
 function saveMapping() {
   var mappingConfiguration = $('#mapping').val();
   if (mappingConfiguration !== null && mappingConfiguration !== undefined) {
     var dataMapping = [];
-    $('#tr_mapping th').each(function() {
+    $('#tr_mapping .mapping_data_value').each(function() {
       var thTemp = $(this);
       var thTemp = $(this);
       dataMapping.push(
@@ -118,6 +159,8 @@ function saveMapping() {
     });
 
     var data = {mapping_id: mappingConfiguration, mapping: dataMapping};
+    pendingMappingSaves++;
+    $('#btnModeAvance').prop('disabled', true);
     $.ajax({
       url: $("#mapping").data('url'),
       type: 'POST',
@@ -125,8 +168,14 @@ function saveMapping() {
       success: function (){
         updateRecapitulatif();
       },
-      error: function (){
-        alert('Une erreur est survenue lors de l\'enregistrement de laconfiguration. Veuillez réessayer plus tard.');
+      error: function (xhr){
+        alert(xhr.responseJSON && xhr.responseJSON.error_message ? xhr.responseJSON.error_message :
+          'Une erreur est survenue lors de l\'enregistrement de la configuration. Veuillez réessayer plus tard.');
+        if (xhr.status === 409) loadConfiguration();
+      },
+      complete: function () {
+        pendingMappingSaves--;
+        if (pendingMappingSaves === 0) $('#btnModeAvance').prop('disabled', false);
       }
     });
   } else {
@@ -188,7 +237,7 @@ function loadConfiguration() {
   var mappingConfiguration = $('#mapping').val();
   if (mappingConfiguration !== null) {
     // on vide la configuration actuelle
-    $('#tr_mapping th').each(function() {
+    $('#tr_mapping .mapping_data_value').each(function() {
       $(this).text("");
       $(this).removeData('code-mapping');
       $(this).removeData('type-mapping');
@@ -228,17 +277,9 @@ function loadConfiguration() {
       }
     });
 
-    $.ajax({
-      url: $('#divModeAvance').data('url'),
-      type: 'POST',
-      data: {mapping_id: mappingConfiguration},
-      success: function (data) {
-        $('#divModeAvance').html(data);
-      },
-      error: function () {
-        showSweetAlert('top-end', 'error', 'Une erreur est survenue lors de la récupération de la configuration. Veuillez réessayer plus tard.', true, 3000);
-      }
-    });
+    // Discard any previous advanced view when the selected configuration changes.
+    advancedConfigurationRequest++;
+    $('#divModeAvance').html('');
   } else {
     $("#mappingConfigurationLoad").html('<p>Il n\'existe aucune configuration de mapping pour ce type. ' +
         'Créer votre première configuration en cliquant sur <b>Ajouter une nouvelle configuration</b>.</h4>');
@@ -894,7 +935,7 @@ $(document).on('click', '.btn-remove-xml-transformation', function() {
 $(document).on('click', '.btn-open-xml-field-picker', function() {
   xmlCurrentPickerTarget = $(this).data('target-input');
   $('#xml-field-picker-filter').val('');
-  $('#xmlFieldPickerModal').modal();
+  $('#xmlFieldPickerModal').modal('show');
   if (xmlDetectedPaths.length === 0) {
     $('#xml-field-picker-list').html('<div class="alert alert-info"><i class="fa fa-spin fa-spinner"></i> Chargement des champs XML détectés...</div>');
     loadXmlRowPreview(function() {
@@ -1098,10 +1139,14 @@ function escapeHtml(value) {
     .replace(/'/g, '&#039;');
 }
 
+$(document).on('check-format:advanced-changed', function () {
+  updateRecapitulatif();
+});
+
 function updateRecapitulatif() {
   $('#tableRecapitulatif').html('<tr><th colspan="5">Chargement en cours ...</th></tr>');
   var htmlRecapitulatif = "";
-  $('#tr_mapping th').each(function() {
+  $('#tr_mapping .mapping_data_value').each(function() {
     if (!! $(this).data('lib-colonne')) {
       var libColonne = $(this).data('lib-colonne');
     } else {
@@ -1238,7 +1283,7 @@ function updateObligatoiresAMapper() {
       type: 'POST',
       data: data,
       success: function (data) {
-        var text = "<h5>Liste des champs obligatoires non mappé pour l'instant : <span class='text-danger'>";
+        var text = "<h5>Champs obligatoires non mappés : <span class='text-danger'>";
         var first = true;
         for (var v in data) {
           if (first) {
@@ -1251,8 +1296,10 @@ function updateObligatoiresAMapper() {
 
         if (first) {
           $('#btnValidMappingAndRunIntegration').removeClass('disabled');
+          text = "<p class='text-success'><i class='fa fa-check-circle fa-fw' aria-hidden='true'></i>Tous les champs obligatoires sont renseignés.</p>";
+        } else {
+          text += "</span></h5>";
         }
-        text += "</span></h5>";
         $('#divObligatoiresAMapper').html(text);
       },
       error: function () {

@@ -1,14 +1,13 @@
-<h3 class="text-dark">Intégration</h3>
-<p>La validation du fichier est terminée, vous pouvez dès à présent intégrer ce fichier à l'aide du bouton ci-dessous.</p>
-
-<div class="btn-group" id="btn_actions">
-  <a href="{{ path(mapping_configuration_type.routeIntegrationFichier, {mappingTypeId: mapping_configuration_type.id}) }}" class="btn btn-dark" id="btn_import_fichier" >Intégrer le fichier <i class="fa fa-check text-success"></i></a>
-</div>
-<div id="loader-actions" class="d-none">
-  <i class="fa fa-spin fa-lg fa-spinner"></i><i> Intégration en cours ... Merci de patienter jusqu'à la fin des traitements</i>
-</div>
-
-<div id="div_resultat_import"></div>
+<section class="check-format-control__step">
+  <h3 class="check-format-control__section-title">Intégration</h3>
+  <p>La validation du fichier est terminée. Vous pouvez lancer son intégration.</p>
+  <div id="btn_actions">
+    <a href="{{ path(mapping_configuration_type.routeIntegrationFichier, {mappingTypeId: mapping_configuration_type.id}) }}" class="btn check-format-control__primary" id="btn_import_fichier"><i class="fa fa-check-circle fa-fw" aria-hidden="true"></i>Intégrer le fichier</a>
+  </div>
+  <div id="loader-actions" class="d-none check-format-control__progress" role="status">
+    <i class="fa fa-spinner fa-spin fa-fw" aria-hidden="true"></i> Intégration en cours… Merci de patienter jusqu'à la fin des traitements.
+  </div>
+</section>
 
 <script>
   $('#btn_import_fichier').click(function() {
