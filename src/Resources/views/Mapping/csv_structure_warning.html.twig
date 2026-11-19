@@ -1,0 +1,65 @@
+{% extends basePath %}
+
+{% block others_js %}
+  {{ encore_entry_script_tags('js/check_format/mapping') }}
+{% endblock %}
+
+{% block body %}
+  {% include '@ImanagingCheckFormat/Mapping/partials/styles.html.twig' %}
+  <div class="container container-full-width check-format-page check-format-main check-format-warning">
+    <header class="check-format-heading">
+      <p class="check-format-heading__eyebrow">Import de données</p>
+      <h1>Vérifier la structure du fichier</h1>
+      <p>{{ mapping_configuration_type.libelle }} · Configuration : {{ configuration.libelle }}</p>
+    </header>
+
+    {% if confirmation_error %}<div class="alert alert-danger" role="alert">{{ confirmation_error }}</div>{% endif %}
+    <div class="alert alert-warning" role="alert">
+      <strong>La structure du fichier nécessite une vérification.</strong>
+      {% if structure.actual_count == 0 %}
+        Le fichier est vide ou son en-tête ne peut pas être lu. Supprimez-le et choisissez un fichier valide.
+      {% elseif structure.actual_count < structure.expected_count %}
+        Il contient moins de colonnes. Si vous continuez et modifiez le mapping, les correspondances des colonnes absentes ainsi que leurs traductions et transformations pourraient être supprimées.
+      {% elseif structure.actual_count > structure.expected_count %}
+        Il contient plus de colonnes. Les colonnes supplémentaires ne suppriment pas à elles seules les correspondances existantes ; vérifiez leur position avant de poursuivre.
+      {% elseif structure.has_other_differences %}
+        Le nombre de colonnes est identique, mais certains en-têtes diffèrent ou ne sont pas enregistrés. Le mapping utilise les positions : des colonnes déplacées peuvent associer les mauvaises données.
+      {% elseif structure.has_encoding_issue %}
+        Le nombre de colonnes est identique, mais certains caractères des en-têtes ne sont pas encodés en UTF-8 et ne peuvent pas être comparés avec certitude.
+      {% endif %}
+      {% if structure.has_encoding_issue %}
+        <p class="mb-0 mt-2"><strong>Problème d’encodage :</strong> des caractères du CSV sont affichés sous la forme « � ». Les en-têtes enregistrés peuvent avoir subi la même altération. Vérifiez le fichier et ses données avant de continuer ; la comparaison ne permet pas de garantir que les caractères concernés sont identiques.</p>
+      {% endif %}
+    </div>
+
+    <section class="card" aria-labelledby="csv-comparison-title">
+      <div class="card-header"><h2 id="csv-comparison-title">Comparaison du fichier</h2></div>
+      <div class="card-body">
+        <p class="check-format-warning__file"><i class="fa fa-file fa-fw" aria-hidden="true"></i>{{ filename }}</p>
+        <div class="check-format-warning__counts">
+          <div><span>Mapping enregistré</span><strong>{{ structure.expected_count }} colonne{{ structure.expected_count > 1 ? 's' : '' }}</strong></div>
+          <div><span>Fichier CSV</span><strong>{{ structure.actual_count }} colonne{{ structure.actual_count > 1 ? 's' : '' }}</strong></div>
+        </div>
+        {% if structure.differences %}
+          <h3 class="check-format-warning__subtitle">En-têtes différents ou indisponibles</h3>
+          <p class="check-format-warning__help">La comparaison respecte l’ordre et le nom exact de chaque colonne. Un en-tête indisponible n’a pas été enregistré dans le mapping.</p>
+          <div class="check-format-table-scroll"><table class="table table-bordered">
+            <thead><tr><th>Colonne</th><th>Mapping enregistré</th><th>Fichier CSV</th><th>Motif</th></tr></thead>
+            <tbody>{% for difference in structure.differences %}
+              <tr><td>{{ difference.position }}</td><td>{{ difference.expected is null ? 'Non enregistré' : (difference.expected is empty ? '(vide)' : difference.expected) }}</td><td>{{ difference.actual is empty ? '(vide)' : difference.actual }}</td><td>{% if difference.encoding_only %}Encodage : comparaison incertaine{% elseif difference.encoding_issue %}En-tête différent et encodage{% elseif difference.expected is null %}En-tête non enregistré{% else %}En-tête différent{% endif %}</td></tr>
+            {% endfor %}</tbody>
+          </table></div>
+        {% endif %}
+        <div class="check-format-warning__actions">
+          <button type="button" class="btn check-format-warning__back delete-file" data-file-basename="{{ filename }}" data-url="{{ path('check_format_mapping_files_delete', {code: mapping_configuration_type.code}) }}"><i class="fa fa-trash fa-fw" aria-hidden="true"></i>Supprimer ce fichier et revenir</button>
+          {% if structure.actual_count > 0 %}<form method="post" action="{{ path('check_format_mapping_page', {code: mapping_configuration_type.code, configuration: configuration.id}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('check_format_structure_' ~ mapping_configuration_type.code) }}">
+            <input type="hidden" name="action" value="confirm_structure">
+            <input type="hidden" name="fingerprint" value="{{ structure.fingerprint }}">
+            <button type="submit" class="btn check-format-warning__continue">J’ai compris, continuer</button>
+          </form>{% endif %}
+        </div>
+      </div>
+    </section>
+  </div>
+{% endblock %}

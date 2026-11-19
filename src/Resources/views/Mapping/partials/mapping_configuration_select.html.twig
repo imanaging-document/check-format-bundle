@@ -10,6 +10,7 @@
   </select>
 </div>
 
+{% if not pending_files %}
 <div class="check-format-configuration-actions">
   <button id="btn_add_mapping_configuration" class="btn btn-info btn-raised" data-toggle="modal" data-target="#addConfigurationModal">
     <i class="fa fa-plus-circle fa-fw"></i>Ajouter une nouvelle configuration
@@ -21,6 +22,8 @@
     <i class="fa fa-download fa-fw"></i>Exporter la configuration actuelle
   </button>
 </div>
+
+{% endif %}
 
 <div class="modal fade check-format-modal" id="addConfigurationModal" tabindex="-1" role="dialog" aria-labelledby="addConfigurationModalLabel" aria-hidden="true">
   <div class="modal-dialog" role="document">

@@ -1,0 +1,53 @@
+{% extends basePath %}
+
+{% block body %}
+  {% include '@ImanagingCheckFormat/Mapping/partials/styles.html.twig' %}
+  <div class="container container-full-width check-format-page check-format-main check-format-selection">
+    <header class="check-format-heading">
+      <p class="check-format-heading__eyebrow">Import de données</p>
+      <h1>{{ mapping_configuration_type.libelle }}</h1>
+      <p>Choisissez une configuration avant de déposer votre fichier.</p>
+    </header>
+
+    <a href="{{ path('check_format_mapping', {type: mapping_configuration_type.code}) }}" class="btn check-format-selection__back"><i class="fa fa-arrow-left fa-fw" aria-hidden="true"></i>Retour aux types de mapping</a>
+
+    {% if error %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endif %}
+    {% if pending_files %}
+      <div class="alert alert-info" role="status">Un fichier est déjà en attente pour ce type d’import. Terminez son traitement ou supprimez-le avant de changer de configuration.</div>
+    {% else %}
+      <p class="check-format-selection__notice"><i class="fa fa-info-circle fa-fw" aria-hidden="true"></i> La configuration choisie devient active pour ce type d’import. Ses correspondances pourront être modifiées à l’étape suivante.</p>
+    {% endif %}
+
+    <section class="card" aria-labelledby="existing-configurations">
+      <div class="card-header"><h2 id="existing-configurations">Configurations existantes</h2></div>
+      <div class="card-body check-format-selection__list">
+        {% for configuration in mapping_configurations %}
+          <div class="check-format-selection__item">
+            <div><h3>{{ configuration.libelle }}</h3>{% if configuration.active %}<span class="check-format-selection__badge">Active</span>{% endif %}</div>
+            <form method="post" action="{{ path('check_format_mapping_page', {code: mapping_configuration_type.code}) }}">
+              <input type="hidden" name="_token" value="{{ csrf_token('check_format_select_' ~ mapping_configuration_type.code) }}">
+              <input type="hidden" name="choice" value="existing">
+              <input type="hidden" name="configuration" value="{{ configuration.id }}">
+              <button type="submit" class="btn check-format-selection__button" {% if pending_conflict or (pending_files and pending_owner_id != configuration.id) %}disabled{% endif %} aria-label="Choisir {{ configuration.libelle }}">{{ pending_files and pending_owner_id == configuration.id ? 'Reprendre le fichier' : 'Choisir' }} <i class="fa fa-arrow-right" aria-hidden="true"></i></button>
+            </form>
+          </div>
+        {% else %}
+          <p class="check-format-empty">Aucune configuration pour cet import. Créez-en une pour commencer.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="card mt-4" aria-labelledby="new-configuration">
+      <div class="card-header"><h2 id="new-configuration">Créer une configuration</h2></div>
+      <div class="card-body">
+        <p class="check-format-selection__help">Créez un mapping indépendant pour un autre format de fichier.</p>
+        <form method="post" action="{{ path('check_format_mapping_page', {code: mapping_configuration_type.code}) }}" class="check-format-selection__create">
+          <input type="hidden" name="_token" value="{{ csrf_token('check_format_select_' ~ mapping_configuration_type.code) }}">
+          <input type="hidden" name="choice" value="new">
+          <div><label for="configuration-label">Nom de la configuration</label><input class="form-control" type="text" id="configuration-label" name="label" maxlength="255" required placeholder="Ex. Import mensuel" {% if pending_files %}disabled{% endif %}></div>
+          <button type="submit" class="btn check-format-selection__primary" {% if pending_files %}disabled{% endif %}><i class="fa fa-plus fa-fw" aria-hidden="true"></i>Créer et continuer</button>
+        </form>
+      </div>
+    </section>
+  </div>
+{% endblock %}

@@ -10,13 +10,53 @@
     <header class="check-format-heading">
       <p class="check-format-heading__eyebrow">Import de données</p>
       <h1>{{ mapping_configuration_type.libelle }}</h1>
-      <p>Sélectionnez un fichier pour préparer son mapping et lancer son contrôle.</p>
+      <p>Configuration sélectionnée : {{ selected_configuration.libelle }}. Sélectionnez un fichier pour préparer son mapping et lancer son contrôle.</p>
     </header>
 
-    <button type="button" class="btn check-format-upload__back" onclick="history.back()"><i class="fa fa-arrow-left fa-fw" aria-hidden="true"></i>Retour</button>
+    <a class="btn check-format-upload__back" href="{{ path('check_format_mapping_page', {code: mapping_configuration_type.code}) }}"><i class="fa fa-arrow-left fa-fw" aria-hidden="true"></i>Changer de configuration</a>
 
     <div class="check-format-upload__layout">
+      <div class="check-format-upload__main">
+      <section class="card check-format-upload__structure" aria-labelledby="mapping-structure-title">
+        <h2 class="card-header" id="mapping-structure-title">Mapping et structure attendue</h2>
+        <div class="card-body">
+          {% if mapping_structure.associated_count > 0 %}
+            <p class="check-format-upload__status check-format-upload__status--configured"><i class="fa fa-check-circle fa-fw" aria-hidden="true"></i>Mapping existant : {{ mapping_structure.associated_count }} champ{{ mapping_structure.associated_count > 1 ? 's' : '' }} associé{{ mapping_structure.associated_count > 1 ? 's' : '' }}.</p>
+          {% elseif mapping_structure.columns or mapping_structure.row_xpath %}
+            <p class="check-format-upload__status check-format-upload__status--configured"><i class="fa fa-info-circle fa-fw" aria-hidden="true"></i>Structure enregistrée, sans champ associé pour le moment.</p>
+          {% else %}
+            <p class="check-format-upload__status check-format-upload__status--new"><i class="fa fa-plus-circle fa-fw" aria-hidden="true"></i>Nouveau mapping : aucun champ associé pour le moment.</p>
+          {% endif %}
+
+          {% if mapping_structure.is_xml %}
+            <p class="check-format-upload__structure-help">Cette configuration utilise une structure XML{% if mapping_structure.row_xpath %} ; nœud répétable : <code>{{ mapping_structure.row_xpath }}</code>{% endif %}.</p>
+            {% if mapping_structure.xml_fields %}
+              <h3>Champs XML associés</h3>
+              <ul class="check-format-upload__advanced">{% for field in mapping_structure.xml_fields %}<li>{{ field }}</li>{% endfor %}</ul>
+            {% else %}
+              <p class="check-format-upload__structure-help">Aucun champ XML associé n’est enregistré.</p>
+            {% endif %}
+          {% elseif mapping_structure.columns %}
+            <p class="check-format-upload__structure-help">{{ mapping_structure.columns|length }} colonne{{ mapping_structure.columns|length > 1 ? 's' : '' }} attendue{{ mapping_structure.columns|length > 1 ? 's' : '' }}. Pour un CSV, les en-têtes et leur ordre seront vérifiés après le dépôt.</p>
+            <div class="check-format-upload__table-scroll"><table class="table check-format-upload__structure-table">
+              <thead><tr><th scope="col">N°</th><th scope="col">En-tête enregistré</th><th scope="col">Champ associé</th></tr></thead>
+              <tbody>{% for index, column in mapping_structure.columns %}<tr>
+                <td>{{ index + 1 }}</td>
+                <td>{% if column.header is null %}<span class="check-format-upload__muted">Non enregistré</span>{% elseif column.header == '' %}<span class="check-format-upload__muted">(vide)</span>{% else %}{{ column.header }}{% endif %}</td>
+                <td>{% if column.code is not null and column.code != '' %}{{ column.code }}{% else %}<span class="check-format-upload__muted">Non associé</span>{% endif %}</td>
+              </tr>{% endfor %}</tbody>
+            </table></div>
+          {% else %}
+            <p class="check-format-upload__structure-help">Aucune structure de colonnes n’est enregistrée. Vous pourrez configurer les champs après le dépôt.</p>
+          {% endif %}
+          {% if mapping_structure.advanced %}
+            <h3>Champs avancés</h3>
+            <ul class="check-format-upload__advanced">{% for field in mapping_structure.advanced %}<li>{{ field }}</li>{% endfor %}</ul>
+          {% endif %}
+        </div>
+      </section>
       <section class="card">
+
         <h2 class="card-header">Importer un fichier</h2>
         <div class="card-body">
           <p class="check-format-upload__intro">Choisissez le fichier à importer pour configurer les correspondances avec vos données.</p>
@@ -35,12 +75,13 @@
           </form>
 
           <div class="check-format-upload__actions">
-            <button type="button" id="btn-upload-file" class="btn check-format-upload__primary" data-url="{{ path('check_format_mapping_files_upload', {code: mapping_configuration_type.code}) }}"><i class="fa fa-upload fa-fw" aria-hidden="true"></i>Envoyer le fichier</button>
+            <button type="button" id="btn-upload-file" class="btn check-format-upload__primary" data-url="{{ path('check_format_mapping_files_upload', {code: mapping_configuration_type.code, configuration: selected_configuration.id}) }}"><i class="fa fa-upload fa-fw" aria-hidden="true"></i>Envoyer le fichier</button>
             <div id="loader-upload" class="d-none check-format-upload__loading" role="status"><i class="fa fa-spin fa-spinner fa-fw" aria-hidden="true"></i>Envoi du fichier en cours…</div>
           </div>
           <div id="error-message" class="alert alert-danger d-none" role="alert"></div>
         </div>
       </section>
+      </div>
 
       <section class="card check-format-upload__requirements">
         <h2 class="card-header">Données obligatoires</h2>

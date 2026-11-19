@@ -30,6 +30,7 @@
       <argument type="service" id="doctrine.orm.default_entity_manager" />
       <argument type="service" id="imanaging_check_format.mapping" />
       <argument type="service" id="twig" />
+      <argument type="service" id="security.csrf.token_manager" />
     </service>
   </services>
 </container>

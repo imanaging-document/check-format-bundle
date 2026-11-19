@@ -266,7 +266,6 @@ function loadConfiguration() {
           }
         });
         updateRecapitulatif();
-        saveMapping();
       },
       error: function () {
         showSweetAlert('top-end', 'error', 'Une erreur est survenue lors de la récupération de la configuration. Veuillez réessayer plus tard.', true, 3000);

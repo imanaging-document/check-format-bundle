@@ -1,14 +1,12 @@
 <?php
 
-
 namespace Imanaging\CheckFormatBundle\Controller;
 
 use App\Entity\MappingConfiguration;
-use App\Entity\MappingConfigurationFile;
-use App\Entity\MappingConfigurationValue;
-use App\Entity\MappingConfigurationValueTransformation;
 use DateTime;
 use Imanaging\CheckFormatBundle\Service\DecimalToInteger;
+use Imanaging\CheckFormatBundle\Service\CsvStructureComparison;
+use Imanaging\CheckFormatBundle\Service\MappingStructurePreview;
 use Imanaging\CheckFormatBundle\Exception\TransformationException;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceAutoIncrementInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueAvanceSaisieManuelleInterface;
@@ -31,12 +29,11 @@ use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationValueTranslationI
 use Imanaging\CheckFormatBundle\Mapping;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
-use Symfony\Component\HttpFoundation\ResponseHeaderBag;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Csrf\CsrfToken;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Yaml\Yaml;
 use Twig\Environment;
 
@@ -46,6 +43,7 @@ class MappingController extends AbstractController
   private $mapping;
   private $projectDir;
   private $twig;
+  private CsrfTokenManagerInterface $csrfTokens;
 
   /**
    * MappingController constructor.
@@ -53,17 +51,32 @@ class MappingController extends AbstractController
    * @param Mapping $mapping
    * @param $projectDir
    */
-  public function __construct(EntityManagerInterface $em, Mapping $mapping, Environment $twig)
+  public function __construct(EntityManagerInterface $em, Mapping $mapping, Environment $twig, CsrfTokenManagerInterface $csrfTokens)
   {
     $this->em = $em;
     $this->mapping = $mapping;
     $this->projectDir = $mapping->getProjectDir();
     $this->twig = $twig;
+    $this->csrfTokens = $csrfTokens;
   }
 
   public function indexAction(Request $request)
   {
     $params = $request->request->all();
+    $returnToTypes = $request->isMethod('GET');
+    if ($returnToTypes) {
+      $context = $request->getSession()->get('_check_format_type_selection', []);
+      $code = $request->query->get('type');
+      $codes = $context['codes'] ?? [];
+      if ($codes === []) {
+        $types = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findAll();
+        $codes = array_map(static fn($type) => $type->getCode(), $types);
+      } elseif (!is_string($code) || !in_array($code, $codes, true)) {
+        $codes = is_string($code) ? [$code] : [];
+      }
+      $params = array_combine($codes, $codes) ?: [];
+      $params['basePath'] = $context['basePath'] ?? 'base.html.twig';
+    }
     $mappingsConfigurationsTypes = [];
     $othersParam = '';
     foreach ($params as $param => $value){
@@ -80,23 +93,98 @@ class MappingController extends AbstractController
         }
       }
     }
-    if (count($mappingsConfigurationsTypes) == 1){
+    if (!$returnToTypes) {
+      $request->getSession()->set('_check_format_type_selection', [
+        'codes' => array_map(static fn($type) => $type->getCode(), $mappingsConfigurationsTypes),
+        'basePath' => $params['basePath'] ?? 'base.html.twig',
+      ]);
+    }
+    if (!$returnToTypes && count($mappingsConfigurationsTypes) == 1){
       return $this->redirect($this->generateUrl('check_format_mapping_page', ['code' => $mappingsConfigurationsTypes[0]->getCode()]).$othersParam);
     }
 
-    return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/index.html.twig", [
+    $pendingFilesByType = [];
+    foreach ($mappingsConfigurationsTypes as $type) {
+      $pattern = $this->projectDir . $type->getFilesDirectory() . $type->getFilename() . '*';
+      $pendingFilesByType[$type->getCode()] = count(glob($pattern) ?: []);
+    }
+
+    return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/index.html.twig', [
       'mappings_configurations_types' => $mappingsConfigurationsTypes,
-      'basePath' => $params['basePath']
+      'pending_files_by_type' => $pendingFilesByType,
+      'basePath' => $params['basePath'] ?? 'base.html.twig'
     ]));
   }
 
-  public function mappingPageAction($code)
+  public function mappingPageAction($code, Request $request)
   {
     ini_set('memory_limit', '512M');
     $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
     if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
       $directory = $this->projectDir . $mappingConfigurationType->getFilesDirectory() . $mappingConfigurationType->getFilename() . '*';
-      $fichiersClient = glob($directory);
+      $fichiersClient = glob($directory) ?: [];
+      $repository = $this->em->getRepository(MappingConfigurationInterface::class);
+      $configurations = $repository->findBy(['type' => $mappingConfigurationType]);
+      $active = $this->getMappingConfigurationActive($mappingConfigurationType);
+      $pendingOwnerId = null;
+      $pendingConflict = false;
+      foreach ($fichiersClient as $file) {
+        $record = $this->em->getRepository(MappingConfigurationFileInterface::class)->findOneBy(['filename' => basename($file)]);
+        $ownerId = $record instanceof MappingConfigurationFileInterface ? (string) $record->getMappingConfiguration()->getId()
+        : ($active instanceof MappingConfigurationInterface ? (string) $active->getId() : null);
+        if ($ownerId === null || ($pendingOwnerId !== null && $pendingOwnerId !== $ownerId)) {
+          $pendingConflict = true;
+        }
+        $pendingOwnerId = $ownerId;
+      }
+      $error = $pendingConflict ? 'Les fichiers en attente ne peuvent pas être associés à une seule configuration. Vérifiez-les avant de poursuivre.' : null;
+
+      if ($request->isMethod('POST') && $request->request->get('action') !== 'confirm_structure' && !$pendingConflict) {
+        if (!$this->csrfTokens->isTokenValid(new CsrfToken('check_format_select_' . $code, $request->request->get('_token')))) {
+          $error = 'La session a expiré. Veuillez réessayer.';
+        } elseif (count($fichiersClient) > 0 && ($request->request->get('choice') === 'new'
+          || $pendingOwnerId !== $request->request->get('configuration'))) {
+          $error = 'Un fichier est déjà en attente. Terminez son traitement ou supprimez-le avant de changer de configuration.';
+        } elseif ($request->request->get('choice') === 'new') {
+          $label = trim((string) $request->request->get('label', ''));
+          if ($label === '' || mb_strlen($label) > 255) {
+            $error = 'Indiquez un nom de configuration de 1 à 255 caractères.';
+          } else {
+            $className = $repository->getClassName();
+            $configuration = new $className();
+            $configuration->setType($mappingConfigurationType);
+            $configuration->setLibelle($label);
+            $configuration->setActive(false);
+            $this->em->persist($configuration);
+            $this->em->flush();
+            $this->mapping->setMappingConfigurationActive($configuration);
+            return $this->redirectToRoute('check_format_mapping_page', ['code' => $code, 'configuration' => $configuration->getId()]);
+          }
+        } else {
+          $configuration = $repository->findOneBy(['id' => $request->request->get('configuration'), 'type' => $mappingConfigurationType]);
+          if (!$configuration instanceof MappingConfigurationInterface) {
+            $error = 'Choisissez une configuration valide pour ce type d’import.';
+          } else {
+            $this->mapping->setMappingConfigurationActive($configuration);
+            return $this->redirectToRoute('check_format_mapping_page', ['code' => $code, 'configuration' => $configuration->getId()]);
+          }
+        }
+      }
+
+      $selectedId = $request->query->get('configuration');
+      if ($error !== null || !$active instanceof MappingConfigurationInterface || (string) $active->getId() !== $selectedId
+        || (count($fichiersClient) > 0 && $pendingOwnerId !== $selectedId)) {
+        return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/select_configuration_page.html.twig', [
+          'basePath' => 'base.html.twig',
+          'mapping_configuration_type' => $mappingConfigurationType,
+          'mapping_configurations' => $configurations,
+          'active_configuration' => $active,
+          'pending_files' => count($fichiersClient),
+          'pending_conflict' => $pendingConflict,
+          'pending_owner_id' => $pendingOwnerId,
+          'error' => $error,
+        ]), $error !== null ? Response::HTTP_BAD_REQUEST : Response::HTTP_OK);
+      }
       if (count($fichiersClient) == 1) {
         $fichiersClientFormatted = [];
         foreach ($fichiersClient as $fichier) {
@@ -112,7 +200,7 @@ class MappingController extends AbstractController
         }
 
         if ($this->mapping->isXmlFile($fichiersClient[0])) {
-          return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/mapping_xml_page.html.twig", [
+          return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/mapping_xml_page.html.twig', [
             'basePath' => 'base.html.twig',
             'champs' => $this->mapping->getChampsPossiblesAIntegrer($code),
             'fichiers_en_attente' => $fichiersClientFormatted,
@@ -122,11 +210,38 @@ class MappingController extends AbstractController
           ]));
         }
 
+        $structure = $this->csvStructureWarning($active, $fichiersClient[0]);
+        $accepted = $request->getSession()->get('_check_format_structure_confirmed', []);
+        $acceptedFingerprint = is_array($accepted) ? ($accepted[(string) $active->getId()] ?? null) : null;
+        if ($structure !== null && $acceptedFingerprint !== $structure['fingerprint']) {
+          $confirmationError = null;
+          if ($request->isMethod('POST') && $request->request->get('action') === 'confirm_structure') {
+            $token = $request->request->get('_token');
+            $fingerprint = $request->request->get('fingerprint');
+            if ($this->csrfTokens->isTokenValid(new CsrfToken('check_format_structure_' . $code, $token))
+              && is_string($fingerprint) && hash_equals($structure['fingerprint'], $fingerprint)) {
+              $accepted = is_array($accepted) ? $accepted : [];
+              $accepted[(string) $active->getId()] = $fingerprint;
+              $request->getSession()->set('_check_format_structure_confirmed', $accepted);
+              return $this->redirectToRoute('check_format_mapping_page', ['code' => $code, 'configuration' => $active->getId()]);
+            }
+            $confirmationError = 'Le fichier ou le mapping a changé, ou votre session a expiré. Vérifiez les différences avant de continuer.';
+          }
+          return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/csv_structure_warning.html.twig', [
+            'basePath' => 'base.html.twig',
+            'mapping_configuration_type' => $mappingConfigurationType,
+            'configuration' => $active,
+            'filename' => basename($fichiersClient[0]),
+            'structure' => $structure,
+            'confirmation_error' => $confirmationError,
+          ]));
+        }
+
         $data = $this->mapping->getFirstLinesFromFile($fichiersClient[0], 10, $cuttingRules, $skippingRules);
         $ligneEntete = $data['entete'];
         $lignes = $data['first_lines'];
 
-        return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/mapping_page.html.twig", [
+        return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/mapping_page.html.twig', [
           'basePath' => 'base.html.twig',
           'champs' => $this->mapping->getChampsPossiblesAIntegrer($code),
           'ligne_entete' => $ligneEntete,
@@ -135,19 +250,74 @@ class MappingController extends AbstractController
           'mapping_configuration_type' => $mappingConfigurationType
         ]));
       } else {
-        $champsObligatoires = $this->em->getRepository(MappingChampPossibleInterface::class)->findBy(['mappingConfigurationType' => $mappingConfigurationType, 'visible' => true, 'obligatoire' => true]);
-        return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/no_fichier_to_map.html.twig", [
+        $champsObligatoires = $this->em->getRepository(MappingChampPossibleInterface::class)->findBy([
+          'mappingConfigurationType' => $mappingConfigurationType, 'visible' => true, 'obligatoire' => true,
+        ]);
+        return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/no_fichier_to_map.html.twig', [
           'basePath' => 'base.html.twig',
           'mapping_configuration_type' => $mappingConfigurationType,
-          'champs_obligatoires' => $champsObligatoires
+          'champs_obligatoires' => $champsObligatoires,
+          'selected_configuration' => $active,
+          'mapping_structure' => MappingStructurePreview::build($active),
         ]));
       }
     } else {
-      return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/mapping_configuration_type_not_found.html.twig", [
+      return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/mapping_configuration_type_not_found.html.twig', [
         'code' => $code,
         'basePath' => 'base.html.twig',
       ]));
     }
+  }
+
+  private function csvStructureWarning(MappingConfigurationInterface $configuration, string $file): ?array
+  {
+    if (strtolower(pathinfo($file, PATHINFO_EXTENSION)) !== 'csv') {
+      return null;
+    }
+    $expected = [];
+    foreach ($configuration->getMappingConfigurationValues() as $value) {
+      if ($value instanceof MappingConfigurationValueInterface && $value->getFichierIndex() !== null) {
+        $index = (int) $value->getFichierIndex();
+        if ($index >= 0) {
+          $expected[$index] = $value->getFichierEntete();
+        }
+      }
+    }
+    if ($expected === []) {
+      return null;
+    }
+    ksort($expected);
+    $handle = fopen($file, 'r');
+    if ($handle === false) {
+      throw new \RuntimeException('Impossible de lire le fichier CSV.');
+    }
+    try {
+      $header = fgetcsv($handle, 100000, ';', '"', '');
+    } finally {
+      fclose($handle);
+    }
+    $header = is_array($header) ? $header : [];
+    $comparison = CsvStructureComparison::compare($expected, $header);
+    if ($comparison === null) {
+      return null;
+    }
+    $comparison['fingerprint'] = hash('sha256', serialize([$configuration->getId(), basename($file), hash_file('sha256', $file), $expected, $header]));
+    return $comparison;
+  }
+
+  private function csvStructureRequiresConfirmation(MappingConfigurationInterface $configuration, Request $request): bool
+  {
+    $type = $configuration->getType();
+    $files = glob($this->projectDir . $type->getFilesDirectory() . $type->getFilename() . '*') ?: [];
+    if (count($files) !== 1) {
+      return false;
+    }
+    $structure = $this->csvStructureWarning($configuration, $files[0]);
+    if ($structure === null) {
+      return false;
+    }
+    $accepted = $request->getSession()->get('_check_format_structure_confirmed', []);
+    return !is_array($accepted) || ($accepted[(string) $configuration->getId()] ?? null) !== $structure['fingerprint'];
   }
 
   public function uploadFileAction($code, Request $request)
@@ -155,13 +325,13 @@ class MappingController extends AbstractController
     $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
     if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
       $mappingConfiguration = $this->em->getRepository(MappingConfigurationInterface::class)->findOneBy(['active' => true, 'type' => $mappingConfigurationType]);
-      if (!($mappingConfiguration instanceof MappingConfigurationInterface)) {
-        $className = $this->em->getRepository(MappingConfigurationInterface::class)->getClassName();
-        $mappingConfiguration = new $className();
-        $mappingConfiguration->setType($mappingConfigurationType);
-        $mappingConfiguration->setLibelle($mappingConfigurationType->getLibelle());
-        $mappingConfiguration->setActive(true);
-        $this->em->persist($mappingConfiguration);
+      if (!$mappingConfiguration instanceof MappingConfigurationInterface
+        || (string) $mappingConfiguration->getId() !== $request->query->get('configuration')) {
+        return new JsonResponse(['error_message' => 'La configuration active a changé. Revenez au choix du mapping avant de déposer le fichier.'], 409);
+      }
+      $pendingFiles = glob($this->projectDir . $mappingConfigurationType->getFilesDirectory() . $mappingConfigurationType->getFilename() . '*') ?: [];
+      if (count($pendingFiles) > 0) {
+        return new JsonResponse(['error_message' => 'Un fichier est déjà en attente pour ce type d’import.'], 409);
       }
       $dir = $this->projectDir.$mappingConfigurationType->getFilesDirectory();
       if (!is_dir($dir)){
@@ -199,22 +369,22 @@ class MappingController extends AbstractController
                 chmod($dir.$newFileName, 0755);
                 return new JsonResponse();
               } else {
-                return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :( #2"], 500);
+                return new JsonResponse(['error_message' => "Une erreur est survenue lors de l\'envoi du fichier :( #2"], 500);
               }
             } else {
-              return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :("], 500);
+              return new JsonResponse(['error_message' => "Une erreur est survenue lors de l\'envoi du fichier :("], 500);
             }
           } catch (Exception $e){
-            return new JsonResponse(["error_message" => "Une erreur est survenue lors de l\'envoi du fichier :( ". $e->getMessage()], 500);
+            return new JsonResponse(['error_message' => "Une erreur est survenue lors de l\'envoi du fichier :( ". $e->getMessage()], 500);
           }
         } else {
-          return new JsonResponse(["error_message" => "Veuillez soumettre un fichier valide."], 500);
+          return new JsonResponse(['error_message' => 'Veuillez soumettre un fichier valide.'], 500);
         }
       } else {
-        return new JsonResponse(["error_message" => "Veuillez soumettre un fichier."], 500);
+        return new JsonResponse(['error_message' => 'Veuillez soumettre un fichier.'], 500);
       }
     } else {
-      return new JsonResponse(["error_message" => "Type de configuration introuvable :".$code], 500);
+      return new JsonResponse(['error_message' => 'Type de configuration introuvable :'.$code], 500);
     }
   }
 
@@ -226,7 +396,9 @@ class MappingController extends AbstractController
       $dir = $this->projectDir.$mappingConfigurationType->getFilesDirectory();
       foreach ($mappingConfigurationType->getMappingConfigurations() as $mappingConfiguration) {
         if ($mappingConfiguration instanceof MappingConfigurationInterface) {
-          $mappingConfigurationFile = $this->em->getRepository(MappingConfigurationFileInterface::class)->findOneBy(['filename' => $params['filename'], 'mappingConfiguration' => $mappingConfiguration]);
+          $mappingConfigurationFile = $this->em->getRepository(MappingConfigurationFileInterface::class)->findOneBy([
+            'filename' => $params['filename'], 'mappingConfiguration' => $mappingConfiguration,
+          ]);
           if ($mappingConfigurationFile instanceof MappingConfigurationFileInterface) {
             if (is_dir($dir)){
               if (file_exists($dir.'/'.$params['filename'])){
@@ -259,14 +431,17 @@ class MappingController extends AbstractController
     return new JsonResponse([], 500);
   }
 
-  public function controlePageAction($code)
+  public function controlePageAction($code, Request $request)
   {
     $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
     if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
       $mappingConfiguration = $this->em->getRepository(MappingConfigurationInterface::class)->findOneBy(['active' => true, 'type' => $mappingConfigurationType]);
       if ($mappingConfiguration instanceof MappingConfigurationInterface) {
+        if ($this->csvStructureRequiresConfirmation($mappingConfiguration, $request)) {
+          return $this->redirectToRoute('check_format_mapping_page', ['code' => $code, 'configuration' => $mappingConfiguration->getId()]);
+        }
         $valuesSaisiesManuelles = $this->mapping->getValueAvancesSaisieManuelleConfigurationMappingImport($mappingConfiguration);
-        $fichiersClients = array();
+        $fichiersClients = [];
         foreach (glob($this->projectDir . $mappingConfigurationType->getFilesDirectory() . $mappingConfigurationType->getFilename() . '*') as $path) {
           $mappingConfigurationFile = $this->em->getRepository(MappingConfigurationFileInterface::class)->findOneBy([
             'filename' =>  basename($path),
@@ -290,33 +465,36 @@ class MappingController extends AbstractController
           }
         }
         $this->em->flush();
-        return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/controle.html.twig", [
+        return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/controle.html.twig', [
           'mapping_configuration_type' => $mappingConfigurationType,
           'basePath' => 'base.html.twig',
-          "fichiers_clients" => $fichiersClients,
+          'fichiers_clients' => $fichiersClients,
           'advanced_values_saisie_manuelle' => $valuesSaisiesManuelles
         ]));
       } else {
-        return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/mapping_configuration_type_not_found.html.twig", [
+        return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/mapping_configuration_type_not_found.html.twig', [
           'code' => $code,
           'basePath' => 'base.html.twig',
         ]));
       }
     } else {
-      return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/mapping_configuration_type_not_found.html.twig", [
+      return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/mapping_configuration_type_not_found.html.twig', [
         'code' => $code,
         'basePath' => 'base.html.twig',
       ]));
     }
   }
 
-  public function controlerFichierAction($code)
+  public function controlerFichierAction($code, Request $request)
   {
     ini_set('memory_limit', '512M');
     $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
     if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
       $mappingConfiguration = $this->getMappingConfigurationActive($mappingConfigurationType);
       if ($mappingConfiguration instanceof MappingConfigurationInterface) {
+        if ($this->csvStructureRequiresConfirmation($mappingConfiguration, $request)) {
+          return new JsonResponse(['error_message' => 'Vérifiez la structure du CSV sur la page de mapping avant le contrôle.'], 409);
+        }
         $result = $this->mapping->controlerFichiers($mappingConfiguration, true);
         if ($result['error']) {
           return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/controle/controle_ko.html.twig', [
@@ -337,7 +515,8 @@ class MappingController extends AbstractController
     }
   }
 
-  private function getMappingConfigurationActive(MappingConfigurationTypeInterface $mappingConfigurationType) {
+  private function getMappingConfigurationActive(MappingConfigurationTypeInterface $mappingConfigurationType)
+  {
     $mappingConfiguration = $this->em->getRepository(MappingConfigurationInterface::class)->findOneBy(['active' => true, 'type' => $mappingConfigurationType]);
     return $mappingConfiguration;
   }
@@ -347,7 +526,7 @@ class MappingController extends AbstractController
     $mappingConfigurationType = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $code]);
     if ($mappingConfigurationType instanceof MappingConfigurationTypeInterface){
       $champsPossibles = $this->em->getRepository(MappingChampPossibleInterface::class)->findBy(['mappingConfigurationType' => $mappingConfigurationType, 'visible' => true]);
-      return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/gerer_champs_possibles.html.twig", [
+      return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/gerer_champs_possibles.html.twig', [
         'mapping_configuration_type' => $mappingConfigurationType,
         'champsPossibles' => $champsPossibles,
       ]));
@@ -361,7 +540,7 @@ class MappingController extends AbstractController
     $params = $request->request->all();
     $champPossible = $this->em->getRepository(MappingChampPossibleInterface::class)->find($params['champ_id']);
     if ($champPossible instanceof MappingChampPossibleInterface){
-      return new Response($this->twig->render("@ImanagingCheckFormat/Mapping/modals/edit_champ_possible.html.twig", [
+      return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/modals/edit_champ_possible.html.twig', [
         'champPossible' => $champPossible
       ]));
     } else {
@@ -418,9 +597,15 @@ class MappingController extends AbstractController
     $mappingTypeConfiguration = $this->em->getRepository(MappingConfigurationTypeInterface::class)->findOneBy(['code' => $codeMappingConfiguration]);
     if ($mappingTypeConfiguration instanceof MappingConfigurationTypeInterface){
       $mappingConfigurations = $this->em->getRepository(MappingConfigurationInterface::class)->findBy(['type' => $mappingTypeConfiguration]);
+      $pendingFiles = glob($this->projectDir . $mappingTypeConfiguration->getFilesDirectory() . $mappingTypeConfiguration->getFilename() . '*') ?: [];
+      if (count($pendingFiles) > 0) {
+        $active = $this->getMappingConfigurationActive($mappingTypeConfiguration);
+        $mappingConfigurations = $active instanceof MappingConfigurationInterface ? [$active] : [];
+      }
       return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/partials/mapping_configuration_select.html.twig', [
         'mapping_configuration_type' => $mappingTypeConfiguration,
         'mapping_configurations' => $mappingConfigurations,
+        'pending_files' => count($pendingFiles),
       ]));
     } else {
       return new JsonResponse([], 500);
@@ -491,7 +676,6 @@ class MappingController extends AbstractController
               $value->setMappingType($_value['type_mapping']);
               $this->em->persist($value);
 
-
               foreach ($_value['transformations'] as $_transformation) {
                 $className = $this->em->getRepository(MappingConfigurationValueTransformationInterface::class)->getClassName();
                 $transformation = new $className();
@@ -557,7 +741,8 @@ class MappingController extends AbstractController
     return new JsonResponse(['error' => true, 'error_message' => 'Une erreur est survenue lors de l\'ajout de la configuration'], 500);
   }
 
-  public function exportMappingConfigurationAction(Request $request) {
+  public function exportMappingConfigurationAction(Request $request)
+  {
     $params = $request->request->all();
     if (isset($params['mapping_id'])) {
       $configuration = $this->em->getRepository(MappingConfigurationInterface::class)->find($params['mapping_id']);
@@ -576,7 +761,7 @@ class MappingController extends AbstractController
         $dumpedData = Yaml::dump($configuration->getFormattedConfiguration(), 2, 4, Yaml::DUMP_MULTI_LINE_LITERAL_BLOCK);
         file_put_contents($filePath, $dumpedData);
 
-        return new JsonResponse(['success' => true, 'url' => $this->generateUrl('check_format_mapping_download_export_configuration', ['filename' => $filename ])]);
+        return new JsonResponse(['success' => true, 'url' => $this->generateUrl('check_format_mapping_download_export_configuration', ['filename' => $filename])]);
       } else {
         return new JsonResponse(['error_message' => 'La configuration n\'a pas été trouvé'], 500);
       }
@@ -584,7 +769,8 @@ class MappingController extends AbstractController
     return new JsonResponse(['error_message' => 'Un paramètre est manquant pour exporter la configuration.'], 500);
   }
 
-  public function downloadExportMappingConfigurationAction($filename) {
+  public function downloadExportMappingConfigurationAction($filename)
+  {
     $filepath = $this->projectDir.'/public/database/tmp_files/'.$filename.'.yaml';
     if (file_exists($filepath)) {
       return $this->file($filepath);
@@ -592,7 +778,8 @@ class MappingController extends AbstractController
     throw new Exception('File not found');
   }
 
-  public function importMappingConfigurationAction(Request $request) {
+  public function importMappingConfigurationAction(Request $request)
+  {
     $params = $request->request->all();
     $files = $request->files->all();
     var_dump($params);
@@ -805,11 +992,17 @@ class MappingController extends AbstractController
     if (!is_null($champSelect)) {
       switch ($champSelect['type']) {
         case 'date':
-          return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/partials/mapping_fichier_select_champs_options_date.html.twig', ['lib_colonne' => $params['lib_colonne']]));
+          return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/partials/mapping_fichier_select_champs_options_date.html.twig', [
+            'lib_colonne' => $params['lib_colonne'],
+          ]));
         case 'array':
-          return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/partials/mapping_fichier_select_champs_options_array.html.twig', ['lib_colonne' => $params['lib_colonne']]));
+          return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/partials/mapping_fichier_select_champs_options_array.html.twig', [
+            'lib_colonne' => $params['lib_colonne'],
+          ]));
         default:
-          return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/partials/mapping_fichier_select_champs_options_default.html.twig', ['lib_colonne' => $params['lib_colonne']]));
+          return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/partials/mapping_fichier_select_champs_options_default.html.twig', [
+            'lib_colonne' => $params['lib_colonne'],
+          ]));
       }
     } else {
       return new Response(['error_message' => 'Une erreur est survenue lors de la sélection du champ. Si le problème persiste, veuillez contacter un administrateur.'], 500);
@@ -824,6 +1017,9 @@ class MappingController extends AbstractController
     if (isset($params['mapping_id']) && isset($params['mapping'])) {
       $configuration = $this->em->getRepository(MappingConfigurationInterface::class)->find($params['mapping_id']);
       if ($configuration instanceof MappingConfigurationInterface) {
+        if ($this->csvStructureRequiresConfirmation($configuration, $request)) {
+          return new JsonResponse(['error_message' => 'La structure du CSV a changé. Revenez à la page de mapping pour vérifier les différences.'], 409);
+        }
         $advancedValues = $this->em->getRepository(MappingConfigurationValueInterface::class)->findBy([
           'mappingConfiguration' => $configuration,
           'fichierIndex' => null,
@@ -861,7 +1057,9 @@ class MappingController extends AbstractController
           // on boucle sur toutes les lignes pour les ajouter
           foreach ($mappings as $mapping){
             // on recherche la ligne
-            $configurationValue = $this->em->getRepository(MappingConfigurationValueInterface::class)->findOneBy(['mappingConfiguration' => $configuration, 'fichierIndex' => $mapping['index']]);
+            $configurationValue = $this->em->getRepository(MappingConfigurationValueInterface::class)->findOneBy([
+              'mappingConfiguration' => $configuration, 'fichierIndex' => $mapping['index'],
+            ]);
             if ($configurationValue instanceof MappingConfigurationValueInterface) {
               unset($valuesToDelete[$configurationValue->getId()]); // on enlève de la liste à supprimer
             } else {
@@ -1200,7 +1398,7 @@ class MappingController extends AbstractController
       }
 
       $options = isset($transformation['transformation_options']) && is_array($transformation['transformation_options'])
-        ? $transformation['transformation_options'] : null;
+      ? $transformation['transformation_options'] : null;
       if ($transformationCode === TransformationEnum::DECIMAL_TO_INTEGER) {
         $options = DecimalToInteger::normalizeOptions($options);
       }
@@ -1214,7 +1412,8 @@ class MappingController extends AbstractController
     return $normalized;
   }
 
-  public function showRecapMappingConfigurationAction(Request $request) {
+  public function showRecapMappingConfigurationAction(Request $request)
+  {
     $params = $request->request->all();
     if (isset($params['mapping_id'])) {
       $configuration = $this->em->getRepository(MappingConfigurationInterface::class)->find($params['mapping_id']);
@@ -1227,7 +1426,8 @@ class MappingController extends AbstractController
     return new JsonResponse([], 500);
   }
 
-  public function showRecapDecoupageChampsMappingConfigurationAction(Request $request) {
+  public function showRecapDecoupageChampsMappingConfigurationAction(Request $request)
+  {
     $params = $request->request->all();
     if (isset($params['mapping_id'])) {
       $configuration = $this->em->getRepository(MappingConfigurationInterface::class)->find($params['mapping_id']);
@@ -1270,7 +1470,9 @@ class MappingController extends AbstractController
           return new JsonResponse(['error' => true, 'error_message' => 'Une erreur est survenue lors de l\'enregistrement de la configuration active'], 500);
         }
       } else {
-        return new JsonResponse(['error' => true, 'error_message' => 'Une erreur est survenue lors de la récupération de la configuration (ID non trouvé : '.$params['mapping_id'].')'], 500);
+        return new JsonResponse([
+          'error' => true, 'error_message' => 'Une erreur est survenue lors de la récupération de la configuration (ID non trouvé : '.$params['mapping_id'].')',
+        ], 500);
       }
     } else {
       return new JsonResponse(['error' => true, 'error_message' => 'Une erreur est survenue lors de la récupération de la configuration (paramètre manquant)'], 500);
@@ -1413,7 +1615,8 @@ class MappingController extends AbstractController
     return new JsonResponse(['error' => true, 'error_message' => 'Une erreur est survenue lors de la récupération de la configuration (paramètre manquant)'], 500);
   }
 
-  public function saveSaisiesManuellesConfigurationFileAction($id, Request $request) {
+  public function saveSaisiesManuellesConfigurationFileAction($id, Request $request)
+  {
     $mappingFile = $this->em->getRepository(MappingConfigurationFileInterface::class)->find($id);
     if ($mappingFile instanceof MappingConfigurationFileInterface) {
       $params = $request->request->all();

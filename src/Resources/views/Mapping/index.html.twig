@@ -2,36 +2,45 @@
 
 {% block body %}
   {% include '@ImanagingCheckFormat/Mapping/partials/styles.html.twig' %}
-  <div class="container check-format-page">
-    <h2 class="display-4 text-center">Mapping - Séléction du type de configuration</h2>
+  <div class="container container-full-width check-format-page check-format-main check-format-index">
+    <header class="check-format-heading">
+      <p class="check-format-heading__eyebrow">Import de données</p>
+      <h1>Choisir un type d’import</h1>
+      <p>Sélectionnez le type de données à importer pour accéder à ses configurations de mapping.</p>
+    </header>
 
-    <div class="card">
-      <div class="card-body">
-        <h3>Liste des imports possibles</h3>
-        <p><i class="fa fa-info-circle fa-fw"></i>Veuillez sélectionner parmis la liste ci-dessous le type de mapping que vous souhaitez effectuer.</p>
-        <table class="table table-bordered">
-          <thead>
-            <tr>
-              <th>Type de configuration</th>
-              <th>Description</th>
-              <th>Nombre de configuration</th>
-              <th>Accéder</th>
-            </tr>
-          </thead>
-          <tbody>
-          {% for type in mappings_configurations_types %}
-            <tr>
-              <td>{{ type.libelle }}</td>
-              <td>{{ type.description }}</td>
-              <td>{{ type.mappingConfigurations|length }}</td>
-              <td>
-                <a href="{{ path('check_format_mapping_page', {code: type.code}) }}" class="btn btn-primary">Accéder au mapping</a>
-              </td>
-            </tr>
-          {% endfor %}
-          </tbody>
-        </table>
+    <section class="card" aria-labelledby="check-format-imports-title">
+      <div class="card-header check-format-index__header">
+        <div>
+          <h2 id="check-format-imports-title">Imports disponibles</h2>
+          <p>Choisissez l’import adapté aux données de votre fichier.</p>
+        </div>
+        <span class="check-format-index__total">{{ mappings_configurations_types|length }} type{{ mappings_configurations_types|length > 1 ? 's' : '' }}</span>
       </div>
-    </div>
+      <div class="card-body check-format-index__body">
+        {% for type in mappings_configurations_types %}
+          {% set configuration_count = type.mappingConfigurations|length %}
+          {% set pending_count = pending_files_by_type[type.code] ?? 0 %}
+          <article class="check-format-index__item">
+            <span class="check-format-index__icon" aria-hidden="true"><i class="fa fa-file"></i></span>
+            <div class="check-format-index__content">
+              <h3>{{ type.libelle }}</h3>
+              <p>{{ type.description }}</p>
+              <div class="check-format-index__badges">
+                <span class="check-format-index__count">{{ configuration_count }} configuration{{ configuration_count > 1 ? 's' : '' }}</span>
+                {% if pending_count > 0 %}
+                  <span class="check-format-index__pending"><i class="fa fa-clock fa-fw" aria-hidden="true"></i>{{ pending_count }} fichier{{ pending_count > 1 ? 's' : '' }} en attente d’intégration</span>
+                {% endif %}
+              </div>
+            </div>
+            <a href="{{ path('check_format_mapping_page', {code: type.code}) }}" class="btn check-format-index__link" aria-label="Accéder au mapping : {{ type.libelle }}">
+              Accéder au mapping <i class="fa fa-arrow-right" aria-hidden="true"></i>
+            </a>
+          </article>
+        {% else %}
+          <p class="check-format-empty">Aucun type d’import n’est disponible.</p>
+        {% endfor %}
+      </div>
+    </section>
   </div>
 {% endblock %}
