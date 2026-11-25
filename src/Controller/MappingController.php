@@ -5,6 +5,7 @@ namespace Imanaging\CheckFormatBundle\Controller;
 use App\Entity\MappingConfiguration;
 use DateTime;
 use Imanaging\CheckFormatBundle\Service\DecimalToInteger;
+use Imanaging\CheckFormatBundle\Service\AdvancedPartTransformation;
 use Imanaging\CheckFormatBundle\Service\CsvStructureComparison;
 use Imanaging\CheckFormatBundle\Service\MappingStructurePreview;
 use Imanaging\CheckFormatBundle\Exception\TransformationException;
@@ -918,7 +919,11 @@ class MappingController extends AbstractController
         }
         $value->setMappingConfigurationValue($configurationValue);
         $value->setMappingConfigurationValueAvanceType($type);
-        $value->setOrdre(count($configurationValue->getMappingConfigurationValueAvances()) + 1);
+        $maxOrdre = 0;
+        foreach ($configurationValue->getMappingConfigurationValueAvances() as $existingPart) {
+          $maxOrdre = max($maxOrdre, $existingPart->getOrdre());
+        }
+        $value->setOrdre($maxOrdre + 1);
         $this->em->persist($value);
         $this->em->flush();
 
@@ -931,6 +936,139 @@ class MappingController extends AbstractController
     }
   }
 
+  public function updateConfigurationValueAvanceFilePaddingAction(Request $request)
+  {
+    $id = (string) $request->request->get('id');
+    if (!$this->csrfTokens->isTokenValid(new CsrfToken('mapping_file_padding_'.$id, (string) $request->request->get('_token')))) {
+      return new JsonResponse(['error_message' => 'Session expirée. Rechargez la page.'], 403);
+    }
+    $value = $this->em->getRepository(MappingConfigurationValueAvanceFileInterface::class)->find($id);
+    if (!$value instanceof MappingConfigurationValueAvanceFileInterface) {
+      return new JsonResponse(['error_message' => 'Cette colonne ne prend pas en charge le remplissage.'], 400);
+    }
+    $rawLength = trim((string) $request->request->get('longueur', ''));
+    if ($rawLength !== '' && (!ctype_digit($rawLength) || (int) $rawLength < 1 || (int) $rawLength > 255)) {
+      return new JsonResponse(['error_message' => 'La longueur doit être comprise entre 1 et 255 caractères.'], 400);
+    }
+    $configurationValue = $value->getMappingConfigurationValue();
+    $matchingParts = 0;
+    foreach ($configurationValue->getMappingConfigurationValueAvances() as $part) {
+      if ($part instanceof MappingConfigurationValueAvanceFileInterface
+        && $part->getOrdre() === $value->getOrdre() && $part->getFichierIndex() === $value->getFichierIndex()) {
+        $matchingParts++;
+      }
+    }
+    if ($matchingParts !== 1) {
+      return new JsonResponse(['error_message' => 'Colonnes ambiguës : supprimez et recréez cette partie du champ avancé.'], 400);
+    }
+    $existing = null;
+    foreach ($configurationValue->getMappingConfigurationValueTransformations() as $transformation) {
+      if ($transformation instanceof MappingConfigurationValueTransformationInterface
+        && $transformation->getTransformation() === TransformationEnum::ADD_CHARACTER_ZERO_START
+        && AdvancedPartTransformation::matches($transformation, $value)) {
+        $existing = $transformation;
+        break;
+      }
+    }
+    if ($rawLength === '') {
+      if ($existing !== null) {
+        $this->em->remove($existing);
+      }
+    } else {
+      if ($existing === null) {
+        $className = $this->em->getRepository(MappingConfigurationValueTransformationInterface::class)->getClassName();
+        $existing = new $className();
+        $existing->setMappingConfigurationValue($configurationValue);
+        $existing->setTransformation(TransformationEnum::ADD_CHARACTER_ZERO_START);
+      }
+      $existing->setNbCaract($rawLength);
+      $existing->setTransformationOptions(['advanced_part' => [
+        'ordre' => $value->getOrdre(), 'fichier_index' => $value->getFichierIndex(),
+      ]]);
+      $this->em->persist($existing);
+    }
+    $this->em->flush();
+    return new JsonResponse(['success' => true]);
+  }
+
+  public function addAdvancedPartTransformationAction(Request $request)
+  {
+    $id = (string) $request->request->get('id');
+    if (!$this->csrfTokens->isTokenValid(new CsrfToken('mapping_file_padding_'.$id, (string) $request->request->get('_token')))) {
+      return new JsonResponse(['error_message' => 'Session expirée. Rechargez la page.'], 403);
+    }
+    $part = $this->em->getRepository(MappingConfigurationValueAvanceFileInterface::class)->find($id);
+    if (!$part instanceof MappingConfigurationValueAvanceFileInterface) {
+      return new JsonResponse(['error_message' => 'Colonne introuvable.'], 400);
+    }
+    $configurationValue = $part->getMappingConfigurationValue();
+    $matchingParts = 0;
+    foreach ($configurationValue->getMappingConfigurationValueAvances() as $candidate) {
+      if ($candidate instanceof MappingConfigurationValueAvanceFileInterface
+        && $candidate->getOrdre() === $part->getOrdre() && $candidate->getFichierIndex() === $part->getFichierIndex()) {
+        $matchingParts++;
+      }
+    }
+    if ($matchingParts !== 1) {
+      return new JsonResponse(['error_message' => 'Colonnes ambiguës : supprimez et recréez cette partie du champ avancé.'], 400);
+    }
+    $code = (string) $request->request->get('transformation');
+    if (!in_array($code, TransformationEnum::getAvailableTransformations(), true)) {
+      return new JsonResponse(['error_message' => 'Transformation inconnue.'], 400);
+    }
+    $noLength = [TransformationEnum::REPLACE, TransformationEnum::DECIMAL_TO_INTEGER,
+      TransformationEnum::INVERT_SIGN, TransformationEnum::REMOVE_CHARACTER_ZERO_START];
+    $length = trim((string) $request->request->get('nb_caract', ''));
+    if (!in_array($code, $noLength, true) && (!ctype_digit($length) || (int) $length < 1 || (int) $length > 255)) {
+      return new JsonResponse(['error_message' => 'La longueur doit être comprise entre 1 et 255 caractères.'], 400);
+    }
+    $options = $request->request->all('transformation_options');
+    try {
+      if ($code === TransformationEnum::DECIMAL_TO_INTEGER) {
+        $options = DecimalToInteger::normalizeOptions($options);
+      } elseif ($code === TransformationEnum::REPLACE) {
+        $options = ['search' => (string) ($options['search'] ?? ''), 'replace' => (string) ($options['replace'] ?? '')];
+        if ($options['search'] === '') {
+          return new JsonResponse(['error_message' => 'Indiquez la valeur à rechercher.'], 400);
+        }
+      } else {
+        $options = [];
+      }
+    } catch (TransformationException $exception) {
+      return new JsonResponse(['error_message' => $exception->getMessage()], 400);
+    }
+    $options['advanced_part'] = ['ordre' => $part->getOrdre(), 'fichier_index' => $part->getFichierIndex()];
+    $className = $this->em->getRepository(MappingConfigurationValueTransformationInterface::class)->getClassName();
+    $transformation = new $className();
+    $transformation->setMappingConfigurationValue($configurationValue);
+    $transformation->setTransformation($code);
+    $transformation->setNbCaract(in_array($code, $noLength, true) ? '0' : $length);
+    $transformation->setTransformationOptions($options);
+    $this->em->persist($transformation);
+    $this->em->flush();
+    return new JsonResponse(['success' => true]);
+  }
+
+  public function removeAdvancedPartTransformationAction(Request $request)
+  {
+    $id = (string) $request->request->get('id');
+    if (!$this->csrfTokens->isTokenValid(new CsrfToken('mapping_file_padding_'.$id, (string) $request->request->get('_token')))) {
+      return new JsonResponse(['error_message' => 'Session expirée. Rechargez la page.'], 403);
+    }
+    $part = $this->em->getRepository(MappingConfigurationValueAvanceFileInterface::class)->find($id);
+    $transformation = $this->em->getRepository(MappingConfigurationValueTransformationInterface::class)
+      ->find($request->request->get('transformation_id'));
+    if (!$part instanceof MappingConfigurationValueAvanceFileInterface
+      || !$transformation instanceof MappingConfigurationValueTransformationInterface
+      || $transformation->getMappingConfigurationValue()->getId() !== $part->getMappingConfigurationValue()->getId()
+      || !AdvancedPartTransformation::matches($transformation, $part)) {
+      return new JsonResponse(['error_message' => 'Transformation introuvable pour cette colonne.'], 400);
+    }
+    $this->em->remove($transformation);
+    $this->em->flush();
+    return new JsonResponse(['success' => true]);
+  }
+
   public function removeConfigurationValuesAvancesDetailAction(Request $request)
   {
     $params = $request->request->all();
@@ -938,6 +1076,14 @@ class MappingController extends AbstractController
     if ($valueAvance instanceof MappingConfigurationValueAvanceInterface){
       try {
         $configurationValue = $valueAvance->getMappingConfigurationValue();
+        if ($valueAvance instanceof MappingConfigurationValueAvanceFileInterface) {
+          foreach ($configurationValue->getMappingConfigurationValueTransformations() as $transformation) {
+            if ($transformation instanceof MappingConfigurationValueTransformationInterface
+              && AdvancedPartTransformation::matches($transformation, $valueAvance)) {
+              $this->em->remove($transformation);
+            }
+          }
+        }
         $this->em->remove($valueAvance);
         $this->em->flush();
         return $this->mapping->showMappingConfigurationValuesAvancesDetail($configurationValue);

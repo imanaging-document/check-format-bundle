@@ -12,7 +12,7 @@
       <tbody id="tbody-transformations">
       {% for transformation in mapping_value.mappingConfigurationValueTransformations %}
         <tr>
-          <td>{{ transformations[transformation.transformation]|default(transformation.transformation) }}</td>
+          <td>{{ transformations[transformation.transformation]|default(transformation.transformation) }}{% if transformation.transformationOptions.advanced_part is defined %} (partie {{ transformation.transformationOptions.advanced_part.ordre }}){% endif %}</td>
           <td>
             {% if transformation.transformation == 'decimal_to_integer' %}
               {% set options = transformation.transformationOptions|default({}) %}

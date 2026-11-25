@@ -181,6 +181,15 @@
               {% endfor %}
             </div>
 
+            <div class="form-group mb-3">
+              <label for="xml-business-field-search">Rechercher un champ à associer</label>
+              <input id="xml-business-field-search" type="search" class="form-control" autocomplete="off"
+                     placeholder="Nom ou code du champ" aria-controls="xml-business-field-results">
+              <small class="form-text text-muted">Sélectionnez directement un champ. Les associations déjà renseignées sont indiquées.</small>
+              <div id="xml-business-field-results" class="list-group mt-2" role="group" aria-label="Champs disponibles"></div>
+              <small id="xml-business-field-result-count" class="form-text text-muted" aria-live="polite"></small>
+            </div>
+
             <div class="d-flex justify-content-between align-items-center mb-3">
               <div>
                 <h5 id="xml-current-field-label" class="mb-1"></h5>

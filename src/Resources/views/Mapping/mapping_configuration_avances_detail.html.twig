@@ -13,7 +13,64 @@
   {% for valeur_avance in values_avances %}
     <tr>
       <td>{{ valeur_avance.mappingConfigurationValueAvanceType.libelle }}</td>
-      <td>{{ valeur_avance.value }}</td>
+      <td>
+        {{ valeur_avance.value }}
+        {% if valeur_avance.mappingConfigurationValueAvanceType.code == 'value_file' %}
+          <div class="part-transformations mt-2 text-left" data-id="{{ valeur_avance.id }}"
+               data-token="{{ csrf_token('mapping_file_padding_' ~ valeur_avance.id) }}">
+            <strong>Transformations de cette colonne</strong>
+            <small class="d-block text-muted">Appliquées dans l’ordre affiché, avant la concaténation.</small>
+            {% for transformation in transformations_by_part[valeur_avance.id]|default([]) %}
+              {% set options = transformation.transformationOptions|default({}) %}
+              <div class="d-flex align-items-center justify-content-between mt-1">
+                <span>
+                  {{ transformations[transformation.transformation]|default(transformation.transformation) }}
+                  {% if transformation.transformation == 'replace' %}
+                    — « {{ options.search|default('') }} » → « {{ options.replace|default('') }} »
+                  {% elseif transformation.transformation == 'decimal_to_integer' %}
+                    — séparateur décimal : {{ options.decimal_separator|default(',') }}, milliers : {{ options.thousands_separator|default('aucun', true) }}, décimales : {{ options.decimal_places|default(2) }}
+                  {% elseif transformation.transformation not in ['invert_sign', 'remove_character_zero_start'] %}
+                    — {{ transformation.nbCaract }} caractères
+                  {% endif %}
+                </span>
+                <button type="button" class="btn btn-outline-danger btn-sm remove-part-transformation ml-2"
+                        data-transformation-id="{{ transformation.id }}" aria-label="Supprimer la transformation">Supprimer</button>
+              </div>
+            {% else %}
+              <small class="d-block text-muted">Aucune transformation.</small>
+            {% endfor %}
+            <details class="mt-2">
+              <summary>Ajouter une transformation</summary>
+              <div class="form-group mt-2">
+                <label for="part-transform-{{ valeur_avance.id }}">Transformation</label>
+                <select id="part-transform-{{ valeur_avance.id }}" class="form-control part-transform-code">
+                  {% for code, label in transformations %}<option value="{{ code }}">{{ label }}</option>{% endfor %}
+                </select>
+              </div>
+              <div class="form-group part-transform-length">
+                <label for="part-length-{{ valeur_avance.id }}">Nombre de caractères</label>
+                <input id="part-length-{{ valeur_avance.id }}" type="number" min="1" max="255" step="1" class="form-control part-length">
+              </div>
+              <div class="part-transform-replace d-none">
+                <label for="part-search-{{ valeur_avance.id }}">Valeur à rechercher</label>
+                <input id="part-search-{{ valeur_avance.id }}" type="text" class="form-control part-search">
+                <label for="part-replace-{{ valeur_avance.id }}">Remplacer par</label>
+                <input id="part-replace-{{ valeur_avance.id }}" type="text" class="form-control part-replace">
+              </div>
+              <div class="part-transform-decimal d-none">
+                <label for="part-decimal-{{ valeur_avance.id }}">Séparateur décimal</label>
+                <select id="part-decimal-{{ valeur_avance.id }}" class="form-control part-decimal"><option value=",">Virgule</option><option value=".">Point</option></select>
+                <label for="part-thousands-{{ valeur_avance.id }}">Séparateur de milliers</label>
+                <select id="part-thousands-{{ valeur_avance.id }}" class="form-control part-thousands"><option value="">Aucun</option><option value="." selected>Point</option><option value=",">Virgule</option><option value=" ">Espace</option></select>
+                <label for="part-places-{{ valeur_avance.id }}">Nombre de décimales</label>
+                <input id="part-places-{{ valeur_avance.id }}" type="number" min="0" step="1" value="2" class="form-control part-places">
+              </div>
+              <button type="button" class="btn btn-outline-primary btn-sm add-part-transformation mt-2">Ajouter</button>
+            </details>
+            <span class="part-transform-status d-block mt-1" role="status"></span>
+          </div>
+        {% endif %}
+      </td>
       <td>
         <i class="fa fa-times text-danger pointer delete-valeur-avancee-detail"
            data-toggle="tooltip" data-placement="top" title="Supprimer la valeur" data-valeur-avancee-id="{{ valeur_avance.id }}"></i>
@@ -118,6 +175,42 @@
 </div>
 
 <script>
+  function updatePartTransformationFields(container) {
+    const code = container.find('.part-transform-code').val();
+    container.find('.part-transform-length').toggleClass('d-none', ['replace', 'decimal_to_integer', 'invert_sign', 'remove_character_zero_start'].includes(code));
+    container.find('.part-transform-replace').toggleClass('d-none', code !== 'replace');
+    container.find('.part-transform-decimal').toggleClass('d-none', code !== 'decimal_to_integer');
+  }
+  $('.part-transformations').each(function() { updatePartTransformationFields($(this)); });
+  $('.part-transform-code').change(function() { updatePartTransformationFields($(this).closest('.part-transformations')); });
+
+  $('.add-part-transformation, .remove-part-transformation').click(function() {
+    const button = $(this);
+    const container = button.closest('.part-transformations');
+    const status = container.find('.part-transform-status');
+    const code = container.find('.part-transform-code').val();
+    const removing = button.hasClass('remove-part-transformation');
+    const data = {id: container.data('id'), _token: container.data('token'), transformation: code,
+      nb_caract: container.find('.part-length').val(), transformation_id: button.data('transformation-id')};
+    if (code === 'replace') {
+      data.transformation_options = {search: container.find('.part-search').val(), replace: container.find('.part-replace').val()};
+    } else if (code === 'decimal_to_integer') {
+      data.transformation_options = {decimal_separator: container.find('.part-decimal').val(),
+        thousands_separator: container.find('.part-thousands').val(), decimal_places: container.find('.part-places').val()};
+    }
+    button.prop('disabled', true);
+    status.removeClass('text-danger').text('Enregistrement…');
+    $.ajax({
+      url: removing ? "{{ path('check_format_mapping_advanced_part_transformation_remove') }}" : "{{ path('check_format_mapping_advanced_part_transformation_add') }}",
+      type: 'POST', data: data,
+      success: function() {
+        $('.lookingForDetail[data-id="{{ value.id }}"]').trigger('click');
+      },
+      error: function(response) { status.addClass('text-danger').text(response.responseJSON?.error_message || 'Enregistrement impossible.'); },
+      complete: function() { button.prop('disabled', false); }
+    });
+  });
+
   var nbColonnes = 0;
   $(function () {
     $('[data-toggle="tooltip"]').tooltip()

@@ -152,6 +152,18 @@
         <default key="_controller">imanaging_check_format.mapping_controller::getMappingConfigurationValuesAvancesDetailAction</default>
     </route>
 
+    <route id="check_format_mapping_configuration_values_avances_file_padding" path="/mapping/configuration-values-avances/detail/file-padding" methods="POST">
+        <default key="_controller">imanaging_check_format.mapping_controller::updateConfigurationValueAvanceFilePaddingAction</default>
+    </route>
+
+    <route id="check_format_mapping_advanced_part_transformation_add" path="/mapping/configuration-values-avances/detail/transformation/add" methods="POST">
+        <default key="_controller">imanaging_check_format.mapping_controller::addAdvancedPartTransformationAction</default>
+    </route>
+
+    <route id="check_format_mapping_advanced_part_transformation_remove" path="/mapping/configuration-values-avances/detail/transformation/remove" methods="POST">
+        <default key="_controller">imanaging_check_format.mapping_controller::removeAdvancedPartTransformationAction</default>
+    </route>
+
     <route id="check_format_mapping_configuration_values_avances_detail_remove" path="/mapping/configuration-values-avances/detail/remove">
         <default key="_controller">imanaging_check_format.mapping_controller::removeConfigurationValuesAvancesDetailAction</default>
     </route>

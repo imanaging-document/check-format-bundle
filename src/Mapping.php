@@ -38,6 +38,8 @@ use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatAdvancedString;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatDate;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatArray;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatTransformation;
+use Imanaging\CheckFormatBundle\Enum\TransformationEnum;
+use Imanaging\CheckFormatBundle\Service\AdvancedPartTransformation;
 use Imanaging\CheckFormatBundle\Entity\FieldCheckFormatTranslation;
 use Imanaging\CheckFormatBundle\Interfaces\MappingChampPossibleInterface;
 use Imanaging\CheckFormatBundle\Interfaces\MappingConfigurationInterface;
@@ -141,8 +143,19 @@ class Mapping
       $ligneEntete = $data['entete'];
     }
 
+    $transformationsByPart = [];
+    foreach ($configurationValue->getMappingConfigurationValueAvances() as $part) {
+      if ($part instanceof MappingConfigurationValueAvanceFileInterface) {
+        $transformationsByPart[$part->getId()] = AdvancedPartTransformation::forPart(
+          $configurationValue->getMappingConfigurationValueTransformations(), $part
+        );
+      }
+    }
+
     return new Response($this->twig->render('@ImanagingCheckFormat/Mapping/mapping_configuration_avances_detail.html.twig', [
       'values_avances' => $configurationValue->getMappingConfigurationValueAvances(),
+      'transformations_by_part' => $transformationsByPart,
+      'transformations' => TransformationEnum::getAvailableTransformationsWithLibelle(),
       'types_values' => $this->em->getRepository(MappingConfigurationValueAvanceTypeInterface::class)->findAll(),
       'value' => $configurationValue,
       'ligne_entete' => $ligneEntete
@@ -451,6 +464,11 @@ class Mapping
                 $champ['nullable']
               );
 
+              foreach (AdvancedPartTransformation::forPart($value->getMappingConfigurationValueTransformations(), $avance) as $transformation) {
+                $fieldtemp->addTransformation(new FieldCheckFormatTransformation(
+                  $transformation->getTransformation(), $transformation->getNbCaract(), $transformation->getTransformationOptions()
+                ));
+              }
               foreach ($avance->getMappingConfigurationValueAvanceFileTransformations() as $transformation) {
                 if ($transformation instanceof MappingConfigurationValueAvanceFileTransformationInterface) {
                   $fieldtemp->addTransformation(
@@ -498,7 +516,7 @@ class Mapping
             }
           }
           foreach ($value->getMappingConfigurationValueTransformations() as $transformation) {
-            if ($transformation instanceof MappingConfigurationValueTransformationInterface) {
+            if ($transformation instanceof MappingConfigurationValueTransformationInterface && !AdvancedPartTransformation::isScoped($transformation)) {
               $fieldAdvancedTemp->addTransformation(
                 new FieldCheckFormatTransformation(
                   $transformation->getTransformation(),

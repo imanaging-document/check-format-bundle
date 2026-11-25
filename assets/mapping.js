@@ -387,7 +387,11 @@ function loadXmlRowPreview(callback) {
 
   var rowXpath = $('#xml_row_xpath').val();
   if (rowXpath === null || rowXpath.trim() === '') {
-    $('#xml-row-preview-content').html('<div class="alert alert-warning">Veuillez enregistrer le XPath du noeud répétable avant de charger l\'aperçu.</div>');
+    var message = 'Renseignez et enregistrez le nœud répétable à l’étape 2 avant de sélectionner un champ XML.';
+    $('#xml-row-preview-content').empty().append($('<div class="alert alert-warning">').text(message));
+    if (typeof callback === 'function') {
+      callback(null, message);
+    }
     return null;
   }
 
@@ -395,19 +399,30 @@ function loadXmlRowPreview(callback) {
   return $.ajax({
     url: $('#xml-row-preview').data('url'),
     type: 'POST',
+    timeout: 20000,
     data: {row_xpath: rowXpath},
     success: function(data) {
+      if (data.error) {
+        var message = data.error_message || 'Impossible de charger les champs XML.';
+        $('#xml-row-preview-content').empty().append($('<div class="alert alert-danger">').text(message));
+        if (typeof callback === 'function') {
+          callback(null, message);
+        }
+        return;
+      }
       renderXmlRowPreview(data);
       renderXmlPreviewFieldSuggestions(data.suggested_field_xpaths || []);
       if (typeof callback === 'function') {
         callback(data);
       }
     },
-    error: function(data) {
-      if (data.responseJSON !== undefined && data.responseJSON.error_message !== undefined) {
-        $('#xml-row-preview-content').html('<div class="alert alert-danger">' + data.responseJSON.error_message + '</div>');
-      } else {
-        $('#xml-row-preview-content').html('<div class="alert alert-danger">Une erreur est survenue lors du chargement de l\'aperçu XML.</div>');
+    error: function(data, status) {
+      var message = data.responseJSON && data.responseJSON.error_message
+        ? data.responseJSON.error_message
+        : (status === 'timeout' ? 'Le chargement des champs XML a expiré. Réessayez.' : 'Impossible de charger les champs XML. Réessayez.');
+      $('#xml-row-preview-content').empty().append($('<div class="alert alert-danger">').text(message));
+      if (typeof callback === 'function') {
+        callback(null, message);
       }
     },
     complete: function() {
@@ -553,6 +568,50 @@ function getXmlBusinessFieldByCode(code) {
   return null;
 }
 
+function normalizeXmlBusinessSearch(value) {
+  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+function renderXmlBusinessFieldSearch() {
+  var query = normalizeXmlBusinessSearch($('#xml-business-field-search').val()).trim();
+  var results = $('#xml-business-field-results').empty();
+  var matches = xmlBusinessFields.filter(function(field) {
+    return normalizeXmlBusinessSearch(field.label + ' ' + field.code).indexOf(query) !== -1;
+  });
+  var visible = matches.slice(0, 50);
+  visible.forEach(function(field) {
+    var index = xmlBusinessFields.indexOf(field);
+    var selected = index === xmlCurrentFieldIndex;
+    var button = $('<button>', {
+      type: 'button',
+      'class': 'list-group-item list-group-item-action xml-business-field-choice' + (selected ? ' active' : ''),
+      'data-field-index': index,
+      'aria-pressed': selected ? 'true' : 'false'
+    });
+    button.append($('<span>').text(field.label));
+    button.append($('<small>', {'class': 'ml-2'}).text('(' + field.code + ')'));
+    if (isXmlFieldMappingFilled(xmlFieldMappings[field.code])) {
+      button.append($('<span>', {'class': 'badge badge-success ml-2'}).text('Associé'));
+    }
+    results.append(button);
+  });
+  var message = matches.length + ' champ' + (matches.length === 1 ? '' : 's');
+  if (matches.length > visible.length) {
+    message += ' — ' + visible.length + ' affichés, affinez votre recherche';
+  }
+  $('#xml-business-field-result-count').text(message);
+}
+
+$(document).on('input', '#xml-business-field-search', renderXmlBusinessFieldSearch);
+$(document).on('click', '.xml-business-field-choice', function() {
+  persistCurrentXmlBusinessField();
+  var index = Number($(this).attr('data-field-index'));
+  if (Number.isInteger(index) && index >= 0 && index < xmlBusinessFields.length) {
+    xmlCurrentFieldIndex = index;
+    renderCurrentXmlBusinessField();
+  }
+});
+
 function renderCurrentXmlBusinessField() {
   if (xmlBusinessFields.length === 0) {
     initXmlBusinessFields();
@@ -579,6 +638,7 @@ function renderCurrentXmlBusinessField() {
 
   $('#btn-previous-xml-business-field').prop('disabled', xmlCurrentFieldIndex === 0);
   $('#btn-next-xml-business-field').prop('disabled', xmlCurrentFieldIndex >= xmlBusinessFields.length - 1);
+  renderXmlBusinessFieldSearch();
   buildXmlWizardSummary();
 }
 
@@ -847,6 +907,7 @@ $(document).on('click', '.xml-source-type-button', function() {
 
 $(document).on('input change', '.xml-source-input, .xml-current-mapping-type', function() {
   persistCurrentXmlBusinessField();
+  renderXmlBusinessFieldSearch();
   $('#xml-field-mapping-saved').addClass('d-none');
   buildXmlWizardSummary();
 });
@@ -937,8 +998,12 @@ $(document).on('click', '.btn-open-xml-field-picker', function() {
   $('#xmlFieldPickerModal').modal('show');
   if (xmlDetectedPaths.length === 0) {
     $('#xml-field-picker-list').html('<div class="alert alert-info"><i class="fa fa-spin fa-spinner"></i> Chargement des champs XML détectés...</div>');
-    loadXmlRowPreview(function() {
-      renderXmlFieldPickerList('');
+    loadXmlRowPreview(function(data, error) {
+      if (error) {
+        $('#xml-field-picker-list').empty().append($('<div class="alert alert-warning" role="alert">').text(error));
+        return;
+      }
+      renderXmlFieldPickerList($('#xml-field-picker-filter').val());
     });
     return;
   }
