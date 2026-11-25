@@ -141,17 +141,18 @@
         <div id="divMappingMode" class="d-none">
           <h3 class="check-format-section-title">Mode mapping</h3>
           <p class="check-format-mapping-help">Cliquez sur un champ associé pour modifier sa correspondance.</p>
+          <div id="mapping-duplicate-header-warning" class="alert alert-warning d-none" role="status">Des en-têtes sont identiques : utilisez le numéro de colonne pour les distinguer.</div>
           <div class="check-format-table-scroll">
             <table class="table table-bordered check-format-mapping-table">
               <thead>
-              <tr>
+              <tr id="mapping-source-headers">
                 {% for donnee in ligne_entete %}
-                  <th data-index="{{ loop.index }}">{{ donnee }}</th>
+                  <th data-index="{{ loop.index }}">Colonne {{ loop.index }} — {{ donnee|default('(sans en-tête)', true) }}</th>
                 {% endfor %}
               </tr>
               <tr id="tr_mapping" data-url="{{ path('check_format_mapping_get_configuration_values') }}" data-url-select-champs="{{ path('check_format_mapping_select_champs', {code: mapping_configuration_type.code}) }}">
                 {% for donnee in ligne_entete %}
-                  <th data-index="{{ loop.index - 1 }}" data-lib-colonne="{{ donnee }}" class="mapping_data_value d" ></th>
+                  <th data-index="{{ loop.index - 1 }}" data-lib-colonne="{{ donnee|e('html_attr') }}" class="mapping_data_value d" ></th>
                 {% endfor %}
               </tr>
               </thead>

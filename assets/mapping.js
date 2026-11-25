@@ -11,6 +11,7 @@ $(document).on('click.checkFormatModal', '[data-toggle="modal"], [data-dismiss="
 });
 
 $( document ).ready( function () {
+  markDuplicateMappingHeaders();
   if ($('#mapping_configuration').length > 0) {
     loadMappingConfigurations();
   }
@@ -96,7 +97,8 @@ var mappingId = "";
 
 $('.mapping_data_value').click(function() {
   if (!requestPending) {
-    let data = {lib_colonne: $(this).data('lib-colonne'), mapping_id: $('#mapping').val()};
+    const columnIndex = $(this).data('index');
+    let data = {lib_colonne: $(this).attr('data-lib-colonne'), mapping_id: $('#mapping').val()};
     requestPending = true;
     $.ajax({
       url: $('#tr_mapping').data('url-select-champs'),
@@ -104,7 +106,10 @@ $('.mapping_data_value').click(function() {
       data: data,
       success: function (data) {
         $("#divModalSelectChamps").html(data);
-        $("#modalSelectChamps").modal('show');
+        const modal = $("#modalSelectChamps");
+        modal.data('column-index', columnIndex);
+        modal.find('p.modal-title').append(document.createTextNode(' (colonne ' + (columnIndex + 1) + ')'));
+        modal.modal('show');
         requestPending = false;
       },
       error: function () {
@@ -114,6 +119,35 @@ $('.mapping_data_value').click(function() {
     });
   }
 });
+
+// Keep the source header unchanged; its position identifies a column even if names repeat.
+function markDuplicateMappingHeaders() {
+  const columns = $('#tr_mapping .mapping_data_value');
+  const counts = new Map();
+  columns.each(function() {
+    const header = $(this).attr('data-lib-colonne') || '';
+    counts.set(header, (counts.get(header) || 0) + 1);
+  });
+  let duplicates = false;
+  columns.each(function(index) {
+    const header = $(this).attr('data-lib-colonne') || '';
+    if (counts.get(header) > 1) {
+      duplicates = true;
+      $('#mapping-source-headers th').eq(index).append(
+        $('<span>', {'class': 'badge bg-warning text-dark ml-1'}).text('En-tête en double')
+      );
+    }
+  });
+  $('#mapping-duplicate-header-warning').toggleClass('d-none', !duplicates);
+}
+
+function selectedMappingColumn() {
+  const index = $('#modalSelectChamps').data('column-index');
+  if (!Number.isInteger(index) || index < 0) return $();
+  return $('#tr_mapping .mapping_data_value').filter(function() {
+    return $(this).data('index') === index;
+  });
+}
 
 let pendingMappingSaves = 0;
 let advancedConfigurationRequest = 0;
@@ -151,7 +185,7 @@ function saveMapping() {
           {
 
             index: thTemp.data('index'),
-            nom_entete: thTemp.data('lib-colonne'),
+            nom_entete: thTemp.attr('data-lib-colonne'),
             mapping_code: thTemp.data('code-mapping'),
             mapping_type: thTemp.data('type-mapping')
           }
@@ -1378,7 +1412,7 @@ function updateObligatoiresAMapper() {
 }
 
 $(document).on('change', '#champs', function() {
-  var data = {lib_colonne: $('#champs').data('lib-colonne'), champ: $(this).val()};
+  var data = {lib_colonne: $('#champs').attr('data-lib-colonne'), champ: $(this).val()};
   $.ajax({
     url: $('#champs').data('url'),
     type: 'POST',
@@ -1394,19 +1428,23 @@ $(document).on('change', '#champs', function() {
 });
 
 $(document).on('click', '#btn-remove-correspondance', function(){
-  let th = $('.mapping_data_value[data-lib-colonne="'+$('#champs').data('lib-colonne')+'"]');
+  let th = selectedMappingColumn();
+  if (th.length !== 1) return;
   th.data('code-mapping', '');
-  th.html('');
+  th.removeData('type-mapping');
+  th.text('');
   th.removeClass('mapping_data_value_ok');
   $('#modalSelectChamps').modal('hide');
   saveMapping();
 });
 
 $(document).on('click', '#btn-valid-champ', function() {
-  var th = $('.mapping_data_value[data-lib-colonne="'+$(this).data('lib-colonne')+'"]');
+  var th = selectedMappingColumn();
+  if (th.length !== 1) return;
   var selectChamps = $('#champs');
   th.data('code-mapping', selectChamps.val());
-  th.html(selectChamps.val());
+  th.removeData('type-mapping');
+  th.text(selectChamps.val());
 
   th.addClass('mapping_data_value_ok');
   $('#modalSelectChamps').modal('hide');
@@ -1415,12 +1453,13 @@ $(document).on('click', '#btn-valid-champ', function() {
 });
 
 $(document).on('click', '#btn-save-mapping-champ-date', function() {
-  var th = $('.mapping_data_value[data-lib-colonne="'+$(this).data('lib-colonne')+'"]');
+  var th = selectedMappingColumn();
+  if (th.length !== 1) return;
   var selectChamps = $('#champs');
 
   th.data('code-mapping', selectChamps.val());
   th.data('type-mapping', $('#format_date').val());
-  th.html(selectChamps.val());
+  th.text(selectChamps.val());
 
   th.addClass('mapping_data_value_ok');
   $('#modalSelectChamps').modal('hide');
@@ -1429,12 +1468,13 @@ $(document).on('click', '#btn-save-mapping-champ-date', function() {
 });
 
 $(document).on('click', '#btn-save-mapping-champ-array', function() {
-  var th = $('.mapping_data_value[data-lib-colonne="'+$(this).data('lib-colonne')+'"]');
+  var th = selectedMappingColumn();
+  if (th.length !== 1) return;
   var selectChamps = $('#champs');
 
   th.data('code-mapping', selectChamps.val());
   th.data('type-mapping', $('#delimiteur').val());
-  th.html(selectChamps.val());
+  th.text(selectChamps.val());
 
   th.addClass('mapping_data_value_ok');
   $('#modalSelectChamps').modal('hide');

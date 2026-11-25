@@ -123,7 +123,7 @@
           <label for="select_entete">Valeur - entête fichier</label>
           <select class="form-control" id="select_entete" name="select_entete">
             {% for indexFile, entete in ligne_entete %}
-              <option value="{{ indexFile }}">{{ entete }}</option>
+              <option value="{{ indexFile }}" data-header="{{ entete|e('html_attr') }}">Colonne {{ loop.index }} — {{ entete|default('(sans en-tête)', true) }}</option>
             {% endfor %}
           </select>
         </div>
@@ -157,7 +157,7 @@
                 <td>
                   <select class="form-control" id="select_entete_0" name="select_entete_0">
                     {% for indexFile, entete in ligne_entete %}
-                      <option value="{{ indexFile }}">{{ entete }}</option>
+                      <option value="{{ indexFile }}" data-header="{{ entete|e('html_attr') }}">Colonne {{ loop.index }} — {{ entete|default('(sans en-tête)', true) }}</option>
                     {% endfor %}
                   </select>
                 </td>
@@ -251,7 +251,7 @@
     if (type !== undefined){
       let value = $('#value-valeur-avancee').val();
       let file_index = $('#select_entete').val();
-      let file_entete = $('#select_entete option:selected').text();
+      let file_entete = $('#select_entete option:selected').attr('data-header');
       let date_custom_format = $('#date_custom_format').val();
       let date_custom_modify = $('#date_custom_modify').val();
       let delimiter = $('#delimiter-valeur-avancee').val();
@@ -315,14 +315,12 @@
 
   $('#btn-add-ligne-array').click(function() {
     nbColonnes ++;
-    var select = '<tr><td><input type="text" class="form-control" id="code_'+nbColonnes+'" name="code_'+nbColonnes+'"></td><td><select class="form-control" id="select_entete_'+nbColonnes+'" name="select_entete_'+nbColonnes+'">';
-
-    {% for indexFile, entete in ligne_entete %}
-      select += '<option value="{{ indexFile }}">{{ entete }}</option>';
-    {% endfor %}
-    select += '</select></td></tr>';
-
-    $('#tableMultiColonne').find("tbody").append(select);
+    const row = $('<tr>');
+    $('<td>').append($('<input>', {type: 'text', 'class': 'form-control', id: 'code_' + nbColonnes, name: 'code_' + nbColonnes})).appendTo(row);
+    const select = $('<select>', {'class': 'form-control', id: 'select_entete_' + nbColonnes, name: 'select_entete_' + nbColonnes});
+    select.append($('#select_entete option').clone());
+    $('<td>').append(select).appendTo(row);
+    $('#tableMultiColonne tbody').append(row);
   });
 
 
