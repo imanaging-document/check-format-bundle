@@ -1,0 +1,33 @@
+<div class="form-group" id="{{ suggestions_id }}" data-url="{{ path('check_format_mapping_distinct_values', {id: mapping_value.id}) }}">
+  <small class="text-muted">Recherche des valeurs présentes dans le fichier…</small>
+  <div class="mt-2" aria-live="polite"></div>
+</div>
+<script>
+  (function() {
+    const container = document.getElementById({{ suggestions_id|json_encode|raw }});
+    const message = container.querySelector('small');
+    const list = container.querySelector('div');
+    $.getJSON(container.dataset.url).done(function(result) {
+      if (result.status !== 'ok' || !result.values.length) {
+        message.textContent = 'Suggestions indisponibles : aucun fichier exploitable ou au moins 20 valeurs distinctes.';
+        return;
+      }
+      message.textContent = 'Valeurs distinctes avant traduction et transformation du champ :';
+      result.values.forEach(function(value) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn btn-sm btn-outline-secondary mr-1 mb-1';
+        button.textContent = value === '' ? '(valeur vide)' : value;
+        button.addEventListener('click', function() {
+          const input = document.getElementById({{ input_id|json_encode|raw }});
+          input.value = value;
+          input.dispatchEvent(new Event('input', {bubbles: true}));
+          input.focus();
+        });
+        list.appendChild(button);
+      });
+    }).fail(function() {
+      message.textContent = 'Impossible de charger les suggestions pour ce fichier.';
+    });
+  })();
+</script>

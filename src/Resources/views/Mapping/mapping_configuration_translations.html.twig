@@ -50,6 +50,7 @@
         <div class="form-group">
           <label for="value_fichier">Valeur dans le fichier</label>
           <input id="value_fichier" name="value_fichier" type="text" class="form-control">
+          {% include "@ImanagingCheckFormat/Mapping/_distinct_values.html.twig" with {suggestions_id: "translation-suggestions", input_id: "value_fichier"} %}
         </div>
 
         <div class="pretty p-icon p-round">
@@ -105,8 +106,8 @@
           translation = '<i class="fa fa-warning text-danger fa-fw"></i><span>NULL (en base de données)';
         }
         let newTr = '<tr>' +
-            '<td>'+valueFichier+'</td>' +
-            '<td>'+translation+'</td>' +
+            '<td>'+ $('<div>').text(valueFichier).html() +'</td>' +
+            '<td>'+ (translateMode === 'set_nullable' ? translation : $('<div>').text(translation).html()) +'</td>' +
             '<td>' +
             '<button type="button" class="check-format-icon-delete remove-translation" data-translation-id="'+data.id+'" aria-label="Supprimer cette traduction" title="Supprimer cette traduction"><i class="fa fa-trash" aria-hidden="true"></i></button>' +
             '</td>' +

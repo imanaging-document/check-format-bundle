@@ -112,6 +112,10 @@
         <default key="_controller">imanaging_check_format.mapping_controller::getMappingConfigurationValuesAvancesAction</default>
     </route>
 
+    <route id="check_format_mapping_distinct_values" path="/mapping/valeurs-distinctes/{id}" methods="GET">
+        <default key="_controller">imanaging_check_format.mapping_controller::distinctValuesAction</default>
+    </route>
+
     <route id="check_format_mapping_add_translations" path="/mapping/translations/{idValue}/add">
         <default key="_controller">imanaging_check_format.mapping_controller::addTranslationAction</default>
     </route>

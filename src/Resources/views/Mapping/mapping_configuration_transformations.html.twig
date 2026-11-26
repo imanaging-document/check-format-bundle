@@ -69,6 +69,7 @@
           <div class="form-group">
             <label for="replace_search">Chercher</label>
             <input type="text" class="form-control" name="replace_search" id="replace_search" />
+            {% include "@ImanagingCheckFormat/Mapping/_distinct_values.html.twig" with {suggestions_id: "transformation-suggestions", input_id: "replace_search"} %}
           </div>
           <div class="form-group">
             <label for="replace_value">Remplacer par</label>

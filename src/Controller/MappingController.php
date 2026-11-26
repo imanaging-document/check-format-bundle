@@ -5,6 +5,7 @@ namespace Imanaging\CheckFormatBundle\Controller;
 use App\Entity\MappingConfiguration;
 use DateTime;
 use Imanaging\CheckFormatBundle\Service\DecimalToInteger;
+use Imanaging\CheckFormatBundle\Service\DistinctMappingValues;
 use Imanaging\CheckFormatBundle\Service\AdvancedPartTransformation;
 use Imanaging\CheckFormatBundle\Service\CsvStructureComparison;
 use Imanaging\CheckFormatBundle\Service\MappingStructurePreview;
@@ -1672,6 +1673,37 @@ class MappingController extends AbstractController
       }
     }
     return new JsonResponse([], 500);
+  }
+
+  public function distinctValuesAction(int $id): JsonResponse
+  {
+    $value = $this->em->getRepository(MappingConfigurationValueInterface::class)->find($id);
+    if (!$value instanceof MappingConfigurationValueInterface) {
+      return new JsonResponse(['status' => 'unavailable'], 404);
+    }
+    $configuration = $value->getMappingConfiguration();
+    if (!$configuration instanceof MappingConfigurationInterface || !$configuration->isActive()) {
+      return new JsonResponse(['status' => 'unavailable']);
+    }
+    $type = $configuration->getType();
+    $files = glob($this->projectDir . $type->getFilesDirectory() . $type->getFilename() . '*') ?: [];
+    if (count($files) !== 1) {
+      return new JsonResponse(['status' => 'unavailable']);
+    }
+    $record = $this->em->getRepository(MappingConfigurationFileInterface::class)->findOneBy(['filename' => basename($files[0])]);
+    if ($record instanceof MappingConfigurationFileInterface && $record->getMappingConfiguration()->getId() !== $configuration->getId()) {
+      return new JsonResponse(['status' => 'unavailable']);
+    }
+    try {
+      $data = $this->mapping->getDataFromMappingConfigurationFile($files[0], $configuration);
+      if ($data['entete']) {
+        array_shift($data['data']);
+      }
+      $values = (new DistinctMappingValues())->collect($value, $data['data']);
+      return new JsonResponse(['status' => $values === null ? 'unavailable' : 'ok', 'values' => $values]);
+    } catch (\Throwable $exception) {
+      return new JsonResponse(['status' => 'unavailable']);
+    }
   }
 
   public function updateTranslationsAction(Request $request)
