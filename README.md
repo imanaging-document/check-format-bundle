@@ -199,3 +199,7 @@ Pour les soldes formatés du client, ajouter les transformations dans cet ordre 
 
 Ainsi `000.000.281,57` devient `-28157` et `-000.004.128,56` devient `412856`.
 L'inversion s'applique uniquement aux champs des mappings où elle est ajoutée.
+
+### Encodage des CSV
+
+Les CSV en UTF-8 (avec ou sans BOM) et UTF-16 avec BOM sont lus en UTF-8. Un CSV sans BOM qui ne respecte pas UTF-8 est interprété en Windows-1252. Les en-têtes et les données utilisent la même conversion. Cette détection ne distingue pas tous les encodages historiques : privilégier UTF-8 à la source et vérifier le résultat pour tout autre encodage.

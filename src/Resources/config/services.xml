@@ -31,6 +31,7 @@
       <argument type="service" id="imanaging_check_format.mapping" />
       <argument type="service" id="twig" />
       <argument type="service" id="security.csrf.token_manager" />
+      <argument type="service" id="imanaging_check_format.converter" />
     </service>
   </services>
 </container>

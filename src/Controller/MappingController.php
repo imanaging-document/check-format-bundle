@@ -4,6 +4,7 @@ namespace Imanaging\CheckFormatBundle\Controller;
 
 use App\Entity\MappingConfiguration;
 use DateTime;
+use Imanaging\CheckFormatBundle\Service\CsvToArrayService;
 use Imanaging\CheckFormatBundle\Service\DecimalToInteger;
 use Imanaging\CheckFormatBundle\Service\DistinctMappingValues;
 use Imanaging\CheckFormatBundle\Service\AdvancedPartTransformation;
@@ -46,6 +47,7 @@ class MappingController extends AbstractController
   private $projectDir;
   private $twig;
   private CsrfTokenManagerInterface $csrfTokens;
+  private CsvToArrayService $csvConverter;
 
   /**
    * MappingController constructor.
@@ -53,13 +55,20 @@ class MappingController extends AbstractController
    * @param Mapping $mapping
    * @param $projectDir
    */
-  public function __construct(EntityManagerInterface $em, Mapping $mapping, Environment $twig, CsrfTokenManagerInterface $csrfTokens)
+  public function __construct(
+    EntityManagerInterface $em,
+    Mapping $mapping,
+    Environment $twig,
+    CsrfTokenManagerInterface $csrfTokens,
+    CsvToArrayService $csvConverter
+  )
   {
     $this->em = $em;
     $this->mapping = $mapping;
     $this->projectDir = $mapping->getProjectDir();
     $this->twig = $twig;
     $this->csrfTokens = $csrfTokens;
+    $this->csvConverter = $csvConverter;
   }
 
   public function indexAction(Request $request)
@@ -289,16 +298,7 @@ class MappingController extends AbstractController
       return null;
     }
     ksort($expected);
-    $handle = fopen($file, 'r');
-    if ($handle === false) {
-      throw new \RuntimeException('Impossible de lire le fichier CSV.');
-    }
-    try {
-      $header = fgetcsv($handle, 100000, ';', '"', '');
-    } finally {
-      fclose($handle);
-    }
-    $header = is_array($header) ? $header : [];
+    $header = $this->csvConverter->readHeader($file, ';');
     $comparison = CsvStructureComparison::compare($expected, $header);
     if ($comparison === null) {
       return null;
